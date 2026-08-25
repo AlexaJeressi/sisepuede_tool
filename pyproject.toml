@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sisepuede-tool"
+version = "0.1.0"
+description = "Shiny-for-Python GUI for designing and running SISEPUEDE decarbonization strategies"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = "==3.11.*"
+dependencies = [
+    "shiny>=0.10",
+    "shinywidgets>=0.3",
+    "plotly>=5.20",
+    "pandas",
+    "openpyxl",
+    "PyYAML",
+    "sisepuede @ git+https://github.com/jcsyme/sisepuede.git",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff"]
+
+[project.scripts]
+sisepuede-tool = "sisepuede_tool.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

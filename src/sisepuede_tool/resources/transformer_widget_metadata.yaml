@@ -1,0 +1,15 @@
+# Hand-curated overrides for auto-generated Transformer parameter widgets.
+#
+# Keyed by transformer_code -> parameter_name -> any of {bounds, choices,
+# help_text, kind, label}. Only add entries for parameters where the
+# auto-generated widget (see services/widget_metadata.py) needs correcting --
+# this file is expected to grow incrementally as transformers are actually
+# used, not to cover all ~70 transformers up front.
+#
+# Example (illustrative, not a claim that 0.9 is a hard sisepuede-side cap --
+# refine as real usage surfaces better bounds):
+#
+# "TFR:AGRC:DEC_CH4_RICE":
+#   magnitude:
+#     bounds: [0.0, 0.9]
+#     help_text: "Fractional reduction in rice CH4 emissions from improved management and reduced flooding."
