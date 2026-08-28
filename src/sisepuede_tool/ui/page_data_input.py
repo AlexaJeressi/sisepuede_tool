@@ -19,25 +19,73 @@ from sisepuede_tool.services import catalog_service, input_service, strategy_ser
 from sisepuede_tool.ui.state import AppState
 
 
+_ICON_UPLOAD = ui.HTML(
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/>'
+    '<path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>'
+)
+_ICON_LIST = ui.HTML(
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>'
+)
+_ICON_CHECK = ui.HTML(
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+)
+_ICON_TRASH = ui.HTML(
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>'
+)
+
+
+def _field(label: str, *children, hint: str = None) -> ui.Tag:
+    parts = [ui.span(label, class_="field-label"), *children]
+    if hint:
+        parts.append(ui.span(hint, class_="field-hint"))
+    return ui.div(*parts, class_="field")
+
+
+def _card_header(icon, title: str, description: str) -> ui.Tag:
+    return ui.div(
+        ui.div(icon, class_="icon-badge"),
+        ui.div(ui.h2(title), ui.p(description)),
+        class_="card-header",
+    )
+
+
 @module.ui
 def page_data_input_ui():
-    return ui.layout_columns(
-        ui.card(
-            ui.card_header("Add a baseline"),
-            ui.input_file("csv_file", "Baseline CSV", accept=[".csv"], multiple=False),
-            ui.input_text("baseline_label", "Label", placeholder="e.g. NDC 2024 update"),
-            ui.input_action_button("add_baseline", "Validate & Add", class_="btn-primary"),
-            ui.output_ui("validation_panel"),
-            ui.h6("Preview (first 10 rows)"),
-            ui.output_data_frame("preview_table"),
+    return ui.div(
+        ui.div(
+            _card_header(_ICON_UPLOAD, "Add a baseline", "Upload a CSV and validate it against the expected SISEPUEDE schema."),
+            ui.div(
+                _field("Baseline CSV", ui.input_file("csv_file", None, accept=[".csv"], multiple=False)),
+                _field(
+                    "Label",
+                    ui.input_text("baseline_label", None, placeholder="e.g. NDC 2024 update"),
+                    hint="Shown in the loaded baselines table and in downstream project pickers.",
+                ),
+                ui.input_action_button("add_baseline", ui.TagList(_ICON_CHECK, "Validate & Add"), class_="btn-primary"),
+                ui.output_ui("validation_panel"),
+                _field("Preview (first 10 rows)", ui.div(ui.output_data_frame("preview_table"), class_="table-wrap")),
+                class_="card-body",
+            ),
+            class_="card",
         ),
-        ui.card(
-            ui.card_header("Loaded baselines"),
-            ui.output_data_frame("baselines_table"),
-            ui.input_select("remove_baseline_select", "Remove baseline", choices={}),
-            ui.input_action_button("remove_baseline_btn", "Remove selected", class_="btn-outline-danger"),
+        ui.div(
+            _card_header(_ICON_LIST, "Loaded baselines", "Baselines available to projects in this session."),
+            ui.div(
+                ui.div(ui.output_data_frame("baselines_table"), class_="table-wrap"),
+                ui.div(class_="divider"),
+                _field("Remove baseline", ui.input_select("remove_baseline_select", None, choices={})),
+                ui.input_action_button(
+                    "remove_baseline_btn", ui.TagList(_ICON_TRASH, "Remove selected"), class_="btn-outline-danger"
+                ),
+                class_="card-body",
+            ),
+            class_="card",
         ),
-        col_widths=[6, 6],
+        class_="content",
     )
 
 
@@ -128,16 +176,22 @@ def page_data_input_server(input, output, session, state: AppState):
 
     @render.ui
     def validation_panel():
+        icon_info = ui.HTML(
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" '
+            'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/>'
+            '<path d="M12 8v5M12 16h.01"/></svg>'
+        )
+
         result = last_validation.get()
         if result is None:
-            return ui.p("No baseline validated yet.", class_="text-muted")
+            return ui.div(icon_info, "No baseline validated yet. Choose a file and select Validate & add.", class_="empty-note")
         if not result.ok:
-            return ui.div(ui.strong("Error: "), result.error, class_="text-danger")
+            return ui.div(icon_info, ui.strong("Error: "), result.error, class_="empty-note text-danger")
 
         msg = f"Valid — region '{result.region}', {result.n_time_periods} time periods."
         if result.interpolated_periods:
             msg += f" Interpolated missing periods: {result.interpolated_periods}."
-        return ui.div(msg, class_="text-success")
+        return ui.div(icon_info, msg, class_="empty-note text-success")
 
     @render.data_frame
     def preview_table():

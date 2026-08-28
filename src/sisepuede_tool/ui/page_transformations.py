@@ -3,41 +3,136 @@ adjust its parameters via an auto-generated form, save as a named
 Transformation.
 """
 
+import asyncio
+import os
+
 import pandas as pd
 from shiny import module, reactive, render, ui
 
-from sisepuede_tool.services import transformation_service, widget_metadata
+from sisepuede_tool.services import persistence_service, transformation_service, widget_metadata
 from sisepuede_tool.ui.components import param_widget
 from sisepuede_tool.ui.state import AppState
+
+_ICON_FOLDER = ui.HTML(
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>'
+)
+
+# Native folder picker via `osascript` (a separate OS process) rather than an
+# in-process GUI toolkit like tkinter: Tk/Cocoa calls must happen on the main
+# thread on macOS, and running them from an asyncio-offloaded thread (as an
+# earlier version of this did) deadlocks the whole app -- the wedged Tk call
+# holds the GIL, freezing every other request/websocket in this single
+# process, not just the dialog. A subprocess has none of that coupling and
+# is naturally awaitable without blocking the event loop.
+#
+# `choose folder` requires macOS's Automation/TCC permission for whatever
+# process launched this app to control Finder/System Events. Without it, the
+# call doesn't raise -- it silently auto-denies after a multi-second OS-level
+# delay and returns AppleScript's "-128 User canceled", indistinguishable
+# from a real cancel. _PICK_DIRECTORY_TIMEOUT_S bounds that delay so a denied
+# permission (or any other stall) can never wedge the app; if it keeps timing
+# out, grant Automation access in System Settings > Privacy & Security.
+_PICK_DIRECTORY_TIMEOUT_S = 20
+_CHOOSE_FOLDER_SCRIPT_LINES = [
+    "on run argv",
+    "if (count of argv) > 0 then",
+    'set chosenFolder to choose folder with prompt "Choose a directory" default location (POSIX file (item 1 of argv))',
+    "else",
+    'set chosenFolder to choose folder with prompt "Choose a directory"',
+    "end if",
+    "return POSIX path of chosenFolder",
+    "end run",
+]
+
+
+async def _pick_directory(initial_dir: str = "") -> str:
+    """Open the native macOS folder-picker dialog and return the chosen
+    path, or "" if the user cancels (or the dialog times out -- see
+    _PICK_DIRECTORY_TIMEOUT_S)."""
+    args = ["osascript"]
+    for line in _CHOOSE_FOLDER_SCRIPT_LINES:
+        args += ["-e", line]
+    if initial_dir and os.path.isdir(initial_dir):
+        args.append(initial_dir)
+
+    proc = await asyncio.create_subprocess_exec(
+        *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=_PICK_DIRECTORY_TIMEOUT_S)
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        raise TimeoutError(
+            "Folder picker timed out -- macOS may be blocking it. Check System Settings > "
+            "Privacy & Security > Automation and allow this app to control Finder/System Events."
+        )
+    if proc.returncode != 0:
+        # includes user cancellation (AppleScript error -128), which isn't a
+        # real failure -- just report no path chosen either way.
+        return ""
+    return stdout.decode().strip()
 
 
 @module.ui
 def page_transformations_ui():
-    return ui.layout_columns(
-        ui.card(
-            ui.card_header("Choose a Transformer"),
-            ui.input_select("sector", "Sector", choices={}),
-            ui.input_select("transformer_code", "Transformer", choices={}),
-            ui.output_ui("transformer_description"),
-        ),
-        ui.card(
-            ui.card_header("Configure Transformation"),
-            ui.input_text("transformation_code", "Transformation code"),
-            ui.input_text("transformation_name", "Name"),
-            ui.input_text_area("transformation_description", "Description", rows=2),
-            ui.output_ui("param_form"),
-            ui.input_action_button("save_transformation", "Save Transformation", class_="btn-primary"),
-            ui.output_ui("save_status_ui"),
-        ),
-        ui.card(
-            ui.card_header("Saved Transformations"),
-            ui.output_data_frame("transformations_table"),
-            ui.input_select("remove_transformation_select", "Remove transformation", choices={}),
-            ui.input_action_button(
-                "remove_transformation_btn", "Remove selected", class_="btn-outline-danger"
+    return ui.TagList(
+        ui.layout_columns(
+            ui.card(
+                ui.card_header("Choose a Transformer"),
+                ui.input_select("sector", "Sector", choices={}),
+                ui.input_select("transformer_code", "Transformer", choices={}),
+                ui.output_ui("transformer_description"),
             ),
+            ui.card(
+                ui.card_header("Configure Transformation"),
+                ui.input_text("transformation_code", "Transformation code"),
+                ui.input_text("transformation_name", "Name"),
+                ui.input_text_area("transformation_description", "Description", rows=2),
+                ui.output_ui("param_form"),
+                ui.input_action_button("save_transformation", "Add Transformation", class_="btn-primary"),
+                ui.output_ui("save_status_ui"),
+            ),
+            ui.card(
+                ui.card_header("Saved Transformations"),
+                ui.output_data_frame("transformations_table"),
+                ui.input_select("remove_transformation_select", "Remove transformation", choices={}),
+                ui.input_action_button(
+                    "remove_transformation_btn", "Remove selected", class_="btn-outline-danger"
+                ),
+            ),
+            col_widths=[4, 4, 4],
         ),
-        col_widths=[4, 4, 4],
+        ui.layout_columns(
+            ui.card(
+                ui.card_header("Save Transformations Directory"),
+                ui.p(
+                    "Write config_general.yaml, one transformation_*.yaml per saved Transformation, "
+                    "strategy_definitions.csv, and citations.bib for this session's Transformations "
+                    "and Strategies to a directory -- loadable by the sisepuede CLI/notebooks unmodified.",
+                    class_="text-muted",
+                ),
+                ui.input_action_button(
+                    "save_dir_btn", ui.TagList(_ICON_FOLDER, "Save"), class_="btn-primary"
+                ),
+                ui.output_ui("save_dir_status_ui"),
+            ),
+            ui.card(
+                ui.card_header("Load Transformations Directory"),
+                ui.p(
+                    "Replace this session's Transformations and Strategies by loading a standard "
+                    "transformations directory (config_general.yaml + transformation_*.yaml + "
+                    "strategy_definitions.csv) -- export first if you want to keep the current ones.",
+                    class_="text-muted",
+                ),
+                ui.input_action_button(
+                    "load_dir_btn", ui.TagList(_ICON_FOLDER, "Load"), class_="btn-outline-secondary"
+                ),
+                ui.output_ui("load_dir_status_ui"),
+            ),
+            col_widths=[6, 6],
+        ),
     )
 
 
@@ -197,3 +292,90 @@ def page_transformations_server(input, output, session, state: AppState):
             for t in transformations_obj.dict_transformations.values()
         ]
         return render.DataGrid(pd.DataFrame(rows))
+
+    def _n_non_baseline(transformations_obj, strategies_map) -> "tuple[int, int]":
+        n_transformations = len(transformations_obj.dict_transformations) - 1
+        n_strategies = len(strategies_map) - (1 if 0 in strategies_map else 0)
+        return n_transformations, n_strategies
+
+    last_save_dir_result = reactive.Value(None)  # (ok, message) | None
+    last_load_dir_result = reactive.Value(None)  # (ok, message) | None
+
+    @reactive.effect
+    @reactive.event(input.save_dir_btn)
+    async def _on_save_dir():
+        transformations_obj = state.transformations_obj.get()
+        if transformations_obj is None:
+            last_save_dir_result.set((False, "Add a baseline on the Baseline Data page first."))
+            return
+
+        try:
+            path = await _pick_directory()
+        except Exception as e:
+            last_save_dir_result.set((False, f"Could not open folder picker: {e}"))
+            return
+        if not path:
+            return  # user cancelled -- leave prior status as-is
+
+        strategies_map = state.strategies_map.get()
+        try:
+            persistence_service.export_transformations_dir(transformations_obj, strategies_map, path)
+        except Exception as e:
+            last_save_dir_result.set((False, f"Save failed: {e}"))
+            return
+
+        n_transformations, n_strategies = _n_non_baseline(transformations_obj, strategies_map)
+        last_save_dir_result.set(
+            (True, f"Saved {n_transformations} transformation(s) and {n_strategies} strategy(ies) to '{path}'.")
+        )
+        ui.notification_show("Transformations directory saved.", type="message")
+
+    @reactive.effect
+    @reactive.event(input.load_dir_btn)
+    async def _on_load_dir():
+        transformers_catalog = state.transformers_catalog.get()
+        if transformers_catalog is None:
+            last_load_dir_result.set((False, "Add a baseline on the Baseline Data page first."))
+            return
+
+        try:
+            path = await _pick_directory()
+        except Exception as e:
+            last_load_dir_result.set((False, f"Could not open folder picker: {e}"))
+            return
+        if not path:
+            return  # user cancelled -- leave prior status as-is
+
+        try:
+            transformations_obj, strategies_map = persistence_service.import_transformations_dir(
+                path, transformers_catalog
+            )
+        except Exception as e:
+            last_load_dir_result.set((False, f"Load failed: {e}"))
+            return
+
+        state.transformations_obj.set(transformations_obj)
+        state.transformations_revision.set(state.transformations_revision.get() + 1)
+        state.strategies_map.set(strategies_map)
+
+        n_transformations, n_strategies = _n_non_baseline(transformations_obj, strategies_map)
+        last_load_dir_result.set(
+            (True, f"Loaded {n_transformations} transformation(s) and {n_strategies} strategy(ies) from '{path}'.")
+        )
+        ui.notification_show("Transformations directory loaded.", type="message")
+
+    @render.ui
+    def save_dir_status_ui():
+        result = last_save_dir_result.get()
+        if result is None:
+            return None
+        ok, message = result
+        return ui.div(message, class_="text-success" if ok else "text-danger")
+
+    @render.ui
+    def load_dir_status_ui():
+        result = last_load_dir_result.get()
+        if result is None:
+            return None
+        ok, message = result
+        return ui.div(message, class_="text-success" if ok else "text-danger")

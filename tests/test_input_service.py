@@ -19,7 +19,7 @@ def test_validate_baseline_ok(model_attributes):
 
     assert result.ok
     assert result.error is None
-    assert result.region == "costa_rica"
+    assert result.region == "egypt"
     assert result.n_time_periods == 36
     assert result.interpolated_periods == []
     assert "region" in result.df.columns

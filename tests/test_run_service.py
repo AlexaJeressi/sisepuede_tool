@@ -34,6 +34,17 @@ def transformations(transformers_catalog):
         "TX:AGRC:DEC_EXPORTS", "dec exports", "TFR:AGRC:DEC_EXPORTS", {"magnitude": 0.4}, transformers_catalog
     )
     transformation_service.add_transformation(coll, t)
+    # TFR:AGRC:DEC_CH4_RICE still raises AttributeError ('AFOLU' object has no
+    # attribute 'modvar_agrc_ef_ch4') against every fixture region tried so far
+    # -- it's a code-structural bug in sisepuede's transformer lib, not a
+    # data-dependent one, so it's a reliable way to test the never-raises
+    # guarantee (unlike the old AFOLU/LivestockDietEstimator failure this file
+    # used to rely on, which turned out to be specific to the costa_rica
+    # fixture and no longer reproduces on the current egypt one).
+    t_broken = transformation_service.build_transformation(
+        "TX:AGRC:DEC_CH4_RICE", "broken rice transformer", "TFR:AGRC:DEC_CH4_RICE", {}, transformers_catalog
+    )
+    transformation_service.add_transformation(coll, t_broken)
     return coll
 
 
@@ -46,10 +57,11 @@ def test_build_models_connects_julia(models):
     assert models.allow_electricity_run is True
 
 
-def test_run_combination_succeeds_excluding_broken_afolu_sector(models, transformations, df_baseline):
-    """AFOLU currently fails on the shipped example baseline even with zero
-    transformations applied (known upstream LivestockDietEstimator bug,
-    unrelated to sisepuede_tool) -- confirmed other sectors run cleanly."""
+def test_run_combination_succeeds_with_all_sectors(models, transformations, df_baseline):
+    """Confirms a clean transformation runs successfully across every sector,
+    including AFOLU, against the current (egypt) fixture -- unlike the
+    costa_rica fixture this project used to ship, AFOLU doesn't need to be
+    excluded here (see the transformations fixture's comment)."""
     strategy = strategy_service.build_strategy(
         1000, ["TX:AGRC:DEC_EXPORTS"], transformations, name="test"
     )
@@ -57,11 +69,11 @@ def test_run_combination_succeeds_excluding_broken_afolu_sector(models, transfor
         models,
         strategy,
         df_baseline,
-        region="costa_rica",
+        region="egypt",
         run_energy_production=False,
         strategy_id=1000,
         baseline_id="baseline_a",
-        models_run=["Circular Economy", "IPPU"],
+        models_run=None,
     )
 
     assert result.ok, result.error
@@ -73,21 +85,18 @@ def test_run_combination_succeeds_excluding_broken_afolu_sector(models, transfor
 
 
 def test_run_combination_captures_failure_without_raising(models, transformations, df_baseline):
-    """Running the realistic default (all sectors, i.e. models_run=None) hits
-    the known upstream AFOLU/LivestockDietEstimator bug -- this must be
-    captured into the RunResult, not raised, since that's the error-isolation
-    guarantee the Run page's batch loop depends on. (Running AFOLU in
-    isolation doesn't raise -- sisepuede logs and swallows the error there,
-    returning an empty frame -- the crash only surfaces once AFOLU's
-    output is chained into the next model in the integrated run.)"""
+    """A strategy built from a transformer with a known code bug (see the
+    transformations fixture) must have its failure captured into the
+    RunResult, not raised, since that's the error-isolation guarantee the
+    Run page's batch loop depends on."""
     strategy = strategy_service.build_strategy(
-        1001, ["TX:AGRC:DEC_EXPORTS"], transformations, name="test afolu"
+        1001, ["TX:AGRC:DEC_CH4_RICE"], transformations, name="test broken transformer"
     )
     result = run_service.run_combination(
         models,
         strategy,
         df_baseline,
-        region="costa_rica",
+        region="egypt",
         run_energy_production=False,
         strategy_id=1001,
         baseline_id="baseline_a",

@@ -81,3 +81,60 @@ def test_export_then_import_round_trips(transformers_catalog, tmp_path):
     df = pd.read_csv(FIXTURE_CSV)
     df_out = imported_strategies[1000].strategy(df_input=df)
     assert df_out.shape[0] == df.shape[0]
+
+
+def test_export_transformations_dir_writes_expected_files(transformers_catalog, tmp_path):
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    out_dir = tmp_path / "my_transformations"
+
+    persistence_service.export_transformations_dir(transformations_obj, strategies_map, out_dir)
+
+    assert (out_dir / "config_general.yaml").exists()
+    assert (out_dir / "strategy_definitions.csv").exists()
+    assert (out_dir / "citations.bib").exists()
+    assert (out_dir / "transformation_tx_agrc_dec_exports_test.yaml").exists()
+    # baseline (TX:BASE) must not get its own transformation_*.yaml file
+    assert not (out_dir / "transformation_tx_base.yaml").exists()
+
+
+def test_export_then_import_directory_round_trips(transformers_catalog, tmp_path):
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    out_dir = tmp_path / "my_transformations"
+    persistence_service.export_transformations_dir(transformations_obj, strategies_map, out_dir)
+
+    imported_transformations, imported_strategies = persistence_service.import_transformations_dir(
+        out_dir, transformers_catalog
+    )
+
+    imported_t = imported_transformations.get_transformation("TX:AGRC:DEC_EXPORTS_TEST")
+    assert imported_t.dict_parameters["magnitude"] == 0.35
+    assert set(imported_strategies.keys()) == {0, 1000}
+
+    df = pd.read_csv(FIXTURE_CSV)
+    df_out = imported_strategies[1000].strategy(df_input=df)
+    assert df_out.shape[0] == df.shape[0]
+
+
+def test_import_transformations_dir_rejects_non_directory(transformers_catalog, tmp_path):
+    not_a_dir = tmp_path / "not_a_dir.txt"
+    not_a_dir.write_text("hello")
+    with pytest.raises(FileNotFoundError):
+        persistence_service.import_transformations_dir(not_a_dir, transformers_catalog)
+
+
+def test_import_transformations_dir_rejects_missing_config(transformers_catalog, tmp_path):
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    with pytest.raises(FileNotFoundError, match="config_general.yaml"):
+        persistence_service.import_transformations_dir(empty_dir, transformers_catalog)
+
+
+def test_export_transformations_dir_reuses_existing_citations(transformers_catalog, tmp_path):
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    out_dir = tmp_path / "my_transformations"
+    out_dir.mkdir()
+    (out_dir / "citations.bib").write_text("@misc{example, title={x}}")
+
+    persistence_service.export_transformations_dir(transformations_obj, strategies_map, out_dir)
+
+    assert (out_dir / "citations.bib").read_text() == "@misc{example, title={x}}"

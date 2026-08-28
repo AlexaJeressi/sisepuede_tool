@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egypt MRV Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #F6F4EE;
+    --surface: #FFFFFF;
+    --surface-2: #FBFAF6;
+    --sidebar-bg: #1E241E;
+    --sidebar-bg-2: #262D25;
+    --sidebar-text: #B7B3A5;
+    --sidebar-text-active: #FFFFFF;
+    --sidebar-border: rgba(255,255,255,0.08);
+    --border: #E2DED0;
+    --border-strong: #CFC9B8;
+    --text: #1E2420;
+    --text-secondary: #66645A;
+    --text-muted: #97947F;
+    --accent: #0E6E63;
+    --accent-hover: #0A564D;
+    --accent-soft: #E3F1EC;
+    --accent-contrast: #FFFFFF;
+    --danger: #B23F27;
+    --danger-soft: #FAEAE3;
+    --success: #2E7D5B;
+    --warning: #A2731A;
+    --shadow: rgba(30, 36, 30, 0.07);
+    --focus-ring: rgba(14, 110, 99, 0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14170F;
+      --surface: #1B1F17;
+      --surface-2: #20251C;
+      --sidebar-bg: #0E110C;
+      --sidebar-bg-2: #171B13;
+      --sidebar-text: #9C9A8B;
+      --sidebar-text-active: #F5F3E9;
+      --sidebar-border: rgba(255,255,255,0.06);
+      --border: #2B2F24;
+      --border-strong: #3A3F30;
+      --text: #ECE9DD;
+      --text-secondary: #A8A492;
+      --text-muted: #74705F;
+      --accent: #4CAE9B;
+      --accent-hover: #63C0AD;
+      --accent-soft: rgba(76, 174, 155, 0.16);
+      --accent-contrast: #06231D;
+      --danger: #E28468;
+      --danger-soft: rgba(226, 132, 104, 0.15);
+      --success: #79C79B;
+      --warning: #DCAB55;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --focus-ring: rgba(76, 174, 155, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14170F;
+    --surface: #1B1F17;
+    --surface-2: #20251C;
+    --sidebar-bg: #0E110C;
+    --sidebar-bg-2: #171B13;
+    --sidebar-text: #9C9A8B;
+    --sidebar-text-active: #F5F3E9;
+    --sidebar-border: rgba(255,255,255,0.06);
+    --border: #2B2F24;
+    --border-strong: #3A3F30;
+    --text: #ECE9DD;
+    --text-secondary: #A8A492;
+    --text-muted: #74705F;
+    --accent: #4CAE9B;
+    --accent-hover: #63C0AD;
+    --accent-soft: rgba(76, 174, 155, 0.16);
+    --accent-contrast: #06231D;
+    --danger: #E28468;
+    --danger-soft: rgba(226, 132, 104, 0.15);
+    --success: #79C79B;
+    --warning: #DCAB55;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --focus-ring: rgba(76, 174, 155, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+  }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  button, input, select {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  button { cursor: pointer; }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+    border-radius: 6px;
+  }
+
+  /* ---------- Shell ---------- */
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: 264px 1fr;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  /* ---------- Sidebar ---------- */
+
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 16px 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .brand {
+    padding: 4px 10px 22px;
+    border-bottom: 1px solid var(--sidebar-border);
+    margin-bottom: 18px;
+  }
+
+  .brand-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .flag-icon {
+    width: 24px;
+    height: 16px;
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px var(--sidebar-border);
+  }
+  .flag-icon svg { display: block; width: 100%; height: 100%; }
+
+  .brand-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #7A8778;
+  }
+
+  .brand-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--sidebar-text-active);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: #9CA79A;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--sidebar-border);
+    padding: 3px 8px;
+    border-radius: 100px;
+  }
+
+  .brand-sub .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4CAE9B;
+  }
+
+  nav { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+  .nav-group-label {
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #6E7B6C;
+    padding: 0 10px 6px;
+  }
+
+  .nav-group { display: flex; flex-direction: column; gap: 2px; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 13.8px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; opacity: 0.85; }
+
+  .nav-item:hover {
+    background: rgba(255,255,255,0.055);
+    color: var(--sidebar-text-active);
+  }
+
+  .nav-item.active {
+    background: var(--accent-soft);
+    color: #EAF6F2;
+    background: rgba(76, 174, 155, 0.18);
+  }
+  .nav-item.active svg { opacity: 1; color: #6FCBB8; }
+
+  .sidebar-foot {
+    border-top: 1px solid var(--sidebar-border);
+    padding-top: 14px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: #6E7B6C;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* ---------- Main ---------- */
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .topbar-crumb {
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .topbar-title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .topbar-desc {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+
+  .content {
+    padding: 28px 32px 48px;
+    display: grid;
+    grid-template-columns: minmax(340px, 1fr) minmax(380px, 1.15fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  /* ---------- Cards ---------- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px var(--shadow);
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-header .icon-badge {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-header .icon-badge svg { width: 17px; height: 17px; }
+
+  .card-header h2 {
+    font-size: 15.5px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .card-header p {
+    font-size: 12.8px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .card-body { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ---------- Form elements ---------- */
+
+  .field { display: flex; flex-direction: column; gap: 7px; }
+
+  .field-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .field-hint { font-size: 11.8px; color: var(--text-muted); }
+
+  .dropzone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: 8px;
+    padding: 22px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    background: var(--surface-2);
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .dropzone:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  .dropzone svg { width: 22px; height: 22px; color: var(--text-muted); }
+
+  .file-btn {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12.8px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .file-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .dropzone-name { font-size: 12px; color: var(--text-muted); }
+
+  input[type="text"], select {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    width: 100%;
+  }
+  input[type="text"]::placeholder { color: var(--text-muted); }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2397947F' stroke-width='1.6'%3E%3Cpath d='M5.5 8l4.5 4.5L14.5 8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 34px;
+  }
+
+  .btn {
+    height: 40px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    width: 100%;
+  }
+
+  .btn svg { width: 15px; height: 15px; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  .btn-outline-danger {
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--text-muted);
+  }
+  .btn-outline-danger:not(:disabled):hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: var(--danger-soft);
+  }
+  .btn-outline-danger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* ---------- Empty states ---------- */
+
+  .empty-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 12.8px;
+    color: var(--text-muted);
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+  }
+  .empty-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  .preview-box {
+    border: 1px dashed var(--border-strong);
+    border-radius: 7px;
+    padding: 20px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Table ---------- */
+
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; min-width: 560px; }
+
+  thead th {
+    text-align: left;
+    font-size: 10.8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-strong);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 26px 10px;
+  }
+
+  .table-empty-cell {
+    text-align: center;
+  }
+
+  .table-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+  .table-empty svg { width: 22px; height: 22px; opacity: 0.7; }
+  .table-empty strong { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+  .table-empty span { font-size: 12.2px; }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 980px) {
+    .content { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 860px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      flex-direction: row;
+      align-items: center;
+      overflow-x: auto;
+      padding: 14px 16px;
+    }
+    .brand { border-bottom: none; border-right: 1px solid var(--sidebar-border); padding: 0 18px 0 4px; margin-bottom: 0; margin-right: 6px; }
+    nav { flex-direction: row; gap: 14px; }
+    .nav-group { flex-direction: row; gap: 4px; }
+    .nav-group-label { display: none; }
+    .sidebar-foot { display: none; }
+    .topbar { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-top">
+        <span class="flag-icon" aria-hidden="true">
+          <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+            <rect width="30" height="20" fill="#EEEEEE"/>
+            <rect width="30" height="6.667" fill="#CE1126"/>
+            <rect y="13.333" width="30" height="6.667" fill="#000000"/>
+            <g transform="translate(15,10)" fill="#C09A2E">
+              <circle r="2.1"/>
+              <path d="M0 -3.4 L0.7 -1.2 L-0.7 -1.2 Z"/>
+              <path d="M-4.6 -1.6 L-2 -0.3 L-2.6 0.9 Z"/>
+              <path d="M4.6 -1.6 L2 -0.3 L2.6 0.9 Z"/>
+              <path d="M-3.4 2.6 L-1.1 1.3 L-0.4 2.6 Z"/>
+              <path d="M3.4 2.6 L1.1 1.3 L0.4 2.6 Z"/>
+            </g>
+          </svg>
+        </span>
+        <div class="brand-eyebrow">MRV Console</div>
+      </div>
+      <div class="brand-title">Egypt</div>
+      <div class="brand-sub"><span class="dot"></span> Built on SISEPUEDE</div>
+    </div>
+
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Setup</div>
+        <a class="nav-item active" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/><path d="M9 16h6"/></svg>
+          Baseline Data
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Pathways</div>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Projects
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+          Transformations
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="12" r="2.4"/><path d="M6 8.4V15.6M8.2 6.9 15.8 10.9M8.2 17.1 15.8 13.1"/></svg>
+          Strategies
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Execute</div>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5v15l13-7.5z"/></svg>
+          Run
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+          Output Explorer
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7L13 19l2.5-7H21"/></svg>
+          Monitoring
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
+          Save / Load
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span>SISEPUEDE Tool</span>
+      <span>Region: Egypt (EGY)</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-crumb">Setup / Baseline Data</div>
+        <div class="topbar-title">Baseline Data</div>
+        <div class="topbar-desc">Load and validate the emissions baseline that every scenario in this project builds from.</div>
+      </div>
+      <div class="status-pill"><span class="dot"></span> 0 baselines loaded</div>
+    </div>
+
+    <div class="content">
+      <section class="card">
+        <div class="card-header">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          </div>
+          <div>
+            <h2>Add a baseline</h2>
+            <p>Upload a CSV and validate it against the expected SISEPUEDE schema.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="field">
+            <span class="field-label">Baseline CSV</span>
+            <div class="dropzone">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+              <div>
+                <button class="file-btn" type="button">Browse files</button>
+              </div>
+              <div class="dropzone-name">No file selected · CSV up to 25 MB</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="baseline-label">Label</label>
+            <input id="baseline-label" type="text" placeholder="e.g. NDC 2024 update">
+            <span class="field-hint">Shown in the loaded baselines table and in downstream project pickers.</span>
+          </div>
+
+          <button class="btn btn-primary" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Validate &amp; add
+          </button>
+
+          <div class="empty-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            No baseline validated yet. Choose a file and select Validate &amp; add.
+          </div>
+
+          <div class="field" style="gap:10px;">
+            <span class="field-label">Preview (first 10 rows)</span>
+            <div class="preview-box">A row preview will appear here once a file is validated.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+          </div>
+          <div>
+            <h2>Loaded baselines</h2>
+            <p>Baselines available to projects in this session.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Region</th>
+                  <th class="mono">n_time_periods</th>
+                  <th class="mono">n_interpolated</th>
+                  <th>Loaded at</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="table-empty-cell" colspan="5">
+                    <div class="table-empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+                      <strong>No baselines loaded yet</strong>
+                      <span>Add one from the panel on the left to get started.</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <label class="field-label" for="remove-baseline">Remove baseline</label>
+            <select id="remove-baseline" disabled>
+              <option>No baselines to remove</option>
+            </select>
+          </div>
+
+          <button class="btn btn-outline-danger" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>
+            Remove selected
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

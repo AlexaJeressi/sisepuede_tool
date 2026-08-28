@@ -22,7 +22,12 @@ def page_run_ui():
         ui.card(
             ui.card_header("Select what to run"),
             ui.input_checkbox_group("baseline_ids", "Baselines", choices={}),
-            ui.input_checkbox_group("strategy_ids", "Strategies", choices={}),
+            ui.input_selectize("strategy_ids", "Strategies", choices={}, multiple=True),
+            ui.div(
+                ui.input_action_button("strategy_ids_select_all", "Select All", class_="btn-outline-secondary btn-sm"),
+                ui.input_action_button("strategy_ids_clear_all", "Clear All", class_="btn-outline-secondary btn-sm"),
+                class_="d-flex gap-2",
+            ),
             ui.input_switch(
                 "run_energy_production", "Run Energy Production (NemoMod electricity)", value=False
             ),
@@ -65,7 +70,18 @@ def page_run_server(input, output, session, state: AppState):
     def _sync_strategy_choices():
         strategies_map = state.strategies_map.get()
         choices = {str(sid): f"{sid} — {entry.strategy.name}" for sid, entry in strategies_map.items()}
-        ui.update_checkbox_group("strategy_ids", choices=choices, selected=list(choices.keys()))
+        ui.update_selectize("strategy_ids", choices=choices, selected=list(choices.keys()))
+
+    @reactive.effect
+    @reactive.event(input.strategy_ids_select_all)
+    def _on_select_all_strategies():
+        strategies_map = state.strategies_map.get()
+        ui.update_selectize("strategy_ids", selected=[str(sid) for sid in strategies_map.keys()])
+
+    @reactive.effect
+    @reactive.event(input.strategy_ids_clear_all)
+    def _on_clear_all_strategies():
+        ui.update_selectize("strategy_ids", selected=[])
 
     @reactive.effect
     @reactive.event(input.run_btn)
