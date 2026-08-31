@@ -11,7 +11,7 @@ from sisepuede_tool.ui.state import AppState
 
 
 @module.ui
-def page_persistence_ui():
+def page_save_load_ui():
     return ui.layout_columns(
         ui.card(
             ui.card_header("Export session"),
@@ -39,7 +39,7 @@ def page_persistence_ui():
 
 
 @module.server
-def page_persistence_server(input, output, session, state: AppState):
+def page_save_load_server(input, output, session, state: AppState):
     last_import_result = reactive.Value(None)  # (ok, message) | None
 
     @render.download_button(filename="sisepuede_session_export.zip")

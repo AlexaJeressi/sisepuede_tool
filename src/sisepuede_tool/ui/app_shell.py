@@ -21,7 +21,7 @@ from sisepuede_tool.ui.page_output_explorer import (
     page_output_explorer_server,
     page_output_explorer_ui,
 )
-from sisepuede_tool.ui.page_persistence import page_persistence_server, page_persistence_ui
+from sisepuede_tool.ui.page_save_load import page_save_load_server, page_save_load_ui
 from sisepuede_tool.ui.page_projects import page_projects_server, page_projects_ui
 from sisepuede_tool.ui.page_run import page_run_server, page_run_ui
 from sisepuede_tool.ui.page_strategies import page_strategies_server, page_strategies_ui
@@ -29,7 +29,7 @@ from sisepuede_tool.ui.page_transformations import (
     page_transformations_server,
     page_transformations_ui,
 )
-from sisepuede_tool.ui.page_validation import page_validation_server, page_validation_ui
+from sisepuede_tool.ui.page_monitoring import page_monitoring_server, page_monitoring_ui
 from sisepuede_tool.ui.shell_nav import DEFAULT_NAV_ID, NAV_GROUPS, NAV_ITEMS, NAV_ITEMS_BY_ID
 from sisepuede_tool.ui.state import new_app_state
 
@@ -42,8 +42,8 @@ _PAGE_UI_FNS = {
     "strategies": page_strategies_ui,
     "run": page_run_ui,
     "output_explorer": page_output_explorer_ui,
-    "validation": page_validation_ui,
-    "persistence": page_persistence_ui,
+    "validation": page_monitoring_ui,
+    "persistence": page_save_load_ui,
 }
 
 _EGYPT_FLAG_SVG = (
@@ -167,8 +167,8 @@ def server(input, output, session):
     page_strategies_server("strategies", state)
     page_run_server("run", state)
     page_output_explorer_server("output_explorer", state)
-    page_validation_server("validation", state)
-    page_persistence_server("persistence", state)
+    page_monitoring_server("validation", state)
+    page_save_load_server("persistence", state)
 
     def _current_nav_id() -> str:
         # `"x" in input` checks `is_set()` reactively without raising --

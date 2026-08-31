@@ -13,12 +13,12 @@ from sisepuede_tool.ui.state import AppState
 
 
 @module.ui
-def page_validation_ui():
+def page_monitoring_ui():
     return ui.TagList(
         ui.layout_columns(
             ui.card(
                 ui.card_header("Upload monitoring data"),
-                ui.input_file("validation_file", "Validation dataset CSV", accept=[".csv"]),
+                ui.input_file("validation_file", "Monitoring dataset CSV", accept=[".csv"]),
                 ui.input_file("crosswalk_file", "Crosswalk CSV", accept=[".csv"]),
                 ui.input_action_button("load_btn", "Validate & Load", class_="btn-primary"),
                 ui.output_ui("load_status_ui"),
@@ -39,7 +39,7 @@ def page_validation_ui():
 
 
 @module.server
-def page_validation_server(input, output, session, state: AppState):
+def page_monitoring_server(input, output, session, state: AppState):
     last_load_result = reactive.Value(None)  # (ok, message) | None
 
     @reactive.calc
@@ -68,13 +68,13 @@ def page_validation_server(input, output, session, state: AppState):
         state.validation_dataset.set(validation_df)
         state.validation_crosswalk.set(crosswalk_df)
         last_load_result.set((True, f"Loaded. {len(result.comparison_ids)} comparison(s) available."))
-        ui.notification_show("Validation data loaded.", type="message")
+        ui.notification_show("Monitoring data loaded.", type="message")
 
     @render.ui
     def load_status_ui():
         result = last_load_result.get()
         if result is None:
-            return ui.p("No validation data loaded yet.", class_="text-muted")
+            return ui.p("No monitoring data loaded yet.", class_="text-muted")
         ok, message = result
         return ui.div(ui.tags.pre(message), class_="text-success" if ok else "text-danger")
 
