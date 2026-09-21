@@ -34,17 +34,6 @@ def transformations(transformers_catalog):
         "TX:AGRC:DEC_EXPORTS", "dec exports", "TFR:AGRC:DEC_EXPORTS", {"magnitude": 0.4}, transformers_catalog
     )
     transformation_service.add_transformation(coll, t)
-    # TFR:AGRC:DEC_CH4_RICE still raises AttributeError ('AFOLU' object has no
-    # attribute 'modvar_agrc_ef_ch4') against every fixture region tried so far
-    # -- it's a code-structural bug in sisepuede's transformer lib, not a
-    # data-dependent one, so it's a reliable way to test the never-raises
-    # guarantee (unlike the old AFOLU/LivestockDietEstimator failure this file
-    # used to rely on, which turned out to be specific to the costa_rica
-    # fixture and no longer reproduces on the current egypt one).
-    t_broken = transformation_service.build_transformation(
-        "TX:AGRC:DEC_CH4_RICE", "broken rice transformer", "TFR:AGRC:DEC_CH4_RICE", {}, transformers_catalog
-    )
-    transformation_service.add_transformation(coll, t_broken)
     return coll
 
 
@@ -61,7 +50,7 @@ def test_run_combination_succeeds_with_all_sectors(models, transformations, df_b
     """Confirms a clean transformation runs successfully across every sector,
     including AFOLU, against the current (egypt) fixture -- unlike the
     costa_rica fixture this project used to ship, AFOLU doesn't need to be
-    excluded here (see the transformations fixture's comment)."""
+    excluded here."""
     strategy = strategy_service.build_strategy(
         1000, ["TX:AGRC:DEC_EXPORTS"], transformations, name="test"
     )
@@ -85,20 +74,23 @@ def test_run_combination_succeeds_with_all_sectors(models, transformations, df_b
 
 
 def test_run_combination_captures_failure_without_raising(models, transformations, df_baseline):
-    """A strategy built from a transformer with a known code bug (see the
-    transformations fixture) must have its failure captured into the
-    RunResult, not raised, since that's the error-isolation guarantee the
-    Run page's batch loop depends on."""
-    strategy = strategy_service.build_strategy(
-        1001, ["TX:AGRC:DEC_CH4_RICE"], transformations, name="test broken transformer"
-    )
+    """A combination that's guaranteed to fail (baseline missing a required
+    dimensional column) must have its failure captured into the RunResult,
+    not raised, since that's the error-isolation guarantee the Run page's
+    batch loop depends on. Deliberately data-driven rather than relying on a
+    specific transformer's code bug -- the transformer this test used to rely
+    on (TFR:AGRC:DEC_CH4_RICE, 'AFOLU' object has no attribute
+    'modvar_agrc_ef_ch4') was fixed upstream, which is exactly the kind of
+    thing that makes pinning a resilience test to a bug's presence fragile."""
+    strategy = strategy_service.build_baseline_strategy(transformations)
+    df_missing_time_period = df_baseline.drop(columns=["time_period"])
     result = run_service.run_combination(
         models,
         strategy,
-        df_baseline,
+        df_missing_time_period,
         region="egypt",
         run_energy_production=False,
-        strategy_id=1001,
+        strategy_id=0,
         baseline_id="baseline_a",
         models_run=None,
     )

@@ -120,7 +120,7 @@ def test_read_params_numeric_and_bool():
         ParamSpec(name="magnitude", kind=WidgetKind.NUMERIC, default=0.45, bounds=(0.0, 1.0)),
         ParamSpec(name="return_dict_magnitude", kind=WidgetKind.BOOL, default=False),
     ]
-    inputs = FakeInputs({"param__magnitude": 0.6, "param__return_dict_magnitude": True})
+    inputs = FakeInputs({"param__magnitude__precise": 0.99999, "param__return_dict_magnitude": True})
 
     values = param_widget.read_params(inputs, specs)
-    assert values == {"magnitude": 0.6, "return_dict_magnitude": True}
+    assert values == {"magnitude": 0.99999, "return_dict_magnitude": True}

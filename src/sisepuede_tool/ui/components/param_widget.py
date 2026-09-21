@@ -13,12 +13,49 @@ import json
 from typing import Any, Dict, List
 
 from shiny import ui
+from shiny.module import resolve_id
 
 from sisepuede_tool.models.param_spec import ParamSpec, WidgetKind
 
 
 def _param_id(name: str, field: str = None) -> str:
     return f"param__{name}" if field is None else f"param__{name}__{field}"
+
+
+def _numeric_slider_sync_script(slider_id: str, precise_id: str) -> ui.Tag:
+    """Keep a magnitude slider and its paired exact-value numeric input in
+    sync client-side. The slider's own step (~1/100th of its range) can't
+    represent values like 0.99999, so `read_params` treats the numeric input
+    as the single source of truth (see below) -- this script only exists so
+    the slider handle doesn't visibly drift out of sync with a precisely
+    typed value, and so dragging the slider updates the visible exact value."""
+    return ui.tags.script(
+        ui.HTML(
+            f"""
+            (function() {{
+              var sliderId = {json.dumps(slider_id)};
+              var preciseId = {json.dumps(precise_id)};
+              function wire() {{
+                var $slider = $('#' + sliderId);
+                var slider = $slider.data('ionRangeSlider');
+                if (!slider) {{ setTimeout(wire, 50); return; }}
+                var $precise = $('#' + preciseId);
+                $slider.on('change', function() {{
+                  var v = parseFloat($slider.val());
+                  if (!isNaN(v) && parseFloat($precise.val()) !== v) {{
+                    $precise.val(v).trigger('change');
+                  }}
+                }});
+                $precise.on('change', function() {{
+                  var v = parseFloat($precise.val());
+                  if (!isNaN(v)) {{ slider.update({{from: v}}); }}
+                }});
+              }}
+              wire();
+            }})();
+            """
+        )
+    )
 
 
 def _label(spec: ParamSpec) -> str:
@@ -35,8 +72,21 @@ def render_param(spec: ParamSpec) -> ui.TagList:
     elif spec.kind == WidgetKind.NUMERIC:
         if spec.bounds is not None:
             lo, hi = spec.bounds
-            widget = ui.input_slider(
-                _param_id(spec.name), label, min=lo, max=hi, value=spec.default, step=(hi - lo) / 100 or 0.01
+            slider_id = _param_id(spec.name)
+            precise_id = _param_id(spec.name, "precise")
+            widget = ui.div(
+                ui.input_slider(
+                    slider_id, label, min=lo, max=hi, value=spec.default, step=(hi - lo) / 100 or 0.01
+                ),
+                ui.input_numeric(
+                    precise_id, "Exact value", value=spec.default, min=lo, max=hi, step=1e-5
+                ),
+                ui.tags.small(
+                    "The slider snaps to coarse steps -- type an exact value here for finer "
+                    "precision (e.g. 0.99999).",
+                    class_="text-muted d-block",
+                ),
+                _numeric_slider_sync_script(resolve_id(slider_id), resolve_id(precise_id)),
             )
         else:
             widget = ui.input_numeric(_param_id(spec.name), label, value=spec.default)
@@ -135,6 +185,13 @@ def read_params(input, specs: List[ParamSpec]) -> Dict[str, Any]:
                 "d": float(d),
                 "window_logistic": (window_lower, window_upper),
             }
+            continue
+
+        if spec.kind == WidgetKind.NUMERIC and spec.bounds is not None:
+            # The paired "Exact value" numeric input is the source of truth
+            # for precision the slider's own step can't represent -- see
+            # _numeric_slider_sync_script.
+            values[spec.name] = input[_param_id(spec.name, "precise")]()
             continue
 
         raw = input[_param_id(spec.name)]()

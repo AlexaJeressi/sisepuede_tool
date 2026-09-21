@@ -1,7 +1,7 @@
-"""Construction of the session-wide ModelAttributes / Transformers catalog.
+"""Construction of the session-wide ModelAttributes / TransformerKernels catalog.
 
 Both are safe to build once and reuse: `ModelAttributes` is independent of
-any user-uploaded data, and `Transformers` was empirically confirmed
+any user-uploaded data, and `TransformerKernels` was empirically confirmed
 (see tests/test_catalog_service.py) to produce an identical catalog (same
 codes, names, descriptions) regardless of which baseline DataFrame's
 *values* it's built from -- only the input's shape matters. Note this shape
@@ -30,5 +30,5 @@ def build_model_attributes() -> ModelAttributes:
     )
 
 
-def build_transformers_catalog(df_reference_baseline: pd.DataFrame) -> trf.Transformers:
-    return trf.Transformers({}, df_input=df_reference_baseline)
+def build_transformers_catalog(df_reference_baseline: pd.DataFrame) -> trf.TransformerKernels:
+    return trf.TransformerKernels({}, df_input=df_reference_baseline)

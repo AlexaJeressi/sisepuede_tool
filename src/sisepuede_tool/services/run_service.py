@@ -71,6 +71,7 @@ def run_combination(
             baseline_id=baseline_id,
             ok=True,
             df_output=df_output,
+            df_input=df_transformed,
             elapsed_seconds=time.time() - t0,
         )
     except Exception as e:

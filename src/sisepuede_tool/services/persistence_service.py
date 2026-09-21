@@ -18,7 +18,7 @@ Two entry points, both built on the same directory-based core:
 
 Both are explicit, user-triggered actions -- state is otherwise session-only
 in memory (see the plan's Persistence section). Import wraps the existing
-`Transformations(dir, transformers=...)` directory constructor (read-only at
+`Transformations(dir, transformer_kernels=...)` directory constructor (read-only at
 construction) -- `strategy_definitions.csv` is hand-parsed into bare
 `Strategy` objects rather than instantiating the `Strategies` collection,
 which has real file-system write side effects on construction.
@@ -72,7 +72,7 @@ def _transformation_to_config(transformation: trf.Transformation) -> dict:
     }
 
 
-def _strategies_to_dataframe(strategies_map: Dict[int, StrategyEntry]) -> pd.DataFrame:
+def strategies_to_dataframe(strategies_map: Dict[int, StrategyEntry]) -> pd.DataFrame:
     rows = [
         {
             "strategy_id": entry.strategy.id_num,
@@ -122,7 +122,7 @@ def export_transformations_dir(
     non-baseline Transformation, strategy_definitions.csv, and an (empty,
     unless one already exists) citations.bib into `dir_path` -- creating it
     if it doesn't exist. Loadable unmodified by
-    Transformations(dir_path, transformers=...) / the sisepuede CLI, and
+    Transformations(dir_path, transformer_kernels=...) / the sisepuede CLI, and
     matches the shape of a real hand-built transformations directory."""
     dir_path = pathlib.Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
@@ -136,7 +136,7 @@ def export_transformations_dir(
         config = _transformation_to_config(transformation)
         (dir_path / f"transformation_{_slug(code)}.yaml").write_text(yaml.safe_dump(config, sort_keys=False))
 
-    _strategies_to_dataframe(strategies_map).to_csv(dir_path / STRATEGY_DEFINITIONS_FILENAME, index=False)
+    strategies_to_dataframe(strategies_map).to_csv(dir_path / STRATEGY_DEFINITIONS_FILENAME, index=False)
 
     fp_citations = dir_path / CITATIONS_FILENAME
     if not fp_citations.exists():
@@ -144,7 +144,7 @@ def export_transformations_dir(
 
 
 def import_transformations_dir(
-    dir_path: PathLike, transformers_catalog: trf.Transformers
+    dir_path: PathLike, transformers_catalog: trf.TransformerKernels
 ) -> Tuple[trf.Transformations, Dict[int, StrategyEntry]]:
     dir_path = pathlib.Path(dir_path)
     if not dir_path.is_dir():
@@ -155,7 +155,7 @@ def import_transformations_dir(
             f"(missing {CONFIG_GENERAL_FILENAME})."
         )
 
-    transformations_obj = trf.Transformations(dir_path, transformers=transformers_catalog)
+    transformations_obj = trf.Transformations(dir_path, transformer_kernels=transformers_catalog)
     strategies_map = _parse_strategy_definitions(dir_path / STRATEGY_DEFINITIONS_FILENAME, transformations_obj)
     return transformations_obj, strategies_map
 
@@ -175,7 +175,7 @@ def export_session_zip(
 
 
 def import_session_zip(
-    zip_path, transformers_catalog: trf.Transformers
+    zip_path, transformers_catalog: trf.TransformerKernels
 ) -> Tuple[trf.Transformations, Dict[int, StrategyEntry]]:
     tmp_dir = pathlib.Path(tempfile.mkdtemp(prefix="sisepuede_tool_import_"))
     with zipfile.ZipFile(zip_path) as zf:

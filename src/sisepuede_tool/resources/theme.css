@@ -450,7 +450,12 @@ nav { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
 .app-shell .container-fluid { padding: 0; margin: 0; max-width: none; }
 
-/* Card content: real Shiny widgets rendered inside .card-body */
+/* Card content: real Shiny widgets rendered inside .card-body. The base
+   color here covers plain, unclassed text (p/li/span/ul) that pages built
+   with bare ui.card()/ui.p() -- most pages besides Baseline Data -- rely on
+   inheriting; without it that text falls back to Bootstrap's light-theme
+   body color, which is unreadable on this dark background. */
+.app-shell .card-body { color: var(--text); }
 .app-shell .card-body .shiny-input-container { width: 100%; padding: 0; }
 .app-shell .card-body label { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 7px; }
 .app-shell .card-body h6 { font-size: 12.5px; font-weight: 600; color: var(--text); margin: 4px 0 7px; }

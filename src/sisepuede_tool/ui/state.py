@@ -37,6 +37,10 @@ class AppState:
     run_config: reactive.Value  # {"combinations": [(strategy_id, baseline_id), ...], "run_energy_production": bool}
     run_results: reactive.Value  # Dict[Tuple[int, str], RunResult]
 
+    # --- Costs and Benefits ---
+    cb_wrapper: reactive.Value  # CBSSPWrapperForDFComparison | None -- built once at session start
+    cb_results: reactive.Value  # Dict[str, Tuple[pd.DataFrame, pd.DataFrame]] keyed by baseline_id -- (df_cb, df_attr_variable)
+
     # --- Output Explorer (M5) ---
     io_fields_cache: reactive.Value  # output variable catalog, built once from model_attributes
 
@@ -59,6 +63,8 @@ def new_app_state() -> AppState:
         strategies_map=reactive.Value({}),
         run_config=reactive.Value({"combinations": [], "run_energy_production": False}),
         run_results=reactive.Value({}),
+        cb_wrapper=reactive.Value(None),
+        cb_results=reactive.Value({}),
         io_fields_cache=reactive.Value(None),
         validation_dataset=reactive.Value(None),
         validation_crosswalk=reactive.Value(None),

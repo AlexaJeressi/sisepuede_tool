@@ -24,8 +24,8 @@ def test_build_model_attributes(model_attributes):
 
 def test_build_transformers_catalog(df_baseline):
     transformers = catalog_service.build_transformers_catalog(df_baseline)
-    assert len(transformers.all_transformers) > 0
-    assert "TFR:AGRC:DEC_CH4_RICE" in transformers.all_transformers
+    assert len(transformers.all_tkernels) > 0
+    assert "TFR:AGRC:DEC_CH4_RICE" in transformers.all_tkernels
 
 
 def test_transformers_catalog_independent_of_baseline_values(df_baseline):
@@ -43,10 +43,10 @@ def test_transformers_catalog_independent_of_baseline_values(df_baseline):
     transformers_a = catalog_service.build_transformers_catalog(df_baseline)
     transformers_b = catalog_service.build_transformers_catalog(df_perturbed)
 
-    assert set(transformers_a.all_transformers) == set(transformers_b.all_transformers)
+    assert set(transformers_a.all_tkernels) == set(transformers_b.all_tkernels)
 
-    code = transformers_a.all_transformers_non_baseline[0]
-    ta = transformers_a.get_transformer(code)
-    tb = transformers_b.get_transformer(code)
+    code = transformers_a.all_tkernels_non_baseline[0]
+    ta = transformers_a.get_tkernel(code)
+    tb = transformers_b.get_tkernel(code)
     assert ta.name == tb.name
     assert ta.description == tb.description

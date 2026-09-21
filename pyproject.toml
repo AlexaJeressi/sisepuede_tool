@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Shiny-for-Python GUI for designing and running SISEPUEDE decarbonization strategies"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = "==3.11.*"
+requires-python = "==3.13.*"
 dependencies = [
     "shiny>=0.10",
     "shinywidgets>=0.3",
@@ -16,7 +16,8 @@ dependencies = [
     "pandas",
     "openpyxl",
     "PyYAML",
-    "sisepuede @ git+https://github.com/jcsyme/sisepuede.git",
+    "sisepuede",
+    "costs_benefits_ssp",
 ]
 
 [project.optional-dependencies]

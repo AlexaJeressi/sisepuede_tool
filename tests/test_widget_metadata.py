@@ -26,7 +26,7 @@ def _spec_by_name(specs, name):
 
 
 def test_numeric_param_gets_unit_interval_bounds(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:AGRC:DEC_CH4_RICE")
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
 
     magnitude = _spec_by_name(specs, "magnitude")
@@ -36,7 +36,7 @@ def test_numeric_param_gets_unit_interval_bounds(model_attributes, transformers_
 
 
 def test_ramp_vector_param_gets_structured_defaults(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:AGRC:DEC_CH4_RICE")
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
 
     ramp = _spec_by_name(specs, "vec_implementation_ramp")
@@ -58,7 +58,7 @@ def test_ramp_default_matches_actual_catalog_ramp_vector(transformers_catalog):
 
 
 def test_categorical_param_resolves_real_choices(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY")
+    transformer = transformers_catalog.get_tkernel("TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
 
     categories = _spec_by_name(specs, "categories")
@@ -69,7 +69,7 @@ def test_categorical_param_resolves_real_choices(model_attributes, transformers_
 
 
 def test_bool_param(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:AGRC:INC_CONSERVATION_AGRICULTURE")
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:INC_CONSERVATION_AGRICULTURE")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
 
     return_dict = _spec_by_name(specs, "return_dict_magnitude")
@@ -78,7 +78,7 @@ def test_bool_param(model_attributes, transformers_catalog):
 
 
 def test_overrides_are_applied_on_top_of_inference(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:AGRC:DEC_CH4_RICE")
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
     overrides = {
         "TFR:AGRC:DEC_CH4_RICE": {
             "magnitude": {"bounds": [0.0, 0.9], "help_text": "custom help"},
@@ -94,7 +94,7 @@ def test_overrides_are_applied_on_top_of_inference(model_attributes, transformer
 
 
 def test_skips_internal_params(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_transformer("TFR:AGRC:DEC_CH4_RICE")
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
     names = {s.name for s in specs}
     assert "df_input" not in names
@@ -107,8 +107,8 @@ def test_build_param_specs_does_not_error_for_any_non_baseline_transformer(
     """Every real transformer's signature must be introspectable without
     raising -- this is the coverage guarantee for the whole widget
     generation approach (~70 heterogeneous signatures)."""
-    for code in transformers_catalog.all_transformers_non_baseline:
-        transformer = transformers_catalog.get_transformer(code)
+    for code in transformers_catalog.all_tkernels_non_baseline:
+        transformer = transformers_catalog.get_tkernel(code)
         specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
         assert isinstance(specs, list)
 

@@ -15,8 +15,15 @@ import pathlib
 
 from shiny import reactive, render, ui
 
-from sisepuede_tool.services import catalog_service, run_service
+from sisepuede_tool import config
+from sisepuede_tool.services import catalog_service, cost_benefit_service, run_service
+from sisepuede_tool.ui.page_article_6 import page_article_6_server, page_article_6_ui
+from sisepuede_tool.ui.page_cost_benefits import page_cost_benefits_server, page_cost_benefits_ui
 from sisepuede_tool.ui.page_data_input import page_data_input_server, page_data_input_ui
+from sisepuede_tool.ui.page_macroeconomic_impacts import (
+    page_macroeconomic_impacts_server,
+    page_macroeconomic_impacts_ui,
+)
 from sisepuede_tool.ui.page_output_explorer import (
     page_output_explorer_server,
     page_output_explorer_ui,
@@ -43,6 +50,9 @@ _PAGE_UI_FNS = {
     "run": page_run_ui,
     "output_explorer": page_output_explorer_ui,
     "validation": page_monitoring_ui,
+    "cost_benefits": page_cost_benefits_ui,
+    "macroeconomic_impacts": page_macroeconomic_impacts_ui,
+    "article_6": page_article_6_ui,
     "persistence": page_save_load_ui,
 }
 
@@ -160,6 +170,9 @@ def server(input, output, session):
     # the Run page -- per the confirmed requirement that Julia loads at tool
     # init, with only per-run electricity execution being toggle-able.
     state.models.set(run_service.build_models(model_attributes))
+    # Cheap to construct (just validates the config workbook exists) -- the
+    # DB-backed cost object it wraps is built lazily on first calculation.
+    state.cb_wrapper.set(cost_benefit_service.build_cb_wrapper(model_attributes, config.CB_CONFIG_XLSX_PATH))
 
     page_data_input_server("data_input", state)
     page_projects_server("projects", state)
@@ -168,6 +181,9 @@ def server(input, output, session):
     page_run_server("run", state)
     page_output_explorer_server("output_explorer", state)
     page_monitoring_server("validation", state)
+    page_cost_benefits_server("cost_benefits", state)
+    page_macroeconomic_impacts_server("macroeconomic_impacts", state)
+    page_article_6_server("article_6", state)
     page_save_load_server("persistence", state)
 
     def _current_nav_id() -> str:

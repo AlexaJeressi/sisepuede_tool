@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 from sisepuede.core.model_attributes import ModelAttributes
-from sisepuede.transformers.transformers import Transformer, Transformers
+from sisepuede.transformers.transformer_kernels import TransformerKernel, TransformerKernels
 
 from sisepuede_tool.models.param_spec import ParamSpec, WidgetKind
 
@@ -113,7 +113,7 @@ def _parse_help_text(func) -> Dict[str, str]:
     return help_by_param
 
 
-def _ramp_default(transformers_catalog: Transformers) -> dict:
+def _ramp_default(transformers_catalog: TransformerKernels) -> dict:
     return {
         "n_tp_ramp": transformers_catalog.n_tp_ramp,
         "tp_0_ramp": transformers_catalog.tp_0_ramp,
@@ -161,9 +161,9 @@ def _infer_spec(name: str, default: Any, annotation: Any, help_text: Optional[st
 
 
 def build_param_specs(
-    transformer: Transformer,
+    transformer: TransformerKernel,
     model_attributes: ModelAttributes,
-    transformers_catalog: Transformers,
+    transformers_catalog: TransformerKernels,
     overrides: Optional[dict] = None,
 ) -> List[ParamSpec]:
     sig = inspect.signature(transformer.function)

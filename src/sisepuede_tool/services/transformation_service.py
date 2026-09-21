@@ -19,7 +19,7 @@ import sisepuede.transformers as trf
 from sisepuede.transformers.lib import _operations
 
 
-def create_transformations_collection(transformers_catalog: trf.Transformers) -> trf.Transformations:
+def create_transformations_collection(transformers_catalog: trf.TransformerKernels) -> trf.Transformations:
     """Build an (initially baseline-only) Transformations collection.
 
     `Transformations.__init__` requires `dir_init` to contain a real
@@ -37,7 +37,7 @@ def create_transformations_collection(transformers_catalog: trf.Transformers) ->
     tmp_dir = pathlib.Path(tempfile.mkdtemp(prefix="sisepuede_tool_"))
     config = _operations.build_default_general_config_dict(transformers_catalog)
     (tmp_dir / "config_general.yaml").write_text(yaml.safe_dump(config))
-    return trf.Transformations(tmp_dir, transformers=transformers_catalog)
+    return trf.Transformations(tmp_dir, transformer_kernels=transformers_catalog)
 
 
 def _rebuild_attribute_table(transformations_obj: trf.Transformations) -> None:
@@ -88,7 +88,7 @@ def build_transformation(
     transformation_name: str,
     transformer_code: str,
     parameters: Dict[str, Any],
-    transformers_catalog: trf.Transformers,
+    transformers_catalog: trf.TransformerKernels,
     description: str = "",
 ) -> trf.Transformation:
     config = build_transformation_config(

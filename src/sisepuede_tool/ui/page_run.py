@@ -10,7 +10,7 @@ known upstream AFOLU/LivestockDietEstimator bug by excluding that sector.
 import pandas as pd
 from shiny import module, reactive, render, ui
 
-from sisepuede_tool.services import run_service
+from sisepuede_tool.services import cost_benefit_service, run_service
 from sisepuede_tool.ui.state import AppState
 
 _SECTOR_CHOICES = ["AFOLU", "Circular Economy", "Energy", "IPPU", "Socioeconomic"]
@@ -27,6 +27,12 @@ def page_run_ui():
                 ui.input_action_button("strategy_ids_select_all", "Select All", class_="btn-outline-secondary btn-sm"),
                 ui.input_action_button("strategy_ids_clear_all", "Clear All", class_="btn-outline-secondary btn-sm"),
                 class_="d-flex gap-2",
+            ),
+            ui.input_select("cb_base_strategy", "Cost Benefits Base Strategy", choices={}),
+            ui.tags.small(
+                "Comparison/counterfactual strategy for Cost & Benefits -- always included in the run, "
+                "regardless of the Strategies selection above.",
+                class_="text-muted d-block",
             ),
             ui.input_switch(
                 "run_energy_production", "Run Energy Production (NemoMod electricity)", value=False
@@ -84,6 +90,57 @@ def page_run_server(input, output, session, state: AppState):
         ui.update_selectize("strategy_ids", selected=[])
 
     @reactive.effect
+    def _sync_cb_base_strategy_choices():
+        strategies_map = state.strategies_map.get()
+        choices = {str(sid): f"{sid} — {entry.strategy.name}" for sid, entry in strategies_map.items()}
+
+        # `"x" in input` checks is_set() without raising -- see app_shell.py's
+        # _current_nav_id for why input.cb_base_strategy() can't be called
+        # directly before the client has ever set it.
+        current = input.cb_base_strategy() if "cb_base_strategy" in input else None
+        if current in choices:
+            selected = current
+        else:
+            default_sid = next((sid for sid, entry in strategies_map.items() if entry.strategy.code == "BASE"), None)
+            selected = str(default_sid) if default_sid is not None else next(iter(choices), None)
+
+        ui.update_select("cb_base_strategy", choices=choices, selected=selected)
+
+    def _run_cost_benefit(strategy_ids, baseline_ids, cb_base_strategy_id, strategies_map, run_results):
+        cb_wrapper = state.cb_wrapper.get()
+        if cb_wrapper is None or cb_base_strategy_id is None:
+            return
+        base_entry = strategies_map.get(cb_base_strategy_id)
+        if base_entry is None:
+            return
+        code_strat_base = base_entry.strategy.code
+        model_attributes = state.model_attributes.get()
+
+        cb_results = dict(state.cb_results.get())
+        for baseline_id in baseline_ids:
+            base_result = run_results.get((cb_base_strategy_id, baseline_id))
+            if base_result is None or not base_result.ok:
+                ui.notification_show(
+                    f"Cost & Benefits skipped for baseline '{baseline_id}': the base strategy "
+                    f"('{code_strat_base}') did not run successfully.",
+                    type="warning",
+                )
+                continue
+            try:
+                df_wide = cost_benefit_service.build_wide_results(
+                    run_results, baseline_id, strategy_ids, model_attributes
+                )
+                df_cb, df_attr_variable = cost_benefit_service.calculate_cost_benefit(
+                    cb_wrapper, df_wide, strategies_map, code_strat_base
+                )
+            except Exception as e:
+                ui.notification_show(f"Cost & Benefits failed for baseline '{baseline_id}': {e}", type="warning")
+                continue
+            cb_results[baseline_id] = (df_cb, df_attr_variable)
+
+        state.cb_results.set(cb_results)
+
+    @reactive.effect
     @reactive.event(input.run_btn)
     def _on_run():
         models = state.models.get()
@@ -100,6 +157,11 @@ def page_run_server(input, output, session, state: AppState):
         if not baseline_ids or not strategy_ids:
             ui.notification_show("Select at least one baseline and one strategy.", type="error")
             return
+
+        cb_base_strategy_raw = input.cb_base_strategy() if "cb_base_strategy" in input else None
+        cb_base_strategy_id = int(cb_base_strategy_raw) if cb_base_strategy_raw else None
+        if cb_base_strategy_id is not None and cb_base_strategy_id not in strategy_ids:
+            strategy_ids = strategy_ids + [cb_base_strategy_id]
 
         combinations = [(sid, bid) for sid in strategy_ids for bid in baseline_ids]
         run_results = dict(state.run_results.get())
@@ -130,6 +192,8 @@ def page_run_server(input, output, session, state: AppState):
         n_ok = sum(1 for (sid, bid) in combinations if run_results[(sid, bid)].ok)
         last_run_summary.set(f"Ran {len(combinations)} combination(s): {n_ok} succeeded, {len(combinations) - n_ok} failed.")
         ui.notification_show(last_run_summary.get(), type="message" if n_ok == len(combinations) else "warning")
+
+        _run_cost_benefit(strategy_ids, baseline_ids, cb_base_strategy_id, strategies_map, run_results)
 
     @render.ui
     def run_summary_ui():

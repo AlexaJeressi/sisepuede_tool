@@ -75,6 +75,34 @@ async def _pick_directory(initial_dir: str = "") -> str:
     return stdout.decode().strip()
 
 
+def _format_param_value(value) -> str:
+    if isinstance(value, dict):
+        return ", ".join(f"{k}={v}" for k, v in value.items())
+    return str(value)
+
+
+def _transformation_tooltip(transformation) -> ui.Tag:
+    """A `transformation_code` label that shows the Transformation's
+    description and parameters on hover (used in the per-transformer
+    existing-transformations list)."""
+    parameters = transformation.dict_parameters or {}
+    body = [ui.p(transformation.description or "No description.", class_="mb-1")]
+    if parameters:
+        body.append(
+            ui.tags.ul(
+                *[ui.tags.li(f"{name}: {_format_param_value(value)}") for name, value in parameters.items()],
+                class_="mb-0 ps-3",
+            )
+        )
+    else:
+        body.append(ui.p("No parameters.", class_="text-muted mb-0"))
+
+    trigger = ui.span(
+        transformation.code, tabindex="0", style="cursor: help; text-decoration: underline dotted;"
+    )
+    return ui.tooltip(trigger, *body, placement="right")
+
+
 @module.ui
 def page_transformations_ui():
     return ui.TagList(
@@ -84,6 +112,8 @@ def page_transformations_ui():
                 ui.input_select("sector", "Sector", choices={}),
                 ui.input_select("transformer_code", "Transformer", choices={}),
                 ui.output_ui("transformer_description"),
+                ui.tags.h6("Existing Transformations for this Transformer", class_="mt-3"),
+                ui.output_ui("existing_transformations_list"),
             ),
             ui.card(
                 ui.card_header("Configure Transformation"),
@@ -147,7 +177,7 @@ def page_transformations_server(input, output, session, state: AppState):
         code = input.transformer_code()
         if catalog is None or not code:
             return None, []
-        transformer = catalog.get_transformer(code)
+        transformer = catalog.get_tkernel(code)
         specs = widget_metadata.build_param_specs(
             transformer, model_attributes, catalog, overrides=overrides
         )
@@ -158,7 +188,7 @@ def page_transformations_server(input, output, session, state: AppState):
         catalog = state.transformers_catalog.get()
         if catalog is None:
             return
-        sectors = sorted(catalog.get_transformer_codes_by_sector().keys())
+        sectors = sorted(catalog.get_tkernel_codes_by_sector().keys())
         ui.update_select("sector", choices=sectors)
 
     @reactive.effect
@@ -167,8 +197,8 @@ def page_transformations_server(input, output, session, state: AppState):
         sector = input.sector()
         if catalog is None or not sector:
             return
-        codes = catalog.get_transformer_codes_by_sector().get(sector, [])
-        choices = {code: catalog.get_transformer(code).name for code in codes}
+        codes = catalog.get_tkernel_codes_by_sector().get(sector, [])
+        choices = {code: catalog.get_tkernel(code).name for code in codes}
         ui.update_select("transformer_code", choices=choices)
 
     @reactive.effect
@@ -178,7 +208,7 @@ def page_transformations_server(input, output, session, state: AppState):
         code = input.transformer_code()
         if catalog is None or not code:
             return
-        transformer = catalog.get_transformer(code)
+        transformer = catalog.get_tkernel(code)
         transformations_obj = state.transformations_obj.get()
         existing = set(transformations_obj.dict_transformations.keys()) if transformations_obj else set()
 
@@ -195,6 +225,24 @@ def page_transformations_server(input, output, session, state: AppState):
         if transformer.description_units:
             parts.append(ui.tags.small(transformer.description_units, class_="text-muted"))
         return ui.div(*parts)
+
+    @render.ui
+    def existing_transformations_list():
+        state.transformations_revision.get()
+        transformations_obj = state.transformations_obj.get()
+        code = input.transformer_code()
+        if transformations_obj is None or not code:
+            return ui.p("No transformations defined yet.", class_="text-muted")
+
+        matches = sorted(
+            (t for t in transformations_obj.dict_transformations.values() if t.transformer_code == code),
+            key=lambda t: t.code,
+        )
+        if not matches:
+            return ui.p("No transformations defined yet for this transformer.", class_="text-muted")
+
+        items = [ui.tags.li(_transformation_tooltip(t)) for t in matches]
+        return ui.tags.ul(*items, class_="ps-3 mb-0")
 
     @render.ui
     def param_form():
