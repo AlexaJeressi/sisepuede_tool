@@ -1,0 +1,24 @@
+citations: https://www.arabfinance.com/en/News/newdetails/24316
+description: 'PROJECT: EGP 17.5bn Agriculture & Irrigation Investment Plan FY2025/26
+
+  Status: Planned
+
+  Investment: EGP 17.5bn (~$360M)
+
+  Start: FY2025/26 / 1 year
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.007% in 2030 and 0.007%
+  in 2050.'
+identifiers:
+  transformation_code: TX:AGRC:INC_PRODUCTIVITY_NEWS_06
+  transformation_name: NEWS_06 - EGP 17.5bn Agriculture & Irrigation Investment Plan FY2025/26
+parameters:
+  magnitude: 0.15
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:AGRC:INC_PRODUCTIVITY

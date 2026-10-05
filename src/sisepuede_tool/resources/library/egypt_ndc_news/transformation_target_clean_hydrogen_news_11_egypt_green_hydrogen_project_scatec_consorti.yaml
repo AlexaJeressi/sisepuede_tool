@@ -1,0 +1,27 @@
+citations: https://www.middleeastbriefing.com/news/key-offtake-agreement-boosts-egypt-green-hydrogen-project-ahead-of-2025-decision/
+  | https://www.eeas.europa.eu/delegations/egypt/european-union-and-egypt-partner-support-rapid-transition-toward-clean-energy-produ/
+description: 'PROJECT: Egypt Green Hydrogen Project (Scatec Consortium, Ain Sokhna)
+
+  Status: Planned
+
+  Investment: €34.3M EU contribution; max €397M offtake contract value
+
+  Start: FID H1 2025 / Not disclosed
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.000% in 2030 and 0.000%
+  in 2050.'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_CLEAN_HYDROGEN_NEWS_11
+  transformation_name: NEWS_11 - Egypt Green Hydrogen Project (Scatec Consortium, Ain Sokhna)
+parameters:
+  categories_source: null
+  categories_target: null
+  magnitude: 0.00095
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_CLEAN_HYDROGEN

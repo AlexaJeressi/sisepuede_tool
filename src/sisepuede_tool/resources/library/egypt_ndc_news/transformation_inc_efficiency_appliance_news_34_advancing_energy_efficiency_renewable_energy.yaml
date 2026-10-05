@@ -1,0 +1,20 @@
+citations: https://www.thegef.org/projects-operations/projects/11949
+description: 'PROJECT: Advancing Energy Efficiency & Renewable Energy in Buildings (GEF)
+
+  Status: Under Construction
+
+  Investment: $3.78M GEF grant + $34.9M co-financing = ~$38.7M total
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:SCOE:INC_EFFICIENCY_APPLIANCE_NEWS_34
+  transformation_name: NEWS_34 - Advancing Energy Efficiency & Renewable Energy in Buildings (GEF)
+parameters:
+  magnitude: 0.0882
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:SCOE:INC_EFFICIENCY_APPLIANCE

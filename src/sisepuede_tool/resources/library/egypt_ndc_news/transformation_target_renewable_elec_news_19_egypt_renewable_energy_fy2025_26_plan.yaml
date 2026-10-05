@@ -1,0 +1,28 @@
+citations: https://www.dailynewsegypt.com/2025/09/01/egypt-plans-egp-136-3bn-investment-in-electricity-renewables-for-fy-2025-26/
+description: 'PROJECT: Egypt Renewable Energy FY2025/26 Plan
+
+  Status: Planned
+
+  Investment: EGP 136.3bn (~$2.8bn)
+
+  Start: FY2025/26 / 1 year'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_19
+  transformation_name: NEWS_19 - Egypt Renewable Energy FY2025/26 Plan
+parameters:
+  categories_entc_max_investment_ramp: null
+  categories_entc_renewable:
+  - pp_solar
+  - pp_wind
+  dict_entc_renewable_target_msp:
+    pp_solar: 0.038202
+    pp_wind: 0.040279
+  magnitude: 0.078481
+  scale_non_renewables_to_match_surplus_msp: true
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

@@ -6,7 +6,7 @@ rendering logic itself.
 """
 
 import dataclasses
-from typing import List
+from typing import List, Optional
 
 
 @dataclasses.dataclass(frozen=True)
@@ -16,11 +16,13 @@ class NavItem:
     group: str
     icon_svg: str
     description: str
+    crumb: str = ""  # topbar breadcrumb; defaults to the group name
+    step: Optional[int] = None  # workflow step number shown as a badge in the sidebar
+    flush: bool = False  # page manages its own padding/scrolling (e.g. the 3-column Pathways page)
 
 
 _ICON_BASELINE = '<path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/><path d="M9 16h6"/>'
 _ICON_PROJECTS = '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
-_ICON_TRANSFORMATIONS = '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/>'
 _ICON_STRATEGIES = '<circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="12" r="2.4"/><path d="M6 8.4V15.6M8.2 6.9 15.8 10.9M8.2 17.1 15.8 13.1"/>'
 _ICON_RUN = '<path d="M7 4.5v15l13-7.5z"/>'
 _ICON_EXPLORER = '<path d="M4 20V10M12 20V4M20 20v-7"/>'
@@ -38,83 +40,85 @@ def _svg(inner: str) -> str:
     )
 
 
+_ICON_PATHWAYS = _ICON_STRATEGIES
+
 NAV_ITEMS: List[NavItem] = [
     NavItem(
         id="data_input",
-        label="Baseline Data",
-        group="Setup",
+        label="Baseline data",
+        group="Workflow",
         icon_svg=_svg(_ICON_BASELINE),
-        description="Load and validate the emissions baseline that every scenario in this project builds from.",
+        description="The emissions baseline every scenario builds from.",
+        crumb="Setup / 1",
+        step=1,
     ),
     NavItem(
-        id="projects",
-        label="Define Projects",
-        group="Define Pathways",
-        icon_svg=_svg(_ICON_PROJECTS),
-        description="Browse candidate NDC/LTS projects and mark which ones are in scope.",
-    ),
-    NavItem(
-        id="transformations",
-        label="Transformations",
-        group="Define Pathways",
-        icon_svg=_svg(_ICON_TRANSFORMATIONS),
-        description="Configure a SISEPUEDE Transformer's parameters and save it as a named Transformation.",
-    ),
-    NavItem(
-        id="strategies",
-        label="Strategies",
-        group="Define Pathways",
-        icon_svg=_svg(_ICON_STRATEGIES),
-        description="Combine saved Transformations into a Strategy to run against a baseline.",
+        id="pathways",
+        label="Pathways",
+        group="Workflow",
+        icon_svg=_svg(_ICON_PATHWAYS),
+        description="Open a transformer, reuse or create transformations, and add them to a pathway.",
+        crumb="Build / 2",
+        step=2,
+        flush=True,
     ),
     NavItem(
         id="run",
         label="Run",
-        group="Execute",
+        group="Workflow",
         icon_svg=_svg(_ICON_RUN),
-        description="Run selected Strategies against selected baselines and review the results.",
+        description="Pick baselines and pathways, then run.",
+        crumb="Execute / 3",
+        step=3,
     ),
     NavItem(
         id="output_explorer",
-        label="Emissions and Drivers",
-        group="Review",
+        label="Emissions & drivers",
+        group="Results",
         icon_svg=_svg(_ICON_EXPLORER),
-        description="Explore model output variables across strategies and baselines.",
+        description="Model outputs by pathway and baseline.",
     ),
     NavItem(
         id="cost_benefits",
-        label="Cost and Benefits",
-        group="Review",
+        label="Costs & benefits",
+        group="Results",
         icon_svg=_svg(_ICON_COST_BENEFITS),
-        description="Review the costs and benefits of run Strategies.",
+        description="Relative to business as usual.",
     ),
     NavItem(
         id="macroeconomic_impacts",
-        label="Macroeconomic Impacts",
-        group="Review",
+        label="Macroeconomic impacts",
+        group="Results",
         icon_svg=_svg(_ICON_MACRO_IMPACTS),
-        description="Review the macroeconomic impacts of run Strategies.",
+        description="GDP and jobs relative to business as usual.",
     ),
     NavItem(
         id="article_6",
         label="Article 6",
-        group="Review",
+        group="Results",
         icon_svg=_svg(_ICON_ARTICLE_6),
-        description="Review Article 6 (cooperative approaches) accounting for run Strategies.",
+        description="Mitigation beyond the NDC target that could be transferred.",
     ),
     NavItem(
         id="validation",
         label="Monitoring",
-        group="Monitoring and Verification",
+        group="MRV",
         icon_svg=_svg(_ICON_MONITORING),
-        description="Compare model output against observed data via a crosswalk.",
+        description="Compare model output with observed inventory data.",
+    ),
+    NavItem(
+        id="projects",
+        label="Projects",
+        group="Portfolio · optional",
+        icon_svg=_svg(_ICON_PROJECTS),
+        description="Consult announced projects and link each one to a transformation.",
     ),
     NavItem(
         id="persistence",
-        label="Save/Load",
+        label="Project files",
         group="System",
         icon_svg=_svg(_ICON_PERSISTENCE),
-        description="Export the session's Transformations and Strategies, or import a previous project.",
+        description="Export the project as sisepuede files, or import one.",
     ),
 ]
 

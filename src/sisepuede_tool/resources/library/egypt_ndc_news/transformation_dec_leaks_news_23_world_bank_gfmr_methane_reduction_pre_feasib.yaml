@@ -1,0 +1,20 @@
+citations: https://wbgeprocure-rfxnow.worldbank.org/rfxnow/waffle/upload/advertisementAttachment/589659/file.html
+description: 'PROJECT: World Bank GFMR Methane Reduction Pre-Feasibility
+
+  Status: Study/Feasibility
+
+  Investment: Pre-feasibility (grant-funded)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:FGTV:DEC_LEAKS_NEWS_23
+  transformation_name: NEWS_23 - World Bank GFMR Methane Reduction Pre-Feasibility
+parameters:
+  magnitude: 0.16
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 25
+    tp_0_ramp: 10
+    window_logistic: null
+transformer: TFR:FGTV:DEC_LEAKS

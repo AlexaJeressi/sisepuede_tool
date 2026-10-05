@@ -1,0 +1,28 @@
+citations: https://sis.gov.eg/Story/206993/Egypt-Secures-%E2%82%AC131.5-Million-in-European-Funded-Deals-to-Boost-Wastewater-Infrastructure
+description: 'PROJECT: East Alexandria Wastewater Treatment Plant
+
+  Status: Under Construction
+
+  Investment: €70M (~$75M)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:WALI:INC_TREATMENT_URBAN_NEWS_46
+  transformation_name: NEWS_46 - East Alexandria Wastewater Treatment Plant
+parameters:
+  dict_magnitude:
+    treated_advanced_aerobic: 0.195718
+    treated_advanced_anaerobic: 0.066074
+    treated_primary: 0.006
+    treated_secondary_aerobic: 0.272487
+    treated_secondary_anaerobic: 0.212292
+    untreated_no_sewerage: 0.212827
+    untreated_with_sewerage: 0.034602
+  return_pathways: false
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:WALI:INC_TREATMENT_URBAN

@@ -1,0 +1,22 @@
+citations: https://www.dailynewsegypt.com/2025/11/11/egp-45bn-investment-plan-for-eetc-in-fy-2025-2026/
+description: 'PROJECT: EETC Transmission Network Plan FY2025/26
+
+  Status: Under Construction
+
+  Investment: EGP 45bn (~$920M)
+
+  Start: FY2025/26 / 1 year'
+identifiers:
+  transformation_code: TX:ENTC:DEC_LOSSES_NEWS_08
+  transformation_name: NEWS_08 - EETC Transmission Network Plan FY2025/26
+parameters:
+  magnitude: 0.081008
+  magnitude_type: final_value
+  min_loss: 0.02
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:ENTC:DEC_LOSSES

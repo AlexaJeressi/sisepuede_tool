@@ -124,3 +124,31 @@ def test_assemble_plot_frame_empty_when_no_successful_results(model_attributes):
         baseline_labels={},
     )
     assert plot_df.empty
+
+
+def test_field_catalog_covers_inputs_with_friendly_labels():
+    from sisepuede_tool.services import catalog_service, output_service
+
+    ma = catalog_service.build_model_attributes()
+    cat = output_service.build_field_catalog(ma)
+    assert cat["field"].is_unique
+    assert set(ma.all_variable_fields_input) <= set(cat["field"])
+    row = cat[cat["field"] == "ef_agrc_anaerobicdom_rice_kg_ch4_ha"].iloc[0]
+    assert ":math:" not in row["label"] and "CH₄" in row["label"]
+    assert row["sector"] == "AFOLU" and row["is_input"]
+
+
+def test_missing_input_fields():
+    import pandas as pd
+    from sisepuede_tool.services import catalog_service, input_service
+
+    ma = catalog_service.build_model_attributes()
+    df = pd.DataFrame(columns=ma.all_variable_fields_input[5:])
+    assert input_service.missing_input_fields(df, ma) == ma.all_variable_fields_input[:5]
+
+
+def test_field_catalog_missing_units_are_none_not_nan():
+    from sisepuede_tool.services import catalog_service, output_service
+
+    cat = output_service.build_field_catalog(catalog_service.build_model_attributes())
+    assert all(u is None or isinstance(u, str) for u in cat["units"])

@@ -29,14 +29,14 @@ import pathlib
 import re
 import tempfile
 import zipfile
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import pandas as pd
 import yaml
 import sisepuede.transformers as trf
 
 from sisepuede_tool.models.strategy_entry import StrategyEntry
-from sisepuede_tool.services import strategy_service
+from sisepuede_tool.services import pathway_service, strategy_service
 
 STRATEGY_DEFINITIONS_FILENAME = "strategy_definitions.csv"
 CONFIG_GENERAL_FILENAME = "config_general.yaml"
@@ -72,14 +72,16 @@ def _transformation_to_config(transformation: trf.Transformation) -> dict:
     }
 
 
-def strategies_to_dataframe(strategies_map: Dict[int, StrategyEntry]) -> pd.DataFrame:
+def strategies_to_dataframe(strategies_map: Dict[int, StrategyEntry], code_baseline: str = "TX:BASE") -> pd.DataFrame:
+    # an empty pathway is written as the baseline transformation, which is
+    # what it runs as and what sisepuede's CLI accepts
     rows = [
         {
             "strategy_id": entry.strategy.id_num,
             "strategy_code": entry.strategy.code or "",
             "strategy": entry.strategy.name or "",
             "description": getattr(entry.strategy, "description", "") or "",
-            "transformation_specification": "|".join(entry.transformation_codes),
+            "transformation_specification": "|".join(entry.transformation_codes) or code_baseline,
         }
         for entry in strategies_map.values()
     ]
@@ -103,8 +105,9 @@ def _parse_strategy_definitions(fp_csv: pathlib.Path, transformations_obj: trf.T
             codes = [transformations_obj.code_baseline]
         else:
             name = str(row.get("strategy") or f"Strategy {strategy_id}")
-            description = str(row.get("description") or "")
-            strategy = strategy_service.build_strategy(
+            description = "" if pd.isna(row.get("description")) else str(row.get("description") or "")
+            codes = [c for c in codes if c != transformations_obj.code_baseline]
+            strategy = pathway_service.build_pathway_strategy(
                 strategy_id, codes, transformations_obj, name=name, description=description
             )
 
@@ -136,7 +139,9 @@ def export_transformations_dir(
         config = _transformation_to_config(transformation)
         (dir_path / f"transformation_{_slug(code)}.yaml").write_text(yaml.safe_dump(config, sort_keys=False))
 
-    strategies_to_dataframe(strategies_map).to_csv(dir_path / STRATEGY_DEFINITIONS_FILENAME, index=False)
+    strategies_to_dataframe(strategies_map, transformations_obj.code_baseline).to_csv(
+        dir_path / STRATEGY_DEFINITIONS_FILENAME, index=False
+    )
 
     fp_citations = dir_path / CITATIONS_FILENAME
     if not fp_citations.exists():
@@ -163,9 +168,14 @@ def import_transformations_dir(
 def export_session_zip(
     transformations_obj: trf.Transformations,
     strategies_map: Dict[int, StrategyEntry],
+    extra_tables: Optional[Dict[str, pd.DataFrame]] = None,
 ) -> bytes:
+    """`extra_tables` ({filename: DataFrame}, e.g. project_links.csv) are
+    written next to the sisepuede files; sisepuede itself ignores them."""
     tmp_dir = pathlib.Path(tempfile.mkdtemp(prefix="sisepuede_tool_export_"))
     export_transformations_dir(transformations_obj, strategies_map, tmp_dir)
+    for filename, table in (extra_tables or {}).items():
+        table.to_csv(tmp_dir / filename, index=False)
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -182,3 +192,15 @@ def import_session_zip(
         zf.extractall(tmp_dir)
 
     return import_transformations_dir(tmp_dir, transformers_catalog)
+
+
+def read_extra_tables(zip_path, filenames) -> Dict[str, pd.DataFrame]:
+    """The app's own CSVs from a project .zip (missing ones are skipped)."""
+    out = {}
+    with zipfile.ZipFile(zip_path) as zf:
+        names = set(zf.namelist())
+        for filename in filenames:
+            if filename in names:
+                with zf.open(filename) as fh:
+                    out[filename] = pd.read_csv(fh, keep_default_na=False)
+    return out

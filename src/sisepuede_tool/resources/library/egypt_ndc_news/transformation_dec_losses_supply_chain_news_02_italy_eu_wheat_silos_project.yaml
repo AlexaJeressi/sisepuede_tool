@@ -1,0 +1,20 @@
+citations: https://sis.gov.eg/en/media-center/news/egypt-italy-sign-eu-backed-protocol-to-boost-food-security-wheat-storage/
+description: 'PROJECT: Italy/EU Wheat Silos Project
+
+  Status: Planned
+
+  Investment: Not disclosed (EU/Italy funded)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:AGRC:DEC_LOSSES_SUPPLY_CHAIN_NEWS_02
+  transformation_name: NEWS_02 - Italy/EU Wheat Silos Project
+parameters:
+  magnitude: 0.09
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:AGRC:DEC_LOSSES_SUPPLY_CHAIN

@@ -10,11 +10,20 @@ module resolves specs in three tiers, each layered on top of the last:
 2. Category resolution: for List[str]-typed params, look up real category
    choices from the relevant `attribute_cat_*` table (via the subsector
    parsed out of the transformer's code), when the mapping is known.
-3. Hand-curated overrides (resources/transformer_widget_metadata.yaml):
-   refine bounds/choices/help text per (transformer_code, parameter_name) as
-   they're discovered to need it. Ships mostly empty and grows over time.
+3. Guided schemas (resources/param_schemas.yaml, see
+   param_schema_service): valid keys, units and sum rules for dict and
+   category-list parameters, which turn them into tables or selects.
+4. Hand-curated overrides (resources/transformer_widget_metadata.yaml):
+   refine bounds/choices/help text/label/tier per (transformer_code,
+   parameter_name) as they're discovered to need it.
+
+Every spec also gets a tier (see `default_tier`): the main magnitude and the
+implementation ramp are "basic", everything else "advanced". `return_*`
+helper flags (which make a transformer return a dict instead of a
+DataFrame) are never shown.
 """
 
+import functools
 import inspect
 import pathlib
 import re
@@ -24,10 +33,12 @@ import yaml
 from sisepuede.core.model_attributes import ModelAttributes
 from sisepuede.transformers.transformer_kernels import TransformerKernel, TransformerKernels
 
-from sisepuede_tool.models.param_spec import ParamSpec, WidgetKind
+from sisepuede_tool.models.param_spec import TIER_ADVANCED, TIER_BASIC, TIERS, ParamSpec, WidgetKind
+from sisepuede_tool.services import param_schema_service as pss
 
 _SKIP_PARAMS = {"df_input", "strat", "self"}
 _RAMP_PARAM_NAME = "vec_implementation_ramp"
+_HIDDEN_PARAM_PREFIX = "return_"
 
 # Subsector code (as it appears in a transformer's "TFR:SUBSEC:ACTION" code)
 # -> key into ModelAttributes.dict_attributes["cat"]. Best-effort: not every
@@ -160,20 +171,82 @@ def _infer_spec(name: str, default: Any, annotation: Any, help_text: Optional[st
     return ParamSpec(name=name, kind=WidgetKind.JSON, default=None, help_text=help_text)
 
 
+def main_magnitude_name(transformer: TransformerKernel) -> Optional[str]:
+    """First numeric `magnitude*` parameter: the one basic users set."""
+    for name, param in inspect.signature(transformer.function).parameters.items():
+        if name in _SKIP_PARAMS or not name.startswith("magnitude"):
+            continue
+        default = param.default
+        if isinstance(default, (int, float)) and not isinstance(default, bool):
+            return name
+    return None
+
+
+def default_tier(name: str, main_magnitude: Optional[str]) -> str:
+    if name == _RAMP_PARAM_NAME or name == main_magnitude:
+        return TIER_BASIC
+    return TIER_ADVANCED
+
+
+@functools.lru_cache(maxsize=1)
+def _shipped_schemas() -> dict:
+    return pss.load_schemas()
+
+
+def apply_schema(spec: ParamSpec, schema: dict, model_attributes: ModelAttributes) -> None:
+    """Turn `spec` into the guided widget its param_schemas.yaml entry describes."""
+    widget = schema.get("widget")
+    resolved = dict(schema)
+    if widget == pss.WIDGET_PAIRS:
+        resolved["keys_out"] = pss.resolve_keys(schema.get("keys_out"), model_attributes)
+        resolved["keys_in"] = pss.resolve_keys(schema.get("keys_in"), model_attributes)
+        resolved["labels"] = {
+            **pss.key_labels(schema.get("keys_out"), model_attributes),
+            **pss.key_labels(schema.get("keys_in"), model_attributes),
+        }
+    else:
+        resolved["keys"] = pss.resolve_keys(schema.get("keys"), model_attributes)
+        resolved["labels"] = pss.key_labels(schema.get("keys"), model_attributes)
+    spec.schema = resolved
+
+    if widget in pss.TABLE_WIDGETS:
+        spec.kind = WidgetKind.DICT_TABLE
+    elif widget == pss.WIDGET_MULTI:
+        spec.kind = WidgetKind.CATEGORICAL_MULTI
+        spec.choices = resolved["labels"]
+    elif widget == pss.WIDGET_SELECT:
+        spec.kind = WidgetKind.SELECT
+        spec.choices = resolved["labels"]
+    elif widget == pss.WIDGET_NOTE:
+        spec.kind = WidgetKind.NOTE
+    if "default" in schema:
+        spec.default = schema["default"]
+    if "label" in schema:
+        spec.label = schema["label"]
+    if "help" in schema:
+        spec.help_text = schema["help"]
+    if "tier" in schema:
+        spec.tier = schema["tier"]
+
+
 def build_param_specs(
     transformer: TransformerKernel,
     model_attributes: ModelAttributes,
     transformers_catalog: TransformerKernels,
     overrides: Optional[dict] = None,
+    schemas: Optional[dict] = None,
 ) -> List[ParamSpec]:
+    """`schemas` defaults to the shipped resources/param_schemas.yaml."""
     sig = inspect.signature(transformer.function)
     help_by_param = _parse_help_text(transformer.function)
     subsector_code = transformer.code.split(":")[1] if transformer.code.count(":") >= 1 else None
     transformer_overrides = (overrides or {}).get(transformer.code, {})
+    main_magnitude = main_magnitude_name(transformer)
+    transformer_schemas = (_shipped_schemas() if schemas is None else schemas).get(transformer.code, {})
 
     specs: List[ParamSpec] = []
     for name, param in sig.parameters.items():
-        if name in _SKIP_PARAMS:
+        if name in _SKIP_PARAMS or name.startswith(_HIDDEN_PARAM_PREFIX):
             continue
 
         default = param.default if param.default is not inspect.Parameter.empty else None
@@ -192,6 +265,11 @@ def build_param_specs(
             if spec.kind == WidgetKind.CATEGORICAL_MULTI:
                 spec.choices = _resolve_categories(subsector_code, model_attributes)
 
+        spec.tier = default_tier(name, main_magnitude)
+
+        if name in transformer_schemas:
+            apply_schema(spec, transformer_schemas[name], model_attributes)
+
         param_override = transformer_overrides.get(name, {})
         if param_override:
             if "bounds" in param_override:
@@ -203,7 +281,13 @@ def build_param_specs(
             if "kind" in param_override:
                 spec.kind = WidgetKind(param_override["kind"])
             if "label" in param_override:
-                spec.extra["label"] = param_override["label"]
+                spec.label = param_override["label"]
+            if "tier" in param_override:
+                if param_override["tier"] not in TIERS:
+                    raise ValueError(
+                        f"{transformer.code}.{name}: tier must be one of {TIERS}, got {param_override['tier']!r}"
+                    )
+                spec.tier = param_override["tier"]
 
         specs.append(spec)
 

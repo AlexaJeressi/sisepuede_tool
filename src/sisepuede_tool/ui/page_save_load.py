@@ -4,10 +4,15 @@ strategy_definitions.csv) for reuse in the CLI/notebooks, or import one back
 in. Session state is otherwise in-memory only -- see persistence_service.
 """
 
+import pandas as pd
 from shiny import module, reactive, render, ui
 
-from sisepuede_tool.services import persistence_service
+from sisepuede_tool.services import library_service, pathway_service, persistence_service, projects_service
 from sisepuede_tool.ui.state import AppState
+
+
+PROJECT_LINKS_FILENAME = "project_links.csv"
+CUSTOM_PROJECTS_FILENAME = "custom_projects.csv"
 
 
 @module.ui
@@ -49,7 +54,14 @@ def page_save_load_server(input, output, session, state: AppState):
         if transformations_obj is None:
             yield b""
             return
-        yield persistence_service.export_session_zip(transformations_obj, strategies_map)
+        extra = {
+            PROJECT_LINKS_FILENAME: projects_service.links_to_dataframe(
+                state.project_links.get(), state.selected_projects.get()
+            )
+        }
+        if state.custom_projects.get():
+            extra[CUSTOM_PROJECTS_FILENAME] = pd.DataFrame(state.custom_projects.get(), columns=projects_service.PROJECT_COLUMNS)
+        yield persistence_service.export_session_zip(transformations_obj, strategies_map, extra)
 
     @reactive.effect
     @reactive.event(input.import_btn)
@@ -72,9 +84,25 @@ def page_save_load_server(input, output, session, state: AppState):
             last_import_result.set((False, f"Import failed: {e}"))
             return
 
+        # library transformations not in the file come back from the shipped library
+        state.library_items.set(library_service.add_library_to_collection(transformations_obj, transformers_catalog))
+        strategies_map = pathway_service.rebuild_pathways(strategies_map, transformations_obj)
         state.transformations_obj.set(transformations_obj)
         state.transformations_revision.set(state.transformations_revision.get() + 1)
         state.strategies_map.set(strategies_map)
+        state.active_pathway_id.set(None)
+
+        tables = persistence_service.read_extra_tables(
+            file_infos[0]["datapath"], [PROJECT_LINKS_FILENAME, CUSTOM_PROJECTS_FILENAME]
+        )
+        if CUSTOM_PROJECTS_FILENAME in tables:
+            custom = tables[CUSTOM_PROJECTS_FILENAME].replace({"": None})
+            state.custom_projects.set(custom.to_dict("records"))
+        if PROJECT_LINKS_FILENAME in tables:
+            links, scope = projects_service.links_from_dataframe(tables[PROJECT_LINKS_FILENAME])
+            known = set(transformations_obj.dict_transformations)
+            state.project_links.set({k: (v if v in known else None) for k, v in links.items()})
+            state.selected_projects.set(scope)
 
         n_transformations = len(transformations_obj.dict_transformations) - 1
         n_strategies = len(strategies_map) - (1 if 0 in strategies_map else 0)

@@ -1,0 +1,20 @@
+citations: https://english.ahram.org.eg/News/559912.aspx | https://sis.gov.eg/en/media-center/files/2025-yearender-from-roads-to-rails/
+description: 'PROJECT: Cairo Bus Rapid Transit (BRT) System
+
+  Status: Under Construction
+
+  Investment: Under $1bn (vs $6bn for cancelled Metro Line 5)
+
+  Start: Phase 1: June 2025 / Phase 2 ongoing, target 2030'
+identifiers:
+  transformation_code: TX:TRDE:DEC_DEMAND_NEWS_36
+  transformation_name: NEWS_36 - Cairo Bus Rapid Transit (BRT) System
+parameters:
+  magnitude: 0.09956
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 29
+    tp_0_ramp: 6
+    window_logistic: null
+transformer: TFR:TRDE:DEC_DEMAND

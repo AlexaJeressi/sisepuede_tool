@@ -1,0 +1,20 @@
+citations: https://www.undp.org/egypt/projects/improving-energy-efficiency-lighting-building-appliances
+description: 'PROJECT: UNDP/GEF Energy Efficient Lighting & Appliances Programme
+
+  Status: Operational
+
+  Investment: $5.2M total contributions
+
+  Start: Completed / Not disclosed'
+identifiers:
+  transformation_code: TX:SCOE:INC_EFFICIENCY_APPLIANCE_NEWS_35
+  transformation_name: NEWS_35 - UNDP/GEF Energy Efficient Lighting & Appliances Programme
+parameters:
+  magnitude: 0.0118
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:SCOE:INC_EFFICIENCY_APPLIANCE

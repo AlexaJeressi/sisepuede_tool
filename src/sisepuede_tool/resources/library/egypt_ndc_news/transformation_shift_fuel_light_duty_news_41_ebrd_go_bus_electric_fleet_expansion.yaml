@@ -1,0 +1,23 @@
+citations: https://www.ebrd.com/home/news-and-events/news/2025/-10-6-million-loan-for-electric-buses-egypt.html
+description: 'PROJECT: EBRD Go Bus Electric Fleet Expansion
+
+  Status: Under Construction
+
+  Investment: €10.6M (~$11.4M)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_NEWS_41
+  transformation_name: NEWS_41 - EBRD Go Bus Electric Fleet Expansion
+parameters:
+  categories:
+  - road_heavy_regional
+  dict_fuel_allocation: null
+  magnitude: 0.0788441296806186
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 25
+    tp_0_ramp: 10
+    window_logistic: null
+transformer: TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY

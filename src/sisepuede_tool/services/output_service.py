@@ -29,6 +29,49 @@ def get_variable_catalog(model_attributes: ModelAttributes) -> pd.DataFrame:
     return catalog.merge(subsector_attr, on="subsector", how="left")[["sector", "subsector", "variable"]]
 
 
+def build_field_catalog(model_attributes: ModelAttributes) -> pd.DataFrame:
+    """One row per model field: [field, variable, label, category, subsector,
+    sector, units, is_input]. `label` is the variable name without Sphinx
+    markup, plus the category when the variable has several. Used to show
+    friendly names next to raw column names (baseline preview, results)."""
+    from sisepuede_tool.services.labels import clean_label
+    from sisepuede_tool.services.transformer_metadata_service import _units_by_variable
+
+    sector_of = dict(
+        model_attributes.get_subsector_attribute_table().table[["subsector", "sector"]].drop_duplicates().values
+    )
+    units = _units_by_variable(model_attributes)
+    inputs = set(model_attributes.all_variable_fields_input)
+    rows = []
+    for subsector, variables in model_attributes.dict_model_variables_by_subsector.items():
+        for variable in variables:
+            mv = model_attributes.get_variable(variable)
+            if mv is None:
+                continue
+            categories = model_attributes.get_variable_categories(variable)
+            if categories is None or len(categories) != len(mv.fields):
+                categories = [None] * len(mv.fields)
+            name = clean_label(variable)
+            for field, category in zip(mv.fields, categories):
+                rows.append(
+                    {
+                        "field": field,
+                        "variable": variable,
+                        "label": f"{name} · {category}" if category and len(mv.fields) > 1 else name,
+                        "category": category,
+                        "subsector": subsector,
+                        "sector": sector_of.get(subsector),
+                        "units": units.get(variable),
+                        "is_input": field in inputs,
+                    }
+                )
+    df = pd.DataFrame(rows).drop_duplicates(subset=["field"]).reset_index(drop=True)
+    # keep missing units/categories as None (not NaN) so callers can test truthiness
+    for col in ("category", "units", "sector"):
+        df[col] = df[col].astype(object).where(df[col].notna(), None)
+    return df
+
+
 def extract_variable_frame(
     model_attributes: ModelAttributes,
     df: pd.DataFrame,

@@ -1,0 +1,450 @@
+# Guided widgets for transformer parameters that take a dict or a list of
+# categories (see services/param_schema_service.py).
+#
+# Keyed by transformer_code -> parameter_name. Fields:
+#   widget:   shares  -- one % per key; values are fractions in sisepuede
+#             values  -- one number per key (`unit`: share -> shown as %, else as is)
+#             bounds  -- one min and one max per key ({"key|min": v, "key|max": v})
+#             pairs   -- rows of (output key, input key, value) -> {out: {in: v}}
+#             multi   -- multi-select of categories (list)
+#             select  -- single category (string)
+#             note    -- no input, only the `help` text (parameter not sent)
+#   keys:     {table: <cat table>} for every category of a ModelAttributes
+#             table (dict_attributes["cat"]), plus `only: [...]` for a subset.
+#             `pairs` use `keys_out` / `keys_in`.
+#   unit:     share | percent_change | ha | ratio
+#   sum_rule: eq1 (must total 100%) | leq1 (at most 100%) | none
+#   default:  what sisepuede uses when the parameter is not set (the
+#             signature default is often None and the real default is built
+#             inside the function). Pre-fills the table.
+#   label / help / tier: shown in the editor; tier defaults to advanced.
+#
+# Written from a read of sisepuede (biomass_fix) transformer_kernels.py and
+# transformers/lib/_baselib_*.py on 2026-10-04. Key subsets are checked
+# against the attribute tables by tests/test_param_schema_service.py.
+
+_fuels_trns: &fuels_trns
+  table: fuel
+  only: [fuel_biofuels, fuel_diesel, fuel_electricity, fuel_gasoline, fuel_hydrocarbon_gas_liquids, fuel_hydrogen, fuel_kerosene, fuel_natural_gas]
+
+_fuels_trns_maritime: &fuels_trns_maritime
+  table: fuel
+  only: [fuel_ammonia, fuel_biofuels, fuel_diesel, fuel_electricity, fuel_gasoline, fuel_hydrocarbon_gas_liquids, fuel_hydrogen, fuel_kerosene, fuel_natural_gas]
+
+_fuels_scoe: &fuels_scoe
+  table: fuel
+  only: [fuel_biomass, fuel_charcoal, fuel_coal, fuel_diesel, fuel_electricity, fuel_gasoline, fuel_hydrocarbon_gas_liquids, fuel_hydrogen, fuel_kerosene, fuel_natural_gas]
+
+_ind_ccs: &ind_ccs
+  table: industry
+  only: [cement, chemicals, glass, lime_and_carbonite, metals, plastic]
+
+_lsmm_help: &lsmm_help >-
+  Share of manure from the selected animals handled by each system in the final
+  year. Systems you leave blank lose share in proportion. The total can't be
+  above 100%: sisepuede ignores the whole transformation if it is.
+
+_wali_help: &wali_help >-
+  Share of this wastewater stream treated by each pathway in the final year.
+  Pathways you leave blank shrink in proportion. The total can't be above 100%:
+  sisepuede ignores the whole transformation if it is.
+
+_fuel_alloc_help: &fuel_alloc_help >-
+  How the fuel use that is shifted is split among the new fuels. Must total
+  exactly 100%; otherwise sisepuede silently uses its default split.
+
+# ---------------------------------------------------------------- AFOLU
+
+TFR:AGRC:TARGET_RESIDUE_MANAGEMENT:
+  dict_categories_to_magnitude:
+    widget: values
+    label: No-till share of cropland by the final year
+    help: >-
+      Minimum share of each crop's land under no-till (conservation
+      agriculture). Only these six crops have a no-till variable; blank crops
+      keep their current share.
+    keys: {table: agriculture, only: [cereals, fibers, other_annual, pulses, tubers, vegetables_and_vines]}
+    unit: share
+    sum_rule: none
+    default: {cereals: 0.8, fibers: 0.8, other_annual: 0.8, pulses: 0.5, tubers: 0.5, vegetables_and_vines: 0.5}
+    tier: basic
+  include_conservation_agriculture:
+    label: Apply conservation agriculture
+    help: Keep this on; with it off the installed sisepuede version fails.
+  magnitude_burned:
+    widget: note
+    label: Residues burned
+    tier: advanced
+    help: Has no effect in the installed sisepuede version (the code that uses it is disabled).
+  magnitude_removed:
+    widget: note
+    label: Residues removed
+    tier: advanced
+    help: Has no effect in the installed sisepuede version (the code that uses it is disabled).
+
+TFR:LNDU:BOUND_CLASSES:
+  dict_directional_categories_to_magnitude:
+    widget: bounds
+    label: Area limits by land use class
+    help: >-
+      Minimum and/or maximum area (hectares) for each land use class in the
+      final year. Leave a cell blank for no limit. With no limits at all the
+      transformation does nothing.
+    keys: {table: landuse}
+    unit: ha
+    sum_rule: none
+    default: null
+    tier: basic
+  delim_key:
+    widget: note
+    label: Key separator
+    help: Set by the app.
+
+TFR:LNDU:DEC_CLASS_LOSS:
+  cat_lndu:
+    widget: select
+    label: Land use class to protect
+    keys: {table: landuse}
+    default: wetlands
+
+TFR:LNDU:INC_REFORESTATION:
+  cats_inflow_restriction:
+    widget: multi
+    label: Land that new forest can't come from
+    keys: {table: landuse, only: [croplands, flooded, forests_mangroves, forests_primary, grasslands, other, pastures, settlements, shrublands, wetlands]}
+
+TFR:LSMM:INC_MANAGEMENT_CATTLE_PIGS:
+  dict_lsmm_pathways:
+    widget: shares
+    label: Manure management systems by the final year
+    help: *lsmm_help
+    keys: {table: manure_management}
+    unit: share
+    sum_rule: leq1
+    default: {anaerobic_digester: 0.59375, composting: 0.11875, daily_spread: 0.2375}
+    tier: basic
+  vec_cats_lvst:
+    widget: multi
+    label: Animals
+    keys: {table: livestock}
+    default: [cattle_dairy, cattle_nondairy, pigs]
+
+TFR:LSMM:INC_MANAGEMENT_OTHER:
+  dict_lsmm_pathways:
+    widget: shares
+    label: Manure management systems by the final year
+    help: *lsmm_help
+    keys: {table: manure_management}
+    unit: share
+    sum_rule: leq1
+    default: {anaerobic_digester: 0.475, composting: 0.2375, dry_lot: 0.11875, daily_spread: 0.11875}
+    tier: basic
+  vec_cats_lvst:
+    widget: multi
+    label: Animals
+    keys: {table: livestock}
+    default: [buffalo, goats, horses, mules, sheep]
+
+TFR:LSMM:INC_MANAGEMENT_POULTRY:
+  dict_lsmm_pathways:
+    widget: shares
+    label: Manure management systems by the final year
+    help: *lsmm_help
+    keys: {table: manure_management}
+    unit: share
+    sum_rule: leq1
+    default: {anaerobic_digester: 0.475, poultry_manure: 0.475}
+    tier: basic
+  vec_cats_lvst:
+    widget: multi
+    label: Animals
+    keys: {table: livestock}
+    default: [chickens]
+
+TFR:LVST:DEC_ENTERIC_FERMENTATION:
+  dict_lvst_reductions:
+    widget: values
+    label: Cut in enteric methane per animal
+    help: Reduction of the methane emission factor for each animal type by the final year. Blank animals don't change.
+    keys: {table: livestock}
+    unit: share
+    sum_rule: none
+    default: {buffalo: 0.4, cattle_dairy: 0.4, cattle_nondairy: 0.4, goats: 0.56, sheep: 0.56}
+    tier: basic
+
+TFR:LVST:SHIFT_DIETARY_BOUNDS:
+  dict_lvst_shifts:
+    widget: note
+    label: Livestock diet shifts
+    help: Not implemented in the installed sisepuede version; this transformer leaves the baseline unchanged.
+
+# ---------------------------------------------------------------- Circular economy
+
+TFR:WALI:INC_TREATMENT_INDUSTRIAL:
+  dict_magnitude:
+    widget: shares
+    label: Treatment pathways by the final year
+    help: *wali_help
+    keys: {table: wastewater_treatment}
+    unit: share
+    sum_rule: leq1
+    default: {treated_advanced_anaerobic: 0.8, treated_secondary_aerobic: 0.1, treated_secondary_anaerobic: 0.1}
+    tier: basic
+
+TFR:WALI:INC_TREATMENT_RURAL:
+  dict_magnitude:
+    widget: shares
+    label: Treatment pathways by the final year
+    help: *wali_help
+    keys: {table: wastewater_treatment}
+    unit: share
+    sum_rule: leq1
+    default: {treated_septic: 1.0}
+    tier: basic
+
+TFR:WALI:INC_TREATMENT_URBAN:
+  dict_magnitude:
+    widget: shares
+    label: Treatment pathways by the final year
+    help: *wali_help
+    keys: {table: wastewater_treatment}
+    unit: share
+    sum_rule: leq1
+    default: {treated_advanced_aerobic: 0.3, treated_advanced_anaerobic: 0.3, treated_secondary_aerobic: 0.2, treated_secondary_anaerobic: 0.2}
+    tier: basic
+
+# ---------------------------------------------------------------- Energy
+
+TFR:ENTC:INCREASE_EFFICIENCY_FUEL_PROD:
+  dict_magnitudes:
+    widget: pairs
+    label: Fuel production efficiency
+    help: >-
+      For a produced fuel, the target output per unit of an input fuel (e.g.
+      hydrogen per unit of electricity). Only the first technology that
+      produces the fuel is changed. With no rows the transformation does nothing.
+    keys_out:
+      table: fuel
+      only: [fuel_ammonia, fuel_charcoal, fuel_coal, fuel_crude, fuel_diesel, fuel_gasoline, fuel_hydrocarbon_gas_liquids, fuel_hydrogen, fuel_kerosene, fuel_natural_gas, fuel_natural_gas_liquid, fuel_natural_gas_unprocessed, fuel_oil]
+    keys_in:
+      table: fuel
+      only: [fuel_biomass, fuel_coal, fuel_coal_deposits, fuel_crude, fuel_diesel, fuel_electricity, fuel_gasoline, fuel_hydrogen, fuel_natural_gas, fuel_natural_gas_unprocessed, fuel_oil, fuel_water]
+    unit: ratio
+    rows: 4
+    default: null
+    tier: basic
+  kwargs:
+    widget: note
+    label: Extra options
+    help: Not used by the app.
+
+TFR:ENTC:TARGET_RENEWABLE_ELEC:
+  dict_entc_renewable_target_msp:
+    widget: values
+    label: Minimum share of electricity by technology
+    help: >-
+      Optional floor on each renewable's share of generation in the final year.
+      If the total is above the overall renewable target, sisepuede scales them
+      down to fit it.
+    keys: {table: technology, only: [pp_geothermal, pp_hydropower, pp_ocean, pp_solar, pp_wind]}
+    unit: share
+    sum_rule: none
+    default: {}
+  categories_entc_renewable:
+    widget: multi
+    label: Technologies counted as renewable
+    help: >-
+      Leave empty to use sisepuede's list (geothermal, hydropower, ocean, solar,
+      wind). If you set a list, only technologies that also have a minimum share
+      above are treated as renewable.
+    keys: {table: technology, only: [pp_biogas, pp_biomass, pp_coal, pp_coal_ccs, pp_gas, pp_gas_ccs, pp_geothermal, pp_hydropower, pp_nuclear, pp_ocean, pp_oil, pp_solar, pp_waste_incineration, pp_wind]}
+  categories_entc_max_investment_ramp:
+    widget: multi
+    label: Technologies with capped investment growth
+    keys: {table: technology}
+
+TFR:ENTC:TARGET_CLEAN_HYDROGEN:
+  categories_source:
+    widget: multi
+    label: Hydrogen production to replace
+    keys: {table: technology, only: [fp_hydrogen_electrolysis, fp_hydrogen_gasification, fp_hydrogen_reformation, fp_hydrogen_reformation_ccs]}
+    default: [fp_hydrogen_gasification, fp_hydrogen_reformation, fp_hydrogen_reformation_ccs]
+  categories_target:
+    widget: multi
+    label: Clean hydrogen production
+    keys: {table: technology, only: [fp_hydrogen_electrolysis, fp_hydrogen_gasification, fp_hydrogen_reformation, fp_hydrogen_reformation_ccs]}
+    default: [fp_hydrogen_electrolysis]
+
+TFR:INEN:INC_EFFICIENCY_PRODUCTION:
+  categories:
+    widget: multi
+    label: Industries
+    help: Leave empty for all industries.
+    keys: {table: industry, only: [cement, chemicals, electronics, glass, lime_and_carbonite, metals, mining, other_product_manufacturing, paper, plastic, recycled_glass, recycled_metals, recycled_paper, recycled_plastic, recycled_rubber_and_leather, recycled_textiles, recycled_wood, rubber_and_leather, textiles, wood]}
+
+TFR:INEN:SHIFT_FUEL_HEAT:
+  frac_high_given_high:
+    widget: values
+    label: Share of heat demand that is high temperature
+    help: >-
+      By industry. Only these six industries also get the low-temperature heat
+      shift; leaving one blank removes it from both shifts.
+    keys: {table: industry, only: [cement, chemicals, glass, lime_and_carbonite, metals, paper]}
+    unit: share
+    sum_rule: none
+    default: {cement: 0.88, chemicals: 0.5, glass: 0.88, lime_and_carbonite: 0.88, metals: 0.92, paper: 0.18}
+
+TFR:SCOE:INC_EFFICIENCY_HEAT:
+  dict_cats_to_magnitude:
+    widget: values
+    label: Heating efficiency gain by fuel
+    help: Increase in the efficiency of heat from each fuel by the final year. Blank fuels don't change.
+    keys: {table: fuel, only: [fuel_biomass, fuel_charcoal, fuel_coal, fuel_diesel, fuel_gasoline, fuel_hydrocarbon_gas_liquids, fuel_hydrogen, fuel_kerosene, fuel_natural_gas]}
+    unit: percent_change
+    sum_rule: none
+    default: {fuel_biomass: 0.2, fuel_charcoal: 0.2, fuel_coal: 0.2, fuel_diesel: 0.2, fuel_gasoline: 0.2, fuel_hydrocarbon_gas_liquids: 0.2, fuel_hydrogen: 0.2, fuel_kerosene: 0.2, fuel_natural_gas: 0.2}
+    tier: basic
+
+TFR:SCOE:SHIFT_FUEL_HEAT:
+  cat_enfu_target:
+    widget: select
+    label: Fuel to switch to
+    keys: *fuels_scoe
+    default: fuel_electricity
+  cats_enfu_source:
+    widget: multi
+    label: Fuels to switch from
+    help: Leave empty for all. Don't include the fuel you switch to.
+    keys: *fuels_scoe
+  cats_scoe_apply:
+    widget: multi
+    label: Building types
+    help: Leave empty for all.
+    keys: {table: scoe}
+
+TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY:
+  dict_fuel_allocation:
+    widget: shares
+    label: New fuel mix for the shifted share
+    help: *fuel_alloc_help
+    keys: *fuels_trns
+    unit: share
+    sum_rule: eq1
+    default: {fuel_electricity: 1.0}
+  categories:
+    widget: multi
+    label: Vehicle types
+    keys: {table: transportation}
+
+TFR:TRNS:SHIFT_FUEL_RAIL:
+  dict_fuel_allocation:
+    widget: shares
+    label: New fuel mix for the shifted share
+    help: *fuel_alloc_help
+    keys: *fuels_trns
+    unit: share
+    sum_rule: eq1
+    default: {fuel_electricity: 1.0}
+  categories:
+    widget: multi
+    label: Vehicle types
+    keys: {table: transportation}
+
+TFR:TRNS:SHIFT_FUEL_MARITIME:
+  dict_allocation_fuels_target:
+    widget: shares
+    label: New fuel mix for the shifted share
+    help: >-
+      How the shifted fuel use is split among the new fuels. Must total exactly
+      100%; otherwise sisepuede silently uses its default. Fuel use that is not
+      shifted then moves to electricity.
+    keys: *fuels_trns_maritime
+    unit: share
+    sum_rule: eq1
+    default: {fuel_hydrogen: 1.0}
+  fuels_source:
+    widget: multi
+    label: Fuels to switch from
+    keys: *fuels_trns_maritime
+  categories:
+    widget: multi
+    label: Vehicle types
+    keys: {table: transportation}
+
+TFR:TRNS:SHIFT_FUEL_MEDIUM_DUTY:
+  dict_allocation_fuels_target:
+    widget: shares
+    label: New fuel mix for the shifted share
+    help: >-
+      How the shifted fuel use is split among the new fuels. Must total exactly
+      100%; otherwise sisepuede silently uses its default. Fuel use that is not
+      shifted then moves to hydrogen.
+    keys: *fuels_trns
+    unit: share
+    sum_rule: eq1
+    default: {fuel_electricity: 1.0}
+  fuels_source:
+    widget: multi
+    label: Fuels to switch from
+    keys: *fuels_trns
+  categories:
+    widget: multi
+    label: Vehicle types
+    keys: {table: transportation}
+
+TFR:TRNS:SHIFT_MODE_FREIGHT:
+  dict_categories_target:
+    widget: note
+    label: Where the freight goes
+    help: "Default: all to heavy freight rail. Note: sisepuede currently ignores this setting (known upstream bug), so it can't be changed here."
+  categories_out:
+    widget: multi
+    label: Modes to shift from
+    keys: {table: transportation, only: [aviation, rail_freight, road_heavy_freight, water_borne]}
+
+TFR:TRNS:SHIFT_MODE_PASSENGER:
+  dict_categories_target:
+    widget: note
+    label: Where the passengers go
+    help: "Default: 1/6 human powered, 2/6 powered bikes, 1/2 public road. Note: sisepuede currently ignores this setting (known upstream bug), so it can't be changed here."
+  categories_out:
+    widget: multi
+    label: Modes to shift from
+    keys: {table: transportation, only: [human_powered, powered_bikes, public, road_light, water_borne]}
+
+TFR:TRNS:SHIFT_MODE_REGIONAL:
+  dict_categories_out:
+    widget: values
+    label: Share of each mode's travel to shift
+    help: Fraction of each mode's regional passenger travel moved to other modes by the final year. Total at most 100%.
+    keys: {table: transportation, only: [aviation, rail_passenger, road_heavy_regional, road_light, water_borne]}
+    unit: share
+    sum_rule: leq1
+    default: {aviation: 0.1, road_light: 0.2}
+    tier: basic
+  dict_categories_target:
+    widget: note
+    label: Where the travel goes
+    help: "Default: all to regional road. Note: sisepuede currently ignores this setting (known upstream bug), so it can't be changed here."
+
+# ---------------------------------------------------------------- Cross-sector
+
+TFR:PFLO:INC_IND_CCS:
+  dict_magnitude_prev:
+    widget: values
+    label: Share of plants with carbon capture
+    help: Minimum share of each industry's production with carbon capture by the final year. Blank industries don't change.
+    keys: *ind_ccs
+    unit: share
+    sum_rule: none
+    default: {cement: 0.8, chemicals: 0.8, metals: 0.8, plastic: 0.8}
+    tier: basic
+  dict_magnitude_eff:
+    widget: values
+    label: Share of CO₂ captured where installed
+    help: Minimum capture efficiency by industry. Blank industries keep their current efficiency.
+    keys: *ind_ccs
+    unit: share
+    sum_rule: none
+    default: {cement: 0.9, chemicals: 0.9, glass: 0.9, lime_and_carbonite: 0.9, metals: 0.9, plastic: 0.9}
+    tier: basic

@@ -1,0 +1,26 @@
+citations: https://www.middleeastbriefing.com/news/key-offtake-agreement-boosts-egypt-green-hydrogen-project-ahead-of-2025-decision/
+description: 'PROJECT: TAQA Arabia/Voltalia Green Hydrogen (Sokhna)
+
+  Status: Planned
+
+  Investment: €3.8bn (~$4.1bn)
+
+  Start: Pilot Q4 2030 / Phase 1 Q4 2032
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.001% in 2030 and 0.001%
+  in 2050.'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_CLEAN_HYDROGEN_NEWS_14
+  transformation_name: NEWS_14 - TAQA Arabia/Voltalia Green Hydrogen (Sokhna)
+parameters:
+  categories_source: null
+  categories_target: null
+  magnitude: 0.02565
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_CLEAN_HYDROGEN

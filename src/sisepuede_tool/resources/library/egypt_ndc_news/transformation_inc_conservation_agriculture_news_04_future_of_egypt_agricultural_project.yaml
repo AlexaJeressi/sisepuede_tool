@@ -1,0 +1,28 @@
+citations: https://ukragroconsult.com/en/news/egypt-expands-arable-land-as-part-of-the-future-of-egypt-project/
+  | https://english.ahram.org.eg/News/537377.aspx
+description: 'PROJECT: Future of Egypt Agricultural Project
+
+  Status: Under Construction
+
+  Investment: Not disclosed (multi-billion EGP national program)
+
+  Start: 2019 (ongoing) / Target 2027
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.004% in 2030 and 0.005%
+  in 2050.'
+identifiers:
+  transformation_code: TX:AGRC:INC_CONSERVATION_AGRICULTURE_NEWS_04
+  transformation_name: NEWS_04 - Future of Egypt Agricultural Project
+parameters:
+  dict_categories_to_magnitude: null
+  magnitude_burned: 0.0
+  magnitude_removed: 0.489
+  return_dict_magnitude: false
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:AGRC:INC_CONSERVATION_AGRICULTURE

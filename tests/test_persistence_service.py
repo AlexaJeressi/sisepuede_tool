@@ -138,3 +138,35 @@ def test_export_transformations_dir_reuses_existing_citations(transformers_catal
     persistence_service.export_transformations_dir(transformations_obj, strategies_map, out_dir)
 
     assert (out_dir / "citations.bib").read_text() == "@misc{example, title={x}}"
+
+
+def test_empty_pathway_and_library_transformation_round_trip(transformers_catalog):
+    from sisepuede_tool.services import library_service, pathway_service
+
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    library_service.add_library_to_collection(transformations_obj, transformers_catalog)
+    strategies_map, empty_id = pathway_service.create_pathway(strategies_map, transformations_obj, "Empty for now")
+    strategies_map, lib_id = pathway_service.create_pathway(strategies_map, transformations_obj, "With news")
+    strategies_map = pathway_service.add_to_pathway(
+        strategies_map, transformations_obj, lib_id, "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17"
+    )
+
+    blob = persistence_service.export_session_zip(transformations_obj, strategies_map)
+    tx2, strategies2 = persistence_service.import_session_zip(io.BytesIO(blob), transformers_catalog)
+
+    assert strategies2[empty_id].transformation_codes == []
+    assert strategies2[empty_id].strategy.name == "Empty for now"
+    assert strategies2[lib_id].transformation_codes == ["TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17"]
+    assert "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17" in tx2.dict_transformations
+
+
+def test_extra_tables_round_trip(transformers_catalog):
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    links = pd.DataFrame({"project": ["A"], "transformation_code": ["TX:AGRC:DEC_EXPORTS_TEST"], "in_scope": [True]})
+    blob = persistence_service.export_session_zip(transformations_obj, strategies_map, {"project_links.csv": links})
+    tables = persistence_service.read_extra_tables(io.BytesIO(blob), ["project_links.csv", "custom_projects.csv"])
+    assert list(tables) == ["project_links.csv"]
+    assert tables["project_links.csv"]["transformation_code"].tolist() == ["TX:AGRC:DEC_EXPORTS_TEST"]
+    # still a plain sisepuede directory for import
+    tx2, _ = persistence_service.import_session_zip(io.BytesIO(blob), transformers_catalog)
+    assert "TX:AGRC:DEC_EXPORTS_TEST" in tx2.dict_transformations

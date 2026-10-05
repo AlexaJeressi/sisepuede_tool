@@ -1,0 +1,29 @@
+citations: https://www.waterhq.world/issue-sections/country-reports/egypt/addressing-egypts-escalating-water-stress-strategic-expansion-of-desalination-projects/
+  | https://newsbase.com/story/egypt-to-tender-nearly-1bn-in-desalination-projects-in-january-2026-414517
+description: 'PROJECT: Desalination Plants Programme Phase 1
+
+  Status: Planned
+
+  Investment: $3bn Phase 1; $8bn total by 2050
+
+  Start: Tender Jan 2026 / First 6 plants FY2025/26'
+identifiers:
+  transformation_code: TX:WALI:INC_TREATMENT_URBAN_NEWS_49
+  transformation_name: NEWS_49 - Desalination Plants Programme Phase 1
+parameters:
+  dict_magnitude:
+    treated_advanced_aerobic: 0.138504
+    treated_advanced_anaerobic: 0.08094
+    treated_primary: 0.0006
+    treated_secondary_aerobic: 0.221297
+    treated_secondary_anaerobic: 0.260058
+    untreated_no_sewerage: 0.260713
+    untreated_with_sewerage: 0.037888
+  return_pathways: false
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:WALI:INC_TREATMENT_URBAN

@@ -1,0 +1,20 @@
+citations: https://www.sis.gov.eg/Story/202574/EGP-250M-investment-to-launch-waste-recycling-plant-in-Assiut
+description: 'PROJECT: Assiut Waste Recycling Plant
+
+  Status: Under Construction
+
+  Investment: EGP 250M (~$5.1M)
+
+  Start: Dec 2024 / ~18 months'
+identifiers:
+  transformation_code: TX:WASO:INC_RECYCLING_NEWS_50
+  transformation_name: NEWS_50 - Assiut Waste Recycling Plant
+parameters:
+  magnitude: 0.1495
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 27
+    tp_0_ramp: 8
+    window_logistic: null
+transformer: TFR:WASO:INC_RECYCLING

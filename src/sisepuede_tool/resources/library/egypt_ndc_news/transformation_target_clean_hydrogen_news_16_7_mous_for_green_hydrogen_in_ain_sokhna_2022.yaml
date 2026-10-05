@@ -1,0 +1,26 @@
+citations: https://english.ahram.org.eg/NewsContentP/3/473838/Business/Egypt-signs--MoUs-to-produce-green-hydrogen-in-Ain.aspx
+description: 'PROJECT: 7 MoUs for Green Hydrogen in Ain Sokhna (2022)
+
+  Status: Agreement/MoU
+
+  Investment: Not disclosed (framework agreements)
+
+  Start: 2022 (framework) / Not disclosed
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.017% in 2030 and 0.018%
+  in 2050.'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_CLEAN_HYDROGEN_NEWS_16
+  transformation_name: NEWS_16 - 7 MoUs for Green Hydrogen in Ain Sokhna (2022)
+parameters:
+  categories_source: null
+  categories_target: null
+  magnitude: 0.3895
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_CLEAN_HYDROGEN

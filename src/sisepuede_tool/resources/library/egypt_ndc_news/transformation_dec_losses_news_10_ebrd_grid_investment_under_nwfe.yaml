@@ -1,0 +1,22 @@
+citations: https://www.ebrd.com/home/news-and-events/news/2025/ebrd-backed-grid-investments-pave-way-for-greener-egypt.html
+description: 'PROJECT: EBRD Grid Investment under NWFE
+
+  Status: Planned
+
+  Investment: €200M (~$215M)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:ENTC:DEC_LOSSES_NEWS_10
+  transformation_name: NEWS_10 - EBRD Grid Investment under NWFE
+parameters:
+  magnitude: 0.098391
+  magnitude_type: final_value
+  min_loss: 0.02
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:ENTC:DEC_LOSSES

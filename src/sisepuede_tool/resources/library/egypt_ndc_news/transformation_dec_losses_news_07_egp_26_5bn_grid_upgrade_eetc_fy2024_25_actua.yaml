@@ -1,0 +1,22 @@
+citations: https://www.dailynewsegypt.com/2026/02/09/egypt-invests-egp-26-5bn-to-upgrade-power-transmission-network-in-fy2025/
+description: 'PROJECT: EGP 26.5bn Grid Upgrade (EETC FY2024/25 Actual)
+
+  Status: Operational
+
+  Investment: EGP 26.5bn (~$540M)
+
+  Start: FY2024/25 / 1 year'
+identifiers:
+  transformation_code: TX:ENTC:DEC_LOSSES_NEWS_07
+  transformation_name: NEWS_07 - EGP 26.5bn Grid Upgrade (EETC FY2024/25 Actual)
+parameters:
+  magnitude: 0.090355
+  magnitude_type: final_value
+  min_loss: 0.02
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:ENTC:DEC_LOSSES

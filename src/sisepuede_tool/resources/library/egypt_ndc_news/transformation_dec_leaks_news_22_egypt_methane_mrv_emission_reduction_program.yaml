@@ -1,0 +1,20 @@
+citations: https://egyptoil-gas.com/news/egypt-ramps-up-methane-emission-controls-in-oil-gas-sector-imf/
+description: 'PROJECT: Egypt Methane MRV & Emission Reduction Programme
+
+  Status: Operational
+
+  Investment: $959K USTDA grant (regulatory program)
+
+  Start: 2025 (Decree 31/2025) / Ongoing'
+identifiers:
+  transformation_code: TX:FGTV:DEC_LEAKS_NEWS_22
+  transformation_name: NEWS_22 - Egypt Methane MRV & Emission Reduction Programme
+parameters:
+  magnitude: 0.64
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 25
+    tp_0_ramp: 10
+    window_logistic: null
+transformer: TFR:FGTV:DEC_LEAKS

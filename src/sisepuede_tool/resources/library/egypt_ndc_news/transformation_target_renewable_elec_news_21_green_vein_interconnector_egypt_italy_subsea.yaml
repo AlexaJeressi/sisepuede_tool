@@ -1,0 +1,29 @@
+citations: https://www.africansecurityanalysis.com/reports/egypt-europe-power-link-via-italy-energy-ambition-meets-maritime-security-strategy/
+  | https://interfax.com/newsroom/top-stories/97680/ | https://guest.meed.com/firms-to-proceed-with-3gw-egypt-italy-link/
+description: 'PROJECT: Green Vein Interconnector (Egypt-Italy Subsea Cable)
+
+  Status: Study/Feasibility
+
+  Investment: ~$3.5bn (estimated)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_21
+  transformation_name: NEWS_21 - Green Vein Interconnector (Egypt-Italy Subsea Cable)
+parameters:
+  categories_entc_max_investment_ramp: null
+  categories_entc_renewable:
+  - pp_solar
+  - pp_wind
+  dict_entc_renewable_target_msp:
+    pp_solar: 0.025502
+    pp_wind: 0.032079
+  magnitude: 0.057581
+  scale_non_renewables_to_match_surplus_msp: true
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local files (not part of the app)
+.DS_Store
+tmp*.sqlite
+info/

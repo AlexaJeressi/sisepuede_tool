@@ -1,0 +1,26 @@
+citations: https://energycapitalpower.com/ccs-project-egypt-eni-cop27-emissions/ | https://sis.gov.eg/en/media-center/news/egypt-signs-mou-on-carbon-capture-storage-with-greece/
+description: 'PROJECT: Eni CCS Project (Meleiha Field)
+
+  Status: Planned
+
+  Investment: $25M initial announcement; $1.25bn across all phases
+
+  Start: Phase 1: ~2022 / Multi-phase through 2030s'
+identifiers:
+  transformation_code: TX:PFLO:INC_IND_CCS_NEWS_31
+  transformation_name: NEWS_31 - Eni CCS Project (Meleiha Field)
+parameters:
+  dict_magnitude_eff: 0.9
+  dict_magnitude_prev:
+    cement: 0.045
+    chemicals: 0.045
+    metals: 0.045
+    plastic: 0.045
+  return_prevalence_dict: false
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 24
+    tp_0_ramp: 11
+    window_logistic: null
+transformer: TFR:PFLO:INC_IND_CCS

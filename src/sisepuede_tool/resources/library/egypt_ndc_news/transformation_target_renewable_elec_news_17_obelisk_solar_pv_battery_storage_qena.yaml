@@ -1,0 +1,30 @@
+citations: https://highways.today/2026/01/18/egypt-obelisk-solar-project/ | https://solarquarter.com/2026/01/14/eib-backs-africas-largest-hybrid-solar-project-with-150m-financing/
+  | https://news.fundsforngos.org/2026/01/13/eib-global-finances-150-million-for-egypts-record-breaking-hybrid-solar-pv-project/
+  | https://www.dailynewsegypt.com/2026/01/13/eib-global-offers-150m-financing-for-africas-largest-hybrid-solar-pv-project-in-egypt/
+description: 'PROJECT: Obelisk Solar PV + Battery Storage (Qena)
+
+  Status: Operational
+
+  Investment: $150M EIB + AfDB/EBRD/BII co-financing (total not disclosed)
+
+  Start: Phase 1: Jan 2026 / Not disclosed'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17
+  transformation_name: NEWS_17 - Obelisk Solar PV + Battery Storage (Qena)
+parameters:
+  categories_entc_max_investment_ramp: null
+  categories_entc_renewable:
+  - pp_solar
+  - pp_wind
+  dict_entc_renewable_target_msp:
+    pp_solar: 0.029502
+    pp_wind: 0.031079
+  magnitude: 0.060581
+  scale_non_renewables_to_match_surplus_msp: true
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

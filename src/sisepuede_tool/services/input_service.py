@@ -54,3 +54,12 @@ def validate_baseline(df: pd.DataFrame, model_attributes: ModelAttributes) -> Ba
         interpolated_periods=interpolated_periods,
         df=df_validated,
     )
+
+
+def missing_input_fields(df: pd.DataFrame, model_attributes: ModelAttributes) -> list:
+    """Model input fields absent from `df`. sisepuede doesn't reject these at
+    validation, but a sector model whose inputs are missing fails at run time
+    (e.g. AFOLU on a baseline older than the installed sisepuede), so the
+    Baseline page warns about them up front."""
+    present = set(df.columns)
+    return [f for f in model_attributes.all_variable_fields_input if f not in present]

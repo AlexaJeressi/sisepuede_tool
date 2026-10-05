@@ -1,0 +1,28 @@
+citations: https://english.ahram.org.eg/News/561662.aspx
+description: 'PROJECT: Benban & Minya 1.2 GW Solar + Storage Expansion
+
+  Status: Under Construction
+
+  Investment: Existing Benban complex: $2.5bn total to date; new expansion cost not disclosed
+
+  Start: 2025 / Not disclosed'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_18
+  transformation_name: NEWS_18 - Benban & Minya 1.2 GW Solar + Storage Expansion
+parameters:
+  categories_entc_max_investment_ramp: null
+  categories_entc_renewable:
+  - pp_solar
+  - pp_wind
+  dict_entc_renewable_target_msp:
+    pp_solar: 0.030002
+    pp_wind: 0.041979
+  magnitude: 0.071981
+  scale_non_renewables_to_match_surplus_msp: true
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

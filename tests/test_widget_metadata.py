@@ -69,12 +69,13 @@ def test_categorical_param_resolves_real_choices(model_attributes, transformers_
 
 
 def test_bool_param(model_attributes, transformers_catalog):
-    transformer = transformers_catalog.get_tkernel("TFR:AGRC:INC_CONSERVATION_AGRICULTURE")
+    # INC_CONSERVATION_AGRICULTURE was folded into TARGET_RESIDUE_MANAGEMENT upstream
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:TARGET_RESIDUE_MANAGEMENT")
     specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
 
-    return_dict = _spec_by_name(specs, "return_dict_magnitude")
-    assert return_dict.kind == WidgetKind.BOOL
-    assert return_dict.default is False
+    include_ca = _spec_by_name(specs, "include_conservation_agriculture")
+    assert include_ca.kind == WidgetKind.BOOL
+    assert include_ca.default is True
 
 
 def test_overrides_are_applied_on_top_of_inference(model_attributes, transformers_catalog):
@@ -122,3 +123,36 @@ def test_load_overrides_reads_shipped_resource_file():
     )
     overrides = widget_metadata.load_overrides(resource_path)
     assert isinstance(overrides, dict)
+
+
+def test_main_magnitude_and_ramp_are_basic_rest_advanced(model_attributes, transformers_catalog):
+    transformer = transformers_catalog.get_tkernel("TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY")
+    specs = {s.name: s for s in widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)}
+    assert specs["magnitude"].tier == "basic"
+    assert specs["vec_implementation_ramp"].tier == "basic"
+    assert specs["categories"].tier == "advanced"
+    assert specs["dict_fuel_allocation"].tier == "advanced"
+
+
+def test_return_flags_are_never_exposed(model_attributes, transformers_catalog):
+    for code in transformers_catalog.all_tkernels_non_baseline:
+        transformer = transformers_catalog.get_tkernel(code)
+        specs = widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog)
+        assert not [s.name for s in specs if s.name.startswith("return_")], code
+
+
+def test_tier_and_label_overrides(model_attributes, transformers_catalog):
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
+    overrides = {"TFR:AGRC:DEC_CH4_RICE": {"magnitude": {"tier": "advanced", "label": "Cut in rice CH4"}}}
+    spec = _spec_by_name(
+        widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog, overrides), "magnitude"
+    )
+    assert spec.tier == "advanced"
+    assert spec.label == "Cut in rice CH4"
+
+
+def test_invalid_tier_override_raises(model_attributes, transformers_catalog):
+    transformer = transformers_catalog.get_tkernel("TFR:AGRC:DEC_CH4_RICE")
+    overrides = {"TFR:AGRC:DEC_CH4_RICE": {"magnitude": {"tier": "expert"}}}
+    with pytest.raises(ValueError):
+        widget_metadata.build_param_specs(transformer, model_attributes, transformers_catalog, overrides)

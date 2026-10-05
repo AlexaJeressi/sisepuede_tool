@@ -1,0 +1,23 @@
+citations: https://renewablewatch.in/2026/02/18/eu-to-invest-in-egyptian-green-hydrogen-and-grid-modernisation-projects/
+  | https://reglobal.org/eu-to-invest-in-egyptian-green-hydrogen-and-grid-modernisation-projects/
+description: 'PROJECT: EU Grid Modernisation Investment
+
+  Status: Planned
+
+  Investment: €90M (~$97M)
+
+  Start: 2026 / Not disclosed'
+identifiers:
+  transformation_code: TX:ENTC:DEC_LOSSES_NEWS_09
+  transformation_name: NEWS_09 - EU Grid Modernisation Investment
+parameters:
+  magnitude: 0.101274
+  magnitude_type: final_value
+  min_loss: 0.02
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 23
+    tp_0_ramp: 12
+    window_logistic: null
+transformer: TFR:ENTC:DEC_LOSSES

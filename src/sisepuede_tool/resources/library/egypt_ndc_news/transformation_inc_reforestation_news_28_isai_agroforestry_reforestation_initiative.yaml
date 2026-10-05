@@ -1,0 +1,24 @@
+citations: https://www.salineagrimap.com/projects/integrated-sustainable-agriculture-initiative-egypt | https://except.eco/projects/egypt-sustainable-agriculture-initiative/
+description: 'PROJECT: ISAI Agroforestry & Reforestation Initiative
+
+  Status: Planned
+
+  Investment: Not disclosed
+
+  Start: Not disclosed / Not disclosed
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.065% in 2030.'
+identifiers:
+  transformation_code: TX:LNDU:INC_REFORESTATION_NEWS_28
+  transformation_name: NEWS_28 - ISAI Agroforestry & Reforestation Initiative
+parameters:
+  cats_inflow_restriction: null
+  magnitude: 0.2
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:LNDU:INC_REFORESTATION

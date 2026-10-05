@@ -1,0 +1,25 @@
+citations: https://english.ahram.org.eg/News/508766.aspx
+description: 'PROJECT: EgyptSat Auto EV Manufacturing Factory
+
+  Status: Planned
+
+  Investment: EGP 300M (~$6.1M)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_NEWS_39
+  transformation_name: NEWS_39 - EgyptSat Auto EV Manufacturing Factory
+parameters:
+  categories:
+  - road_light
+  - public
+  - powered_bikes
+  dict_fuel_allocation: null
+  magnitude: 0.0788441296806186
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 25
+    tp_0_ramp: 10
+    window_logistic: null
+transformer: TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY

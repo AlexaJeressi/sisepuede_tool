@@ -1,0 +1,20 @@
+citations: https://www.imeep-eg.org
+description: 'PROJECT: Industrial Motors Energy Efficiency Programme (UNIDO/GEF)
+
+  Status: Under Construction
+
+  Investment: Not disclosed (UNIDO/GEF funded)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:INEN:INC_EFFICIENCY_ENERGY_NEWS_25
+  transformation_name: NEWS_25 - Industrial Motors Energy Efficiency Programme (UNIDO/GEF)
+parameters:
+  magnitude: 0.075
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:INEN:INC_EFFICIENCY_ENERGY

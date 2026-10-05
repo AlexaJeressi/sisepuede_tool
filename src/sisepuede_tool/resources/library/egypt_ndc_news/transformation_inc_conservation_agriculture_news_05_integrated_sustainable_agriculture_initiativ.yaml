@@ -1,0 +1,27 @@
+citations: https://except.eco/projects/egypt-sustainable-agriculture-initiative/ | https://www.salineagrimap.com/projects/integrated-sustainable-agriculture-initiative-egypt
+description: 'PROJECT: Integrated Sustainable Agriculture Initiative (ISAI)
+
+  Status: Planned
+
+  Investment: Not disclosed
+
+  Start: Not disclosed / Not disclosed
+
+
+  WARNING, MEASURED: run on its own this transformation INCREASES national emissions by 0.010% in 2030 and 0.017%
+  in 2050.'
+identifiers:
+  transformation_code: TX:AGRC:INC_CONSERVATION_AGRICULTURE_NEWS_05
+  transformation_name: NEWS_05 - Integrated Sustainable Agriculture Initiative (ISAI)
+parameters:
+  dict_categories_to_magnitude: null
+  magnitude_burned: 0.0
+  magnitude_removed: 0.011
+  return_dict_magnitude: false
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 26
+    tp_0_ramp: 9
+    window_logistic: null
+transformer: TFR:AGRC:INC_CONSERVATION_AGRICULTURE

@@ -1,0 +1,61 @@
+# Conda environment for running the sisepuede_tool Shiny app against the
+# `biomass_fix` branch of sisepuede (https://github.com/jcsyme/sisepuede/tree/biomass_fix).
+#
+# Create (run from the repo root, because of `-e .[dev]` below):
+#   conda env create -f environment.yml
+#
+# Recreate from scratch (if the env already exists):
+#   conda env remove -n ssp_biomass_env -y && conda env create -f environment.yml
+#
+# Pull the latest biomass_fix commit into an existing env:
+#   conda activate ssp_biomass_env
+#   pip install --force-reinstall --no-deps "sisepuede @ git+https://github.com/jcsyme/sisepuede.git@biomass_fix"
+#
+# Run the app, keeping a log of the server output:
+#   conda activate ssp_biomass_env
+#   mkdir -p logs && shiny run --reload --launch-browser src/sisepuede_tool/app.py 2>&1 | tee logs/app_$(date +%Y%m%d_%H%M%S).log
+#
+# Check which sisepuede commit is installed:
+#   pip show --verbose sisepuede ; cat $(python -c "import sisepuede,os;print(os.path.dirname(sisepuede.__file__))")/../sisepuede-*.dist-info/direct_url.json
+#
+# Note: the first energy-model run downloads Julia 1.13.0 + NemoMod via juliapkg
+# (~4 min, log looks stuck at "Importing Julia..."). That is expected.
+
+name: ssp_biomass_env
+channels:
+  - conda-forge
+dependencies:
+  # sisepuede and sisepuede_tool both pin Python 3.13
+  - python=3.13
+  - pip
+
+  # sisepuede dependencies (from sisepuede's environment.yaml / requirements.txt);
+  # installed from conda-forge because geopandas/rioxarray need compiled GDAL/PROJ
+  - geopandas>=1.0.1
+  - geopy>=2.1.0
+  - matplotlib=3.10.1
+  - munch=4.0.0
+  - numpy>=2.2.2
+  - openpyxl>=3.1.2
+  - pandas>=2.2.3
+  - pyxlsb=1.0.10
+  - pyyaml>=6.0
+  - qpsolvers>=4.4.0
+  - quadprog=0.1.13
+  - rioxarray=0.15.5
+  - scipy>=1.18.1
+  - sqlalchemy=2.0.37
+
+  - pip:
+    - juliacall==0.9.35
+    - juliapkg==0.1.26
+
+    # sisepuede, biomass_fix branch. For a reproducible env, replace
+    # `@biomass_fix` with a commit hash, e.g. `@f7084c4`.
+    - "sisepuede @ git+https://github.com/jcsyme/sisepuede.git@biomass_fix"
+
+    # costs_benefits_ssp from GitHub (the PyPI version is not the one used here)
+    - "costs_benefits_ssp @ git+https://github.com/sisepuede-framework/costs_benefits_ssp.git"
+
+    # sisepuede_tool itself (shiny, shinywidgets, plotly, ... come from pyproject.toml)
+    - -e .[dev]

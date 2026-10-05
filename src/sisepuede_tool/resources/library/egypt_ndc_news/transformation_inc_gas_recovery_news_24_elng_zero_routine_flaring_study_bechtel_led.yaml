@@ -1,0 +1,20 @@
+citations: https://www.gevernova.com/news/press-releases/egyptian-lng-zero-routine-flaring-study-awarded-to-bechtel-led-coalition-for
+description: 'PROJECT: ELNG Zero Routine Flaring Study (Bechtel-led)
+
+  Status: Study/Feasibility
+
+  Investment: Not disclosed (feasibility study)
+
+  Start: Not disclosed / Not disclosed'
+identifiers:
+  transformation_code: TX:FGTV:INC_GAS_RECOVERY_NEWS_24
+  transformation_name: NEWS_24 - ELNG Zero Routine Flaring Study (Bechtel-led)
+parameters:
+  magnitude: 0.2
+  vec_implementation_ramp:
+    alpha_logistic: null
+    d: 0
+    n_tp_ramp: 34
+    tp_0_ramp: 1
+    window_logistic: null
+transformer: TFR:FGTV:INC_GAS_RECOVERY

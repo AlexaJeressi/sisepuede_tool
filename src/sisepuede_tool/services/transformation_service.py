@@ -40,7 +40,7 @@ def create_transformations_collection(transformers_catalog: trf.TransformerKerne
     return trf.Transformations(tmp_dir, transformer_kernels=transformers_catalog)
 
 
-def _rebuild_attribute_table(transformations_obj: trf.Transformations) -> None:
+def rebuild_attribute_table(transformations_obj: trf.Transformations) -> None:
     fp_map = {code: None for code in transformations_obj.dict_transformations}
     attribute_transformation, _fields = transformations_obj.build_attribute_table(
         transformations_obj.code_baseline,
@@ -54,14 +54,14 @@ def _rebuild_attribute_table(transformations_obj: trf.Transformations) -> None:
 
 def add_transformation(transformations_obj: trf.Transformations, transformation: trf.Transformation) -> None:
     transformations_obj.dict_transformations[transformation.code] = transformation
-    _rebuild_attribute_table(transformations_obj)
+    rebuild_attribute_table(transformations_obj)
 
 
 def remove_transformation(transformations_obj: trf.Transformations, code: str) -> None:
     if code == transformations_obj.code_baseline:
         raise ValueError("Cannot remove the baseline transformation.")
     transformations_obj.dict_transformations.pop(code, None)
-    _rebuild_attribute_table(transformations_obj)
+    rebuild_attribute_table(transformations_obj)
 
 
 def build_transformation_config(
