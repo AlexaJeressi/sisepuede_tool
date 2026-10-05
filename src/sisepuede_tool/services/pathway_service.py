@@ -101,6 +101,18 @@ def rename_pathway(pathways: PathwayMap, transformations_obj, sid: int, name: st
     return out
 
 
+def add_library_pathway(
+    pathways: PathwayMap, transformations_obj, library_items, name: str = "NDC", description: str = ""
+) -> Tuple[PathwayMap, Optional[int]]:
+    """Add a pathway holding every usable library transformation (the shipped
+    NDC set). Returns (pathways, None) if no library item is usable."""
+    codes = [i.code for i in library_items if i.ok and i.code in transformations_obj.dict_transformations]
+    if not codes:
+        return pathways, None
+    out, sid = create_pathway(pathways, transformations_obj, name, description=description)
+    return set_pathway_codes(out, transformations_obj, sid, codes), sid
+
+
 def delete_pathway(pathways: PathwayMap, sid: int) -> PathwayMap:
     if sid == BAU_STRATEGY_ID:
         raise ValueError("Business as usual cannot be removed.")

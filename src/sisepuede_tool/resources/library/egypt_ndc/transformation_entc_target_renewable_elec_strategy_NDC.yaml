@@ -1,0 +1,21 @@
+citations: null
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Set a target for renewable electricity. Includes minimum targets for specific renewable
+  energy technologies.'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC
+  transformation_name: 'NDC · ENTC: Renewable electricity target'
+parameters:
+  categories_entc_max_investment_ramp: null
+  categories_entc_renewable:
+  - pp_solar
+  - pp_wind
+  dict_entc_renewable_target_msp:
+    pp_wind: 0.5
+    pp_solar: 0.35
+  magnitude: 0.85
+  scale_non_renewables_to_match_surplus_msp: true
+  vec_implementation_ramp:
+    tp_0_ramp: 2
+transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

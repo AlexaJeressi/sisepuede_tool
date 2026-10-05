@@ -4,9 +4,10 @@ links to transformations.
 
 The list is read live from that file, not hardcoded, so edits to the
 workbook are picked up on the next app start. Each row names the SISEPUEDE
-transformer it maps to (`transformer_code`), and row N corresponds to the
-NDC news transformation `..._NEWS_N` in resources/library/egypt_ndc_news
-(same project name), which is the default link.
+transformer it maps to (`transformer_code`); by default it is linked to the
+NDC transformation (resources/library/egypt_ndc) on the same transformer, so
+one NDC transformation carries every project that maps to it. Projects on
+transformers outside the NDC set start unlinked.
 
 Links are session state (`project -> transformation code`), saved with the
 project as project_links.csv. Users can also add their own projects
@@ -98,30 +99,15 @@ def split_links(value: Optional[str]) -> List[str]:
     return [u.strip() for u in re.split(r"\s*\|\s*", value or "") if u.strip()]
 
 
-def _norm(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", (name or "").lower()).strip()
-
-
 def default_links(projects: pd.DataFrame, library_items: Iterable) -> Dict[str, Optional[str]]:
-    """project name -> NDC news transformation code, matched by project name
-    (the news item's name is 'NEWS_NN - <project name>'), falling back to the
-    workbook row number. Items that can't be used with the installed
-    sisepuede are not linked."""
-    items = [i for i in library_items if getattr(i, "ok", True)]
-    by_name = {}
-    by_number = {}
-    for item in items:
-        name = item.name.split(" - ", 1)[1] if " - " in item.name else item.name
-        by_name[_norm(name)] = item.code
-        if item.news_number is not None:
-            by_number[item.news_number] = item.code
-    links: Dict[str, Optional[str]] = {}
-    for rec in projects.to_dict("records"):
-        code = by_name.get(_norm(rec["name"]))
-        if code is None and rec.get("news_number") is not None:
-            code = by_number.get(int(rec["news_number"]))
-        links[rec["name"]] = code
-    return links
+    """project name -> NDC transformation code with the project's transformer,
+    or None if the NDC set has none. Items that can't be used with the
+    installed sisepuede are not linked."""
+    by_transformer: Dict[str, str] = {}
+    for item in library_items:
+        if getattr(item, "ok", True):
+            by_transformer.setdefault(item.transformer_code, item.code)
+    return {rec["name"]: by_transformer.get(rec.get("transformer_code")) for rec in projects.to_dict("records")}
 
 
 def make_custom_project(

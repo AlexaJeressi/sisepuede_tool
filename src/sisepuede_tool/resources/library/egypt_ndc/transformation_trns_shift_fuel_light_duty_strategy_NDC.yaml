@@ -1,0 +1,13 @@
+citations: null
+description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+identifiers:
+  transformation_code: TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_NDC
+  transformation_name: 'NDC · TRNS: Electrify light duty road transport'
+parameters:
+  categories:
+  - road_light
+  dict_fuel_allocation: null
+  magnitude: 0.27999999999999997
+  vec_implementation_ramp:
+    tp_0_ramp: 2
+transformer: TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY

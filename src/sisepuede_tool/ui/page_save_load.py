@@ -13,6 +13,7 @@ from sisepuede_tool.ui.state import AppState
 
 PROJECT_LINKS_FILENAME = "project_links.csv"
 CUSTOM_PROJECTS_FILENAME = "custom_projects.csv"
+RESULTS_CUSTOM_VARS_FILENAME = "results_custom_vars.csv"
 
 
 @module.ui
@@ -61,6 +62,8 @@ def page_save_load_server(input, output, session, state: AppState):
         }
         if state.custom_projects.get():
             extra[CUSTOM_PROJECTS_FILENAME] = pd.DataFrame(state.custom_projects.get(), columns=projects_service.PROJECT_COLUMNS)
+        if state.results_custom_vars.get():
+            extra[RESULTS_CUSTOM_VARS_FILENAME] = pd.DataFrame({"variable": state.results_custom_vars.get()})
         yield persistence_service.export_session_zip(transformations_obj, strategies_map, extra)
 
     @reactive.effect
@@ -93,8 +96,10 @@ def page_save_load_server(input, output, session, state: AppState):
         state.active_pathway_id.set(None)
 
         tables = persistence_service.read_extra_tables(
-            file_infos[0]["datapath"], [PROJECT_LINKS_FILENAME, CUSTOM_PROJECTS_FILENAME]
+            file_infos[0]["datapath"], [PROJECT_LINKS_FILENAME, CUSTOM_PROJECTS_FILENAME, RESULTS_CUSTOM_VARS_FILENAME]
         )
+        if RESULTS_CUSTOM_VARS_FILENAME in tables:
+            state.results_custom_vars.set([v for v in tables[RESULTS_CUSTOM_VARS_FILENAME]["variable"].dropna().tolist() if v])
         if CUSTOM_PROJECTS_FILENAME in tables:
             custom = tables[CUSTOM_PROJECTS_FILENAME].replace({"": None})
             state.custom_projects.set(custom.to_dict("records"))

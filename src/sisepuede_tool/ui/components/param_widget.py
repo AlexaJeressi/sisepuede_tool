@@ -24,6 +24,7 @@ from shiny.module import resolve_id
 from sisepuede_tool.models.param_spec import ParamSpec, WidgetKind
 from sisepuede_tool.services import labels
 from sisepuede_tool.services import param_schema_service as pss
+from sisepuede_tool.ui.components.info_tip import info_tip
 
 
 def _param_id(name: str, field: str = None) -> str:
@@ -35,8 +36,8 @@ def _label_text(spec: ParamSpec) -> str:
 
 
 def code_tip(name: str) -> ui.Tag:
-    """ⓘ with the sisepuede name in its tooltip (visible in advanced mode)."""
-    return ui.span("ⓘ", class_="code-tip", title=f"sisepuede: {name}")
+    """ⓘ with the sisepuede name in its bubble (visible in advanced mode)."""
+    return info_tip(f"sisepuede: {name}", class_="code-tip")
 
 
 def _label_tag(text: str, name: str) -> ui.Tag:

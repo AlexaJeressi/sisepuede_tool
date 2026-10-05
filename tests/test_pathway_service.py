@@ -49,29 +49,28 @@ def _rice(catalog, code="TX:AGRC:DEC_CH4_RICE", magnitude=0.45):
 
 def test_library_parses_all_files():
     items = library_service.load_library()
-    assert len(items) == 53
-    item = next(i for i in items if i.code == "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17")
-    assert item.news_number == 17
-    assert item.project["project"].startswith("Obelisk Solar PV")
-    assert item.project["status"] == "Operational"
-    assert len(item.citations) == 4
+    assert len(items) == 18
+    item = next(i for i in items if i.code == "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC")
+    assert item.transformer_code == "TFR:ENTC:TARGET_RENEWABLE_ELEC"
+    assert item.name == "NDC · ENTC: Renewable electricity target"
+    assert item.config["parameters"]["magnitude"] == 0.85
+    assert item.config["parameters"]["dict_entc_renewable_target_msp"] == {"pp_wind": 0.5, "pp_solar": 0.35}
+    # one transformation per transformer
+    assert len({i.transformer_code for i in items}) == 18
 
 
-def test_library_loads_into_collection_and_reports_unusable(tx, catalog):
+def test_library_loads_into_collection(tx, catalog):
     items = library_service.add_library_to_collection(tx, catalog)
-    bad = {i.code: i.error for i in items if not i.ok}
-    # transformers removed/renamed upstream are reported, not loaded
-    assert any("INC_CONSERVATION_AGRICULTURE" in i.transformer_code for i in items if not i.ok)
-    assert all(code not in tx.dict_transformations for code in bad)
-    good = [i for i in items if i.ok]
-    assert len(good) >= 48
-    assert all(i.code in tx.dict_transformations for i in good)
-    assert "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17" in tx.attribute_transformation.key_values
+    assert [i.code for i in items if not i.ok] == []
+    assert all(i.code in tx.dict_transformations for i in items)
+    assert "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC" in tx.attribute_transformation.key_values
 
 
-def test_parse_project_description_tolerates_missing_lines():
-    assert library_service.parse_project_description("PROJECT: X\nStatus: Planned") == {"project": "X", "status": "Planned"}
-    assert library_service.parse_project_description(None) == {}
+def test_add_library_pathway_holds_every_ndc_transformation(tx, catalog, bau_only):
+    items = library_service.add_library_to_collection(tx, catalog)
+    pathways, sid = pathway_service.add_library_pathway(bau_only, tx, items, name="NDC")
+    assert pathways[sid].strategy.name == "NDC"
+    assert sorted(pathways[sid].transformation_codes) == sorted(i.code for i in items)
 
 
 # pathways

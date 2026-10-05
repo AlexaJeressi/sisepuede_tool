@@ -1,0 +1,17 @@
+citations: null
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Increases probability of input land use classes being converted to secondary forests.
+  This transformation can be defined for specific land use classes--e.g., converting
+  only shrublands and croplands to'
+identifiers:
+  transformation_code: TX:LNDU:INC_REFORESTATION_STRATEGY_NDC
+  transformation_name: 'NDC · LNDU: Increase Reforestation'
+parameters:
+  cats_inflow_restriction:
+  - croplands
+  - other
+  magnitude: 0.2
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:LNDU:INC_REFORESTATION

@@ -904,8 +904,8 @@ body.advanced-on .adv-only.d-flex-adv { display: flex !important; }
 @media (max-width: 860px) { .pin-btn { display: none; } }
 
 /* ---- ⓘ with the sisepuede name: only with Advanced options on ---- */
-.code-tip { display: none; cursor: help; color: var(--text-muted); font-size: 12px; font-weight: 400; }
-body.advanced-on .code-tip { display: inline; }
+.code-tip { display: none !important; }
+body.advanced-on .code-tip { display: inline-flex !important; }
 
 /* ---- Magnitude range (native input; see param_widget._range_with_exact) ---- */
 .mrv-range-row { display: flex; align-items: center; gap: 12px; margin: 2px 0 8px; }
@@ -980,3 +980,112 @@ body.advanced-on .code-tip { display: inline; }
 .sector-circular-economy-chip { border-color: var(--sec-ce); }
 .sector-ippu-chip { border-color: var(--sec-ippu); }
 .sector-socioeconomic-chip, .sector-other-chip { border-color: var(--sec-other); }
+
+/* ---- Results pages (Emissions & drivers, Costs & benefits) ---- */
+.res-page { display: flex; flex-direction: column; gap: 16px; }
+.res-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px;
+}
+.res-bar .btn { width: auto; }
+.res-bar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.res-bar-row .shiny-input-container { margin: 0; }
+.res-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.res-controls .shiny-input-container { margin: 0; width: auto; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.kpi-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.kpi-head { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.kpi-vals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi-vals .k { font: 500 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-label); }
+.kpi-vals .v { font: 500 17px "IBM Plex Mono", monospace; color: var(--text); white-space: nowrap; }
+.kpi-vals .v .pct { font-size: 12.5px; color: var(--accent); margin-left: 4px; }
+.kpi-vals .v.pos { color: var(--accent); }
+.kpi-vals .v.neg { color: var(--rust); }
+.drv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.drv-card { border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px 8px; background: var(--surface-2); min-width: 0; }
+.drv-card.wide { grid-column: 1 / -1; }
+.drv-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.drv-title { font-weight: 500; }
+.drv-sum { margin-top: 2px; }
+.cb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.cb-side { position: sticky; top: 0; }
+.cb-kpis .v { font-size: 18px; }
+.npv-list { display: flex; flex-direction: column; gap: 7px; }
+.npv-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 92px; gap: 8px; align-items: center; font-size: 13px; }
+.npv-name { color: var(--text-secondary); line-height: 1.2; }
+.npv-track { height: 10px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.npv-bar { height: 100%; border-radius: 3px; }
+.npv-val { text-align: right; font-size: 12.5px; }
+@media (max-width: 1180px) {
+  .cb-grid { grid-template-columns: 1fr; }
+  .drv-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- Modals (ui.modal): Shiny appends them to <body>, outside .app-shell,
+   so the form and button rules above don't reach them ---- */
+.modal-backdrop.show { background: #0E3B2E; opacity: .35; }
+.modal-content {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 18px 48px rgba(28, 43, 51, 0.18);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+.modal-header { border-bottom: 1px solid var(--border-soft); padding: 16px 20px 12px; }
+.modal-title { font-size: 18px; font-weight: 600; color: var(--text); }
+.modal-body { padding: 16px 20px; }
+.modal-footer { border-top: 1px solid var(--border-soft); padding: 12px 20px; background: var(--surface-2); border-radius: 0 0 10px 10px; }
+.modal-body .shiny-input-container > label, .modal-body .control-label {
+  font: 500 11.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-label); margin-bottom: 6px;
+}
+.modal-body .shiny-input-container { width: 100%; margin-bottom: 14px; }
+.modal-body .form-control, .modal-body .form-select, .modal-body input[type="text"], .modal-body select, .modal-body textarea {
+  height: 38px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); width: 100%; font-size: 14.5px;
+}
+.modal-body textarea { height: auto; padding: 8px 12px; }
+.modal-body .form-control:focus, .modal-body .form-select:focus, .modal-body textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); outline: none;
+}
+.modal-body .form-check { padding-left: 1.7em; margin-bottom: 4px; }
+.modal-body .radio label, .modal-body .checkbox label {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 6px; cursor: pointer;
+  font: 14.5px "IBM Plex Sans", ui-sans-serif, sans-serif; color: var(--text);
+}
+.modal-body input[type="radio"], .modal-body input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.modal-body input[type="radio"], .modal-body input[type="checkbox"] { border-color: var(--border-strong); }
+.modal-body input[type="radio"]:checked, .modal-body input[type="checkbox"]:checked { background-color: var(--accent); border-color: var(--accent); }
+.modal-body input[type="radio"]:focus, .modal-body input[type="checkbox"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+.modal-body .form-check-label {
+  font: 14.5px "IBM Plex Sans", ui-sans-serif, sans-serif; letter-spacing: 0; text-transform: none; color: var(--text);
+}
+.modal-body .form-check-input { border-color: var(--border-strong); background-color: var(--surface); }
+.modal-body .form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
+.modal-body .form-check-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+.modal .btn {
+  height: 36px; padding: 0 16px; border-radius: 7px; font-size: 14.5px; font-weight: 600;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); width: auto;
+}
+.modal .btn:hover { border-color: var(--accent); color: var(--accent); }
+.modal .btn-primary, .modal .btn.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+.modal .btn-primary:hover, .modal .btn.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-contrast); }
+.modal .btn-rust, .modal .btn-outline-danger { background: var(--rust); border-color: var(--rust); color: #fff; }
+.modal .btn-close:focus { box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* ---- ⓘ info bubbles (ui/components/info_tip.py; click handling in app_shell) ---- */
+.info-tip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0 2px; margin: 0 0 0 4px; line-height: 1;
+  font-size: 13px; font-weight: 400; color: var(--text-label); cursor: pointer; vertical-align: baseline;
+}
+.info-tip:hover, .info-tip.open, .info-tip:focus-visible { color: var(--accent); outline: none; }
+.info-tip::after {
+  content: attr(data-tip);
+  position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%);
+  width: max-content; max-width: 280px; white-space: normal; text-align: left;
+  background: var(--text); color: var(--surface); border-radius: 6px; padding: 7px 10px;
+  font: 400 12.5px/1.4 "IBM Plex Sans", ui-sans-serif, sans-serif; letter-spacing: 0; text-transform: none;
+  box-shadow: 0 6px 18px rgba(28, 43, 51, 0.18);
+  opacity: 0; visibility: hidden; pointer-events: none; z-index: 1060; transition: opacity .12s;
+}
+.info-tip.tip-left::after { left: auto; right: -4px; transform: none; }
+.info-tip:hover::after, .info-tip:focus-visible::after, .info-tip.open::after { opacity: 1; visibility: visible; }

@@ -1,0 +1,12 @@
+citations: null
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Reduce waste food waste in the agricultural (crop) supply chain (pre-consumer)'
+identifiers:
+  transformation_code: TX:AGRC:DEC_LOSSES_SUPPLY_CHAIN_STRATEGY_NDC
+  transformation_name: 'NDC · AGRC: Reduce supply chain losses'
+parameters:
+  magnitude: 0.3
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:AGRC:DEC_LOSSES_SUPPLY_CHAIN

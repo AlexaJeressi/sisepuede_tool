@@ -71,7 +71,7 @@ def ramp_from_policy(start_year: int, full_year: int, shape: str, years: Sequenc
 
 
 def fill_ramp_defaults(ramp: Optional[Dict], defaults: Dict) -> Dict:
-    """Replace missing/None fields (as in the NDC news YAMLs) with `defaults`
+    """Replace missing/None fields (as in the NDC library YAMLs) with `defaults`
     (usually the catalog's ramp: see `catalog_default_ramp`)."""
     ramp = dict(ramp or {})
     out = {}

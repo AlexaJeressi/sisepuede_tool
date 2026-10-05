@@ -1,0 +1,10 @@
+citations: null
+description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+identifiers:
+  transformation_code: TX:IPPU:DEC_HFCS_STRATEGY_NDC
+  transformation_name: 'NDC · IPPU: Reduce use of HFCs'
+parameters:
+  magnitude: 0.1
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:IPPU:DEC_HFCS

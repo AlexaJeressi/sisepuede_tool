@@ -14,13 +14,13 @@ done and tested. All work is **uncommitted** in the working tree
 
 **On hold (user, 2026-10-04):** the gaps found after testing (results/baselines
 not saved in the zip, autosave + snapshots, sidebar export/import, Download CSV
-header buttons, NDC target line, Monitoring upload, two §7 bugs, a curation
+header buttons (done for the results pages on `ndc-v1`, 2026-10-05: one Excel download per page), NDC target line, Monitoring upload, two §7 bugs, a curation
 phase). Ask before picking them up.
 
-**Next: Phase 3** (section 3), in this order:
-1. 3.1 Shared results sub-bar (baseline picker defaulting to
+**Next: Phase 3** (section 3). On `ndc-v1`, 3.1, 3.2 and 3.4 are done (2026-10-05); the rest, in this order:
+1. ~~3.1~~ Shared results sub-bar (baseline picker defaulting to
    `state.default_baseline_id`, pathway chips, run stamp from `state.run_history`).
-2. 3.2 Emissions & drivers: small multiples per pathway, stacked by
+2. ~~3.2~~ Emissions & drivers: small multiples per pathway, stacked by
    subsector via `ma.get_all_subsector_emission_total_fields(return_type="dict_abv")`
    from `state.run_results[(sid, bid)].df_output`; % vs BAU (strategy 0).
    Keep the current free explorer (`page_output_explorer.py`) under advanced.
@@ -28,7 +28,7 @@ phase). Ask before picking them up.
 3. 3.3 Levers by pathway (new nav item under Results): per transformation, the
    intensity of its top input variable over time per pathway (from
    `RunResult.df_input`), with an inspector.
-4. 3.4 Costs & benefits restyle (`cost_benefit_service`, `state.cb_results`) + NPV with a choice of discount rate.
+4. ~~3.4~~ Costs & benefits restyle (`cost_benefit_service`, `state.cb_results`) + NPV with a choice of discount rate.
 5. 3.5 Monitoring: fix `page_monitoring.py:48` (`get_output_catalog` doesn't
    exist → use `get_variable_catalog`), status cards, OK/Watch/Review table.
 6. 3.6 Project files: contents list, snapshots, and the local-folder save/load
@@ -42,8 +42,8 @@ phase). Ask before picking them up.
   - `transformer_metadata_service` (+ `scripts/build_transformer_metadata.py` → `resources/transformer_catalog.yaml`)
   - `ramp_service`
   - `pathway_service` (pathway = Strategy; `rebuild_pathways` after any transformation change)
-  - `library_service` (NDC news → `resources/library/egypt_ndc_news/`)
-  - `projects_service` (links)
+  - `library_service` (NDC set → `resources/library/egypt_ndc/`, 18 transformations from `ssp_egypt@btr_invent` strategy 6003; branch `ndc-v1`)
+  - `projects_service` (links: project → NDC transformation on the same transformer)
   - `labels`
   - `output_service.build_field_catalog`
 - **UI:** `app_shell` (nav, Advanced switch → `body.advanced-on` / `.adv-only`,
@@ -61,7 +61,7 @@ Run the app: `shiny run --port 8000 src/sisepuede_tool/app.py`
 
 **Waiting on the user (section 4):**
 - review of `transformer_catalog.yaml` and `docs/advanced_options_proposal.md`
-- NEWS_04/05/24 re-mapping
+- `ndc-v1` open items (section 4)
 - counter-intuitive emission directions
 - funder/online-year columns for projects
 
@@ -127,10 +127,10 @@ Status: `todo` / `wip` / `done` / `blocked`.
 ### Phase 3 — Results, MRV, Files
 | # | Task | Status | Commit |
 |---|---|---|---|
-| 3.1 | Shared results sub-bar (baseline, pathway chips, run stamp) | todo | |
-| 3.2 | Emissions & drivers: small multiples by subsector, % vs BAU, driver row; free explorer under advanced | todo | |
+| 3.1 | Shared results sub-bar (baseline, pathway chips, run stamp) + Excel download: `ui/components/results_bar.py`, `state.results_baseline_id / results_pathways` | done 2026-10-05 (`ndc-v1`) | |
+| 3.2 | Emissions & drivers (`ui/page_emissions.py`, replaces `page_output_explorer.py`): KPI tiles; small multiples by subsector or change vs BAU (2030/2050); subsector focus → detail + gas (`services/emissions_service.py`, rules ported from Egypt's `tableau_postprocessing.py`); curated driver cards per area (`resources/results_groups.yaml`, `services/results_groups_service.py`); advanced "Add a variable" cards (saved in the zip as `results_custom_vars.csv`); no tables, Excel download (`services/download_service.py`) | done 2026-10-05 (`ndc-v1`) | |
 | 3.3 | Levers by pathway | todo | |
-| 3.4 | Costs & benefits restyle + NPV with a choice of discount rate | todo | |
+| 3.4 | Costs & benefits: stacked ± bars by category (17 `cb_type` → 10 categories) or sector, billion USD or % of GDP, net line; NPV at 3/5/7% (any rate in advanced), B/C ratio, net-positive year, NPV by category (`services/cb_summary_service.py`); no tables, Excel download. "By transformation" view still to do (needs `transformation_costs.transformation_code` mapping) | done 2026-10-05 (`ndc-v1`) | |
 | 3.5 | Monitoring: fix `get_output_catalog`, status cards, OK/Watch/Review table | todo | |
 | 3.6 | Project files: export/import contents list, snapshots; **move the local-folder save/load (macOS picker) from the retired `page_transformations.py`, then delete `page_transformations.py` and `page_strategies.py`** | todo | |
 | 3.7 | Macro / Article 6 placeholders in the new style | todo | |
@@ -171,14 +171,26 @@ Status: `todo` / `wip` / `done` / `blocked`.
       `LVST:DEC_EXPORTS`, `ENTC:INCREASE_EFFICIENCY_FUEL_PROD`, `IPPU:DEC_N2O`,
       `IPPU:DEC_OTHER_FCS`, `LNDU:BOUND_CLASSES`, `LVST:SHIFT_DIETARY_BOUNDS`.
       Hide them in basic mode, or keep them with a note?
-- [ ] **NDC news files that can't be used** with the installed sisepuede
+- [x] ~~**NDC news files that can't be used**~~ (obsolete on `ndc-v1`: the news library was removed) with the installed sisepuede
       (the loader reports them, the UI hides them):
       `NEWS_04`, `NEWS_05` → `TFR:AGRC:INC_CONSERVATION_AGRICULTURE` (folded
       upstream into `TARGET_RESIDUE_MANAGEMENT`, different parameters);
       `NEWS_24` → `TFR:FGTV:INC_GAS_RECOVERY` (no longer exists).
       `NEWS_34`, `NEWS_35` load but fail when run (`SCOE:INC_EFFICIENCY_APPLIANCE`
       upstream bug). Re-map or re-author them?
-- [x] **Project ↔ transformation links**: NEWS_NN ↔ workbook row confirmed (all 53 match by project name, 2026-10-02). Default links come from that; NEWS_04/05/24 projects start unlinked because their transformers are missing.
+- [x] ~~**Project ↔ transformation links**~~ (superseded on `ndc-v1`, see below): NEWS_NN ↔ workbook row confirmed (all 53 match by project name, 2026-10-02). Default links come from that; NEWS_04/05/24 projects start unlinked because their transformers are missing.
+- **`ndc-v1` (2026-10-05)**: the 53 per-news transformations are replaced by
+      the 18 transformations of Egypt's NDC strategy (`6003 PFLO:NDC`,
+      `ssp_egypt@btr_invent`), parameters copied verbatim, codes kept
+      (`TX:…_STRATEGY_NDC`). Each project links to the NDC transformation on its
+      transformer (43 linked, 10 unlinked). An "NDC" pathway is preloaded with the
+      first baseline.
+  - [ ] `AGRC:INC_CONSERVATION_AGRICULTURE` dropped (transformer folded upstream
+        into `TARGET_RESIDUE_MANAGEMENT`); its 2 projects are unlinked. Re-author?
+  - [ ] `ENTC:TARGET_RENEWABLE_ELEC`: the YAML (0.85; wind 0.5 / solar 0.35;
+        tp_0_ramp 2) is used. The Egypt `entc_ndc_calibration.ipynb` has 0.45;
+        0.198 / 0.25; ramp 8/9 (calibrated to −37% generation emissions 2030). Which is right?
+  - [ ] `AGRC:DEC_CH4_RICE` and `SCOE:SHIFT_FUEL_HEAT` have no projects.
 - [ ] Projects: the workbook has no funder column (the design shows one) and no structured online year; add them if wanted.
 
 ## 5. Open model questions
@@ -252,7 +264,7 @@ Status: `todo` / `wip` / `done` / `blocked`.
 - No drag-to-reorder in pathways (sisepuede imposes the order); the resolved
   order is shown instead.
 - No Sum/Max combination control (see section 5).
-- Library (NDC news) transformations are read-only in the editor: "Duplicate &
+- Library (NDC) transformations are read-only in the editor: "Duplicate &
   adjust" makes an editable copy, so the published version stays intact.
 - Business as usual is not a pathway tab; it is the first column of the Run
   matrix and is added automatically for every baseline used.
@@ -307,3 +319,25 @@ Status: `todo` / `wip` / `done` / `blocked`.
   LSMM, SOIL + PFLO:INC_HEALTHIER_DIETS), Land & forests (LNDU, FRST), Waste
   (WASO, WALI, TRWW), Cross-cutting (GNRL). Chips coloured by sector; the
   subsector codes show on hover.
+- **2026-10-05 (`ndc-v1`)**: results redesign (3.1, 3.2, 3.4). The emission
+  detail matches `emission_co2e_subsector_total_*` to within 1e-5 Mt once three
+  differences in the installed sisepuede are handled: biogenic CO₂ from INEN and
+  SCOE (`_bmass_`) is left out of the totals; the land-use "converted away"
+  roll-ups are now `conversion_{agb,bgb}_away_`; and AGRC/FRST have new
+  categories (`residue_*`, `woody_biomass`, `decomposition`,
+  `fuelwood_removals`). Four driver cards (generation, capacity, grid losses,
+  fuel production) need the electricity model; the page says so instead of
+  showing an empty card. 186 tests pass (13 new in
+  `tests/test_results_services.py`). Driven in headless Chrome: Egypt
+  baseline → BAU + NDC with NemoMod → both pages, subsector focus
+  (Transportation), Change vs BAU, 3%/% of GDP/By sector, both downloads,
+  advanced add/remove card, custom 10% rate.
+- **2026-10-05 (`ndc-v1`, later)**: C&B totals are **not discounted by default**
+  (user: the team usually doesn't discount; the C&B module doesn't either). A
+  discount rate (3/5/7% or any) is an advanced option; the title then switches to
+  "Net present value". Excel has totals at 0/3/5/7%. Added "Largest items"
+  (item-level totals with a category filter) and readable item names where the
+  C&B config's display name is missing or a shared placeholder (all 47 enfu
+  fuel_cost rows are "Fuel Cost bio fuel_biogas": fix in the config). ⓘ are
+  click-to-open bubbles (`ui/components/info_tip.py`); modals themed; chart
+  legends on the right. 189 tests pass.

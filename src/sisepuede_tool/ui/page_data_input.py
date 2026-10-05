@@ -5,7 +5,7 @@ prototype, "Baseline data").
 Choosing a file validates it right away (checklist), "Add baseline" adds it.
 All loaded baselines must share one region (the first baseline fixes it for
 the session). The transformer catalog, the transformations collection with
-the NDC news library, and the business-as-usual strategy are built once,
+the NDC library, and the business-as-usual strategy are built once,
 from the first baseline added -- see services/catalog_service.py.
 
 The checklist also lists model input fields missing from the file: sisepuede
@@ -32,6 +32,7 @@ from sisepuede_tool.services import (
     input_service,
     library_service,
     output_service,
+    pathway_service,
     ramp_service,
     strategy_service,
     transformation_service,
@@ -265,7 +266,7 @@ def page_data_input_server(input, output, session, state: AppState):
         transformers_catalog = catalog_service.build_transformers_catalog(baseline.df)
         state.transformers_catalog.set(transformers_catalog)
         transformations_obj = transformation_service.create_transformations_collection(transformers_catalog)
-        # ready-made NDC news transformations; unusable ones are kept with an error for display
+        # ready-made NDC transformations; unusable ones are kept with an error for display
         library_items = library_service.add_library_to_collection(transformations_obj, transformers_catalog)
         state.library_items.set(library_items)
         unusable = {i.code for i in library_items if not i.ok}
@@ -274,9 +275,12 @@ def page_data_input_server(input, output, session, state: AppState):
         state.transformations_obj.set(transformations_obj)
         state.transformations_revision.set(state.transformations_revision.get() + 1)
         baseline_strategy = strategy_service.build_baseline_strategy(transformations_obj)
-        state.strategies_map.set(
-            {0: StrategyEntry(strategy=baseline_strategy, transformation_codes=[transformations_obj.code_baseline])}
+        pathways = {0: StrategyEntry(strategy=baseline_strategy, transformation_codes=[transformations_obj.code_baseline])}
+        # the NDC pathway (strategy 6003 in ssp_egypt btr_invent), ready to run or edit
+        pathways, _ = pathway_service.add_library_pathway(
+            pathways, transformations_obj, library_items, name="NDC", description="Egypt NDC transformations"
         )
+        state.strategies_map.set(pathways)
 
     @reactive.effect
     @reactive.event(input.ui_event)

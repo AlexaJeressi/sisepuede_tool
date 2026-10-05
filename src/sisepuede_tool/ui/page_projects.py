@@ -2,7 +2,7 @@
 NDC/LTS workbook plus projects added in the app, each linked to the
 transformation that models it (Claude Design prototype, "Projects").
 
-Links default to the matching NDC news transformation (projects_service.
+Links default to the NDC transformation on the same transformer (projects_service.
 default_links) and live in `state.project_links`; the Pathways editor shows
 and edits the same links. "Open in Pathways" and "Create transformation"
 hand off to the Pathways page through `state.pathways_request`.

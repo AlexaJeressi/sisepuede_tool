@@ -2,7 +2,7 @@
 tray in three columns (Claude Design prototype, "Pathways").
 
 * Left: transformers grouped by sector. Opening one lists its
-  transformations (the user's, plus the NDC news library) and "+ New".
+  transformations (the user's, plus the NDC library) and "+ New".
 * Centre: the transformer view (description, emissions if used alone,
   library default, "what this moves in the model", how it adds up in the
   pathway) or the transformation editor (basic controls; everything else
@@ -101,9 +101,9 @@ def _codes_by_area(tk) -> Dict[str, List[str]]:
     return {a: codes for a, codes in out.items() if codes}
 
 
-def _strip_news_prefix(name: str) -> str:
-    if name and name.startswith("NEWS_") and " - " in name:
-        return name.split(" - ", 1)[1]
+def _strip_ndc_prefix(name: str) -> str:
+    if name and name.startswith("NDC · "):
+        return name[len("NDC · ") :]
     return name
 
 
@@ -213,18 +213,15 @@ def page_pathways_server(input, output, session, state: AppState):
 
     def tx_label(code: str) -> str:
         t = ctx()["tx"].dict_transformations[code]
-        return _strip_news_prefix(t.name or code)
+        return _strip_ndc_prefix(t.name or code)
 
     def basis_of(code: Optional[str]) -> Optional[str]:
         if code is None:
             return None
-        item = ctx()["library"].get(code)
-        if item is None:
-            linked = projects_service.projects_for_transformation(code, state.project_links.get())
-            return f"Based on project: {', '.join(linked)}" if linked else None
-        project = item.project.get("project") or item.name
-        status = item.project.get("status")
-        return f"Based on project: {project}" + (f" · {status}" if status else "")
+        linked = projects_service.projects_for_transformation(code, state.project_links.get())
+        if code in ctx()["library"]:
+            return "NDC target" + (f" · {len(linked)} linked project{'s' if len(linked) != 1 else ''}" if linked else "")
+        return f"Based on project: {', '.join(linked)}" if linked else None
 
     def open_editor(
         mode: str, transformer_code: str, code: Optional[str] = None, params=None, name="", description="", link_project=None
@@ -618,7 +615,7 @@ def page_pathways_server(input, output, session, state: AppState):
                             ui.div(
                                 ui.span(class_="dot" if t_code in in_pathway else "dot off"),
                                 ui.span(tx_label(t_code), class_="label", title=t_code),
-                                ui.span(f"NEWS {lib.news_number}", class_="tx-src") if lib and lib.news_number else None,
+                                ui.span("NDC", class_="tx-src") if lib else None,
                                 ui.span(tx_summary(t_code).split(" · ")[0], class_="spec"),
                                 class_="tx-item active" if t_code == open_code else "tx-item",
                                 onclick=_ev("tx", t_code),

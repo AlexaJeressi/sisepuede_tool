@@ -1,0 +1,10 @@
+citations: null
+description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+identifiers:
+  transformation_code: TX:FGTV:DEC_LEAKS_STRATEGY_NDC
+  transformation_name: 'NDC · FGTV: Minimize leaks'
+parameters:
+  magnitude: 0.8
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:FGTV:DEC_LEAKS

@@ -37,9 +37,9 @@ from sisepuede_tool.ui.page_macroeconomic_impacts import (
     page_macroeconomic_impacts_ui,
 )
 from sisepuede_tool.ui.page_monitoring import page_monitoring_server, page_monitoring_ui
-from sisepuede_tool.ui.page_output_explorer import (
-    page_output_explorer_server,
-    page_output_explorer_ui,
+from sisepuede_tool.ui.page_emissions import (
+    page_emissions_server,
+    page_emissions_ui,
 )
 from sisepuede_tool.ui.page_pathways import page_pathways_server, page_pathways_ui
 from sisepuede_tool.ui.page_projects import page_projects_server, page_projects_ui
@@ -59,7 +59,7 @@ _PAGE_UI_FNS = {
     "projects": page_projects_ui,
     "pathways": page_pathways_ui,
     "run": page_run_ui,
-    "output_explorer": page_output_explorer_ui,
+    "output_explorer": page_emissions_ui,  # nav id kept from the old explorer
     "validation": page_monitoring_ui,
     "cost_benefits": page_cost_benefits_ui,
     "macroeconomic_impacts": page_macroeconomic_impacts_ui,
@@ -80,6 +80,25 @@ window.mrvGoTo = function(id) {
 $(document).on('shiny:inputchanged', function(e) {
   if (e.name === 'advanced_mode') {
     document.body.classList.toggle('advanced-on', !!e.value);
+  }
+});
+// ⓘ info bubbles (ui/components/info_tip.py): click toggles, click elsewhere closes.
+// preventDefault so an ⓘ inside a <label> doesn't also toggle its input.
+$(document).on('click', '.info-tip', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  var open = this.classList.contains('open');
+  document.querySelectorAll('.info-tip.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!open) {
+    this.classList.add('open');
+    var r = this.getBoundingClientRect();
+    this.classList.toggle('tip-left', r.left > window.innerWidth - 300);
+  }
+});
+$(document).on('click keydown', function(e) {
+  if (e.type === 'keydown' && e.key !== 'Escape') { return; }
+  if (!$(e.target).closest('.info-tip').length) {
+    document.querySelectorAll('.info-tip.open').forEach(function(el) { el.classList.remove('open'); });
   }
 });
 // The sidebar is an icon rail that opens on hover; the pin keeps it open
@@ -145,7 +164,7 @@ def _nav_link(item, active: bool) -> ui.Tag:
 def _build_sidebar() -> ui.Tag:
     groups = []
     for group in NAV_GROUPS:
-        items = [item for item in NAV_ITEMS if item.group == group]
+        items = [item for item in NAV_ITEMS if item.group == group and not item.hidden]
         groups.append(
             ui.div(
                 ui.div(group, class_="nav-group-label"),
@@ -235,7 +254,7 @@ def server(input, output, session):
     model_attributes = catalog_service.build_model_attributes()
     state.model_attributes.set(model_attributes)
     state.transformer_metadata.set(transformer_metadata_service.load_catalog())
-    # default project -> NDC news transformation links; unusable items are
+    # default project -> NDC transformation links (by transformer); unusable items are
     # unlinked once the library is checked against sisepuede (first baseline)
     state.project_links.set(
         projects_service.default_links(
@@ -255,7 +274,7 @@ def server(input, output, session):
     page_projects_server("projects", state)
     page_pathways_server("pathways", state)
     page_run_server("run", state)
-    page_output_explorer_server("output_explorer", state)
+    page_emissions_server("output_explorer", state)
     page_monitoring_server("validation", state)
     page_cost_benefits_server("cost_benefits", state)
     page_macroeconomic_impacts_server("macroeconomic_impacts", state)

@@ -19,6 +19,7 @@ class NavItem:
     crumb: str = ""  # topbar breadcrumb; defaults to the group name
     step: Optional[int] = None  # workflow step number shown as a badge in the sidebar
     flush: bool = False  # page manages its own padding/scrolling (e.g. the 3-column Pathways page)
+    hidden: bool = False  # page still exists (and can be reached with mrvGoTo) but isn't in the sidebar
 
 
 _ICON_BASELINE = '<path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/><path d="M9 16h6"/>'
@@ -76,7 +77,7 @@ NAV_ITEMS: List[NavItem] = [
         label="Emissions & drivers",
         group="Results",
         icon_svg=_svg(_ICON_EXPLORER),
-        description="Model outputs by pathway and baseline.",
+        description="Where emissions come from, how pathways change them, and what drives them.",
     ),
     NavItem(
         id="cost_benefits",
@@ -91,6 +92,7 @@ NAV_ITEMS: List[NavItem] = [
         group="Results",
         icon_svg=_svg(_ICON_MACRO_IMPACTS),
         description="GDP and jobs relative to business as usual.",
+        hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
     NavItem(
         id="article_6",
@@ -105,6 +107,7 @@ NAV_ITEMS: List[NavItem] = [
         group="MRV",
         icon_svg=_svg(_ICON_MONITORING),
         description="Compare model output with observed inventory data.",
+        hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
     NavItem(
         id="projects",
@@ -119,13 +122,14 @@ NAV_ITEMS: List[NavItem] = [
         group="System",
         icon_svg=_svg(_ICON_PERSISTENCE),
         description="Export the project as sisepuede files, or import one.",
+        hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
 ]
 
 NAV_ITEMS_BY_ID = {item.id: item for item in NAV_ITEMS}
 
 # Group order as they appear in the sidebar (dict preserves insertion order).
-NAV_GROUPS: List[str] = list(dict.fromkeys(item.group for item in NAV_ITEMS))
+NAV_GROUPS: List[str] = list(dict.fromkeys(item.group for item in NAV_ITEMS if not item.hidden))
 
 DEFAULT_NAV_ID = NAV_ITEMS[0].id
 

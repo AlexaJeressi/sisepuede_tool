@@ -1,11 +1,10 @@
 """Ready-made transformations shipped with the app ("library").
 
-The first library is Egypt's NDC news set (resources/library/egypt_ndc_news,
-copied from info/ndc_news): one sisepuede transformation YAML per announced
-project, e.g. `TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17`. Each file's
-`description` packs the project facts into lines ("PROJECT: ...",
-"Status: ...", "Investment: ...", "Start: ..."); `parse_project_description`
-splits them out for display.
+The library is Egypt's NDC set (resources/library/egypt_ndc): the
+transformations activated by the NDC strategy (6003 PFLO:NDC) in the
+ssp_egypt repo, branch btr_invent, e.g. `TX:IPPU:DEC_CLINKER_STRATEGY_NDC`.
+One transformation per NDC lever; the news-reported projects that map to it
+are linked by transformer (see projects_service.default_links).
 
 Files are loaded one at a time so that one bad file (e.g. a transformer that
 no longer exists in sisepuede) is reported instead of blocking the rest.
@@ -14,7 +13,6 @@ no longer exists in sisepuede) is reported instead of blocking the rest.
 import dataclasses
 import logging
 import pathlib
-import re
 from typing import Dict, List, Optional
 
 import sisepuede.transformers as trf
@@ -25,16 +23,13 @@ from sisepuede_tool.services import transformation_service
 logger = logging.getLogger(__name__)
 
 SOURCE_USER = "user"
-SOURCE_NDC_NEWS = "ndc_news"
-
-_RE_NEWS_NUMBER = re.compile(r"_NEWS_(\d+)$")
-_DESCRIPTION_KEYS = {"project": "PROJECT", "status": "Status", "investment": "Investment", "start": "Start"}
+SOURCE_NDC = "ndc"
 
 
 def default_library_dir() -> pathlib.Path:
     import sisepuede_tool
 
-    return pathlib.Path(sisepuede_tool.__file__).parent / "resources" / "library" / "egypt_ndc_news"
+    return pathlib.Path(sisepuede_tool.__file__).parent / "resources" / "library" / "egypt_ndc"
 
 
 @dataclasses.dataclass
@@ -44,28 +39,13 @@ class LibraryItem:
     transformer_code: str
     config: dict
     path: pathlib.Path
-    source: str = SOURCE_NDC_NEWS
-    news_number: Optional[int] = None
-    project: Dict[str, str] = dataclasses.field(default_factory=dict)
+    source: str = SOURCE_NDC
     citations: List[str] = dataclasses.field(default_factory=list)
     error: Optional[str] = None  # set when it can't be used with the installed sisepuede
 
     @property
     def ok(self) -> bool:
         return self.error is None
-
-
-def parse_project_description(description: Optional[str]) -> Dict[str, str]:
-    """'PROJECT: X\\nStatus: Y\\n...' -> {'project': 'X', 'status': 'Y', ...}."""
-    out: Dict[str, str] = {}
-    for line in (description or "").splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        for field, label in _DESCRIPTION_KEYS.items():
-            if key.strip().lower() == label.lower():
-                out[field] = value.strip()
-    return out
 
 
 def parse_citations(citations) -> List[str]:
@@ -88,7 +68,6 @@ def load_library(dir_path=None) -> List[LibraryItem]:
         except Exception as e:
             logger.warning("library file %s unreadable: %s", fp.name, e)
             continue
-        m = _RE_NEWS_NUMBER.search(code)
         items.append(
             LibraryItem(
                 code=code,
@@ -96,8 +75,6 @@ def load_library(dir_path=None) -> List[LibraryItem]:
                 transformer_code=config.get("transformer"),
                 config=config,
                 path=fp,
-                news_number=int(m.group(1)) if m else None,
-                project=parse_project_description(config.get("description")),
                 citations=parse_citations(config.get("citations")),
             )
         )

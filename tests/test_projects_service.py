@@ -45,30 +45,35 @@ def test_project_records_have_transformer_and_news_number():
     assert row["news_number"] == 17
 
 
-def test_default_links_match_news_items_by_name():
+def test_default_links_group_projects_by_transformer():
     from sisepuede_tool.services import library_service
 
     df = projects_service.load_project_records(config.PROJECTS_XLSX_PATH)
     items = library_service.load_library()
     links = projects_service.default_links(df, items)
-    assert links["Obelisk Solar PV + Battery Storage (Qena)"] == "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17"
-    # every project's news item is the same row number
-    by_code = {i.code: i.news_number for i in items}
+    assert links["Obelisk Solar PV + Battery Storage (Qena)"] == "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC"
+    # each project links to the NDC transformation on its transformer, if any
+    by_transformer = {i.transformer_code: i.code for i in items}
     for rec in df.to_dict("records"):
-        assert by_code[links[rec["name"]]] == rec["news_number"]
+        assert links[rec["name"]] == by_transformer.get(rec["transformer_code"])
+    hydrogen = projects_service.projects_for_transformation("TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_NDC", links)
+    assert len(hydrogen) == 6
+    # projects on transformers outside the NDC set stay in the portfolio, unlinked
+    unlinked = [n for n, c in links.items() if c is None]
+    assert len(unlinked) == 10
+    assert links["Cairo Bus Rapid Transit (BRT) System"] is None
 
 
-def test_unusable_news_items_are_not_linked():
+def test_unusable_library_items_are_not_linked():
     from sisepuede_tool.services import library_service
 
     df = projects_service.load_project_records(config.PROJECTS_XLSX_PATH)
     items = library_service.load_library()
     for item in items:
-        if item.news_number == 24:
+        if item.transformer_code == "TFR:ENTC:TARGET_RENEWABLE_ELEC":
             item.error = "transformer missing"
     links = projects_service.default_links(df, items)
-    name = df[df["news_number"] == 24]["name"].iloc[0]
-    assert links[name] is None
+    assert links["Obelisk Solar PV + Battery Storage (Qena)"] is None
 
 
 @pytest.mark.parametrize("value,expected", [("Yes — measure", "yes"), ("Yes — named", "yes"), ("Partial", "partial"), ("No", "no"), (None, "no")])

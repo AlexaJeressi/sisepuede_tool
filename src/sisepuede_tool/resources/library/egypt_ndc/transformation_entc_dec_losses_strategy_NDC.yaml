@@ -1,0 +1,14 @@
+citations: null
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Decrease transmission losses by upgrading electrical transmission infrastructure.'
+identifiers:
+  transformation_code: TX:ENTC:DEC_LOSSES_STRATEGY_NDC
+  transformation_name: 'NDC · ENTC: Reduce transmission losses'
+parameters:
+  magnitude: 0.06
+  magnitude_type: final_value
+  min_loss: 0.02
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:ENTC:DEC_LOSSES

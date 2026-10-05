@@ -1,0 +1,14 @@
+citations: null
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Set a target for clean hydrogen production.'
+identifiers:
+  transformation_code: TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_NDC
+  transformation_name: 'NDC · ENTC: Clean hydrogen'
+parameters:
+  categories_source: null
+  categories_target: null
+  magnitude: 0.95
+  vec_implementation_ramp:
+    tp_0_ramp: 10
+transformer: TFR:ENTC:TARGET_CLEAN_HYDROGEN

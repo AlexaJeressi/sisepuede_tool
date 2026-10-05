@@ -146,9 +146,9 @@ def test_empty_pathway_and_library_transformation_round_trip(transformers_catalo
     transformations_obj, strategies_map = _build_session(transformers_catalog)
     library_service.add_library_to_collection(transformations_obj, transformers_catalog)
     strategies_map, empty_id = pathway_service.create_pathway(strategies_map, transformations_obj, "Empty for now")
-    strategies_map, lib_id = pathway_service.create_pathway(strategies_map, transformations_obj, "With news")
+    strategies_map, lib_id = pathway_service.create_pathway(strategies_map, transformations_obj, "With NDC")
     strategies_map = pathway_service.add_to_pathway(
-        strategies_map, transformations_obj, lib_id, "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17"
+        strategies_map, transformations_obj, lib_id, "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC"
     )
 
     blob = persistence_service.export_session_zip(transformations_obj, strategies_map)
@@ -156,8 +156,8 @@ def test_empty_pathway_and_library_transformation_round_trip(transformers_catalo
 
     assert strategies2[empty_id].transformation_codes == []
     assert strategies2[empty_id].strategy.name == "Empty for now"
-    assert strategies2[lib_id].transformation_codes == ["TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17"]
-    assert "TX:ENTC:TARGET_RENEWABLE_ELEC_NEWS_17" in tx2.dict_transformations
+    assert strategies2[lib_id].transformation_codes == ["TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC"]
+    assert "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC" in tx2.dict_transformations
 
 
 def test_extra_tables_round_trip(transformers_catalog):

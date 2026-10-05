@@ -1,0 +1,373 @@
+# Default driver cards on the "Emissions & drivers" page.
+#
+# One area per group of emitting subsectors. When the user focuses a subsector
+# on the emissions chart, the area whose `subsectors` contains it is shown.
+# `context` cards (population, GDP) are always shown above the area cards.
+#
+# Card fields:
+#   key        unique id
+#   title      card title (plain language)
+#   why        tooltip: why this variable matters for emissions
+#   source     output (model results, RunResult.df_output) | input (drivers fed
+#              to the model, RunResult.df_input)
+#   variables  sisepuede ModelVariable names (exact, as in model_attributes)
+#   series     category | variable -- what the stacked series are
+#   view       total   one line per pathway (sum of every field)
+#              stacked one panel per pathway, stacked area by series
+#              share   one panel per pathway, 100% stacked by series
+#   categories (optional) keep only these categories; a trailing * is a prefix match
+#   labels     (optional) {automatic series name: display name}
+#   needs_electricity_model (optional) true if the variable is only filled when
+#              the run includes the electricity model (NemoMod)
+#   scale      multiply raw values by this before display
+#   unit       unit label after scaling
+#
+# Checked by tests/test_results_groups_service.py against the installed
+# sisepuede and an Egypt run.
+
+context:
+  - key: population
+    title: Population
+    why: Most demand (food, energy, waste) grows with population.
+    source: input
+    variables: [Population]
+    series: category
+    view: total
+    scale: 1.0e-6
+    unit: million people
+  - key: gdp
+    title: GDP
+    why: Industrial output, energy and transport demand grow with GDP.
+    source: input
+    variables: [GDP]
+    series: category
+    view: total
+    scale: 1.0
+    unit: billion USD
+
+areas:
+  - key: electricity
+    title: Electricity & fuels
+    subsectors: [entc, fgtv, ccsq]
+    cards:
+      - key: entc_generation
+        needs_electricity_model: true
+        title: Electricity generation by technology
+        why: The power mix sets the emissions of every kWh used in buildings, industry and transport.
+        source: output
+        variables: [NemoMod Production by Technology]
+        series: category
+        view: stacked
+        categories: ["pp_*"]
+        scale: 1.0
+        unit: PJ
+      - key: entc_capacity
+        needs_electricity_model: true
+        title: Generation capacity
+        why: Capacity that has to be built (and paid for) to deliver the generation mix.
+        source: output
+        variables: [NemoMod Generation Capacity]
+        series: category
+        view: stacked
+        categories: ["pp_*"]
+        scale: 1.0
+        unit: GW
+      - key: elec_demand
+        title: Electricity use by sector
+        why: Electrification moves emissions from end uses to the power sector.
+        source: output
+        variables:
+          - Total Electrical Energy Consumption from Industrial Energy
+          - Total Electrical Energy Consumption from SCOE
+          - Total Electrical Energy Consumption from Transportation
+          - Total Electrical Energy Consumption from CCSQ
+        series: variable
+        view: stacked
+        labels: {Industrial Energy: Industry, SCOE: Buildings, CCSQ: Carbon capture}
+        scale: 1.0
+        unit: PJ
+      - key: transmission_loss
+        needs_electricity_model: true
+        title: Transmission & distribution losses
+        why: Electricity lost in the grid has to be generated anyway.
+        source: output
+        variables: [Electrical Transmission Loss]
+        series: category
+        view: total
+        scale: 1.0
+        unit: PJ
+      - key: fuel_production
+        needs_electricity_model: true
+        title: Fuel production
+        why: Domestic oil and gas production drives fugitive emissions (leaks, flaring, venting).
+        source: output
+        variables: [Fuel Production]
+        series: category
+        view: stacked
+        scale: 1.0
+        unit: PJ
+
+  - key: industry
+    title: Industry
+    subsectors: [inen, ippu]
+    cards:
+      - key: ippu_production
+        title: Industrial production
+        why: Process emissions (cement, chemicals, metals) scale with output.
+        source: output
+        variables: [Industrial Production]
+        series: category
+        view: stacked
+        scale: 1.0e-6
+        unit: Mt
+      - key: clinker
+        title: Clinker share of cement
+        why: Clinker is the source of cement's process CO2; less clinker per tonne means less CO2.
+        source: input
+        variables: [Clinker Fraction of Cement]
+        series: category
+        view: total
+        scale: 100.0
+        unit: "%"
+      - key: inen_energy
+        title: Industrial energy use by industry
+        why: Fuel burnt for heat and power in factories.
+        source: output
+        variables: [Energy Consumption from Industrial Energy]
+        series: category
+        view: stacked
+        scale: 1.0
+        unit: PJ
+      - key: inen_fuels
+        title: Industrial fuel mix
+        why: Switching from fossil fuels to electricity or hydrogen cuts combustion emissions.
+        source: output
+        variables: [Energy Demand by Fuel in Industrial Energy]
+        series: category
+        view: share
+        scale: 1.0
+        unit: "% of PJ"
+
+  - key: buildings
+    title: Buildings
+    subsectors: [scoe]
+    cards:
+      - key: scoe_fuels
+        title: Building energy by fuel
+        why: Gas, LPG and other fuels burnt in homes and businesses emit directly; electricity does not.
+        source: output
+        variables: [Energy Demand by Fuel in SCOE]
+        series: category
+        view: share
+        scale: 1.0
+        unit: "% of PJ"
+      - key: scoe_heat
+        title: Heat demand by building type
+        why: Cooking, water and space heating drive direct fuel use.
+        source: output
+        variables: [Heat Energy Demand in SCOE]
+        series: category
+        view: stacked
+        scale: 1.0
+        unit: PJ
+      - key: scoe_energy
+        title: Building energy use
+        why: Total energy used in homes, businesses and other buildings.
+        source: output
+        variables: [Energy Consumption from SCOE]
+        series: category
+        view: stacked
+        scale: 1.0
+        unit: PJ
+
+  - key: transport
+    title: Transport
+    subsectors: [trns]
+    cards:
+      - key: pkm
+        title: Passenger travel
+        why: Demand for passenger travel, before choosing the mode and the fuel.
+        source: output
+        variables: [Passenger-Kilometer Demand]
+        series: category
+        view: stacked
+        scale: 1.0e-9
+        unit: billion pkm
+      - key: vkm_mode
+        title: Vehicle-km by mode
+        why: How much each mode is driven; road dominates transport emissions.
+        source: output
+        variables: [Total Vehicle Distance Traveled]
+        series: category
+        view: stacked
+        scale: 1.0e-9
+        unit: billion vkm
+      - key: vkm_electric
+        title: Electric vehicle-km
+        why: Kilometres driven on electricity instead of petrol or diesel.
+        source: output
+        variables: [Vehicle Distance Traveled from Electricity]
+        series: category
+        view: stacked
+        scale: 1.0e-9
+        unit: billion vkm
+      - key: trns_fuels
+        title: Transport fuel mix
+        why: Diesel and petrol emit at the tailpipe; electricity and hydrogen do not.
+        source: output
+        variables: [Energy Demand by Fuel in Transportation]
+        series: category
+        view: share
+        scale: 1.0
+        unit: "% of PJ"
+
+  - key: agriculture
+    title: Agriculture & soils
+    subsectors: [agrc, soil]
+    cards:
+      - key: crop_area
+        title: Crop area
+        why: Cropland drives fertilizer use, residue burning and rice methane.
+        source: output
+        variables: [Crop Area]
+        series: category
+        view: stacked
+        scale: 1.0e-6
+        unit: million ha
+      - key: food_loss
+        title: Food lost before consumption
+        why: Food lost in the supply chain still had to be grown, and part of it ends up in landfills.
+        source: output
+        variables: [Total Food Produced Lost Before Consumption]
+        series: category
+        view: total
+        scale: 1.0e-6
+        unit: Mt
+      - key: fertilizer
+        title: Fertilizer nitrogen use
+        why: Nitrogen applied to soils is the main source of agricultural N2O.
+        source: output
+        variables: [Synthetic Fertilizer N Use, Organic Fertilizer N Use]
+        series: variable
+        labels: {Synthetic Fertilizer N Use: Synthetic, Organic Fertilizer N Use: Organic}
+        view: stacked
+        scale: 1.0
+        unit: kt N
+
+  - key: livestock
+    title: Livestock
+    subsectors: [lvst, lsmm]
+    cards:
+      - key: herd
+        title: Herd size
+        why: Enteric fermentation and manure methane scale with the number of animals.
+        source: output
+        variables: [Livestock Head Count]
+        series: category
+        view: stacked
+        scale: 1.0e-6
+        unit: million head
+      - key: manure_biogas
+        title: Biogas recovered from manure
+        why: Methane captured in digesters instead of released.
+        source: output
+        variables: [LSMM Biogas Recovered from Anaerobic Digesters]
+        series: category
+        view: total
+        scale: 1.0e-3
+        unit: kt
+
+  - key: land
+    title: Land use & forests
+    subsectors: [lndu, frst]
+    cards:
+      - key: land_area
+        title: Land area by use
+        why: Converting forests and grasslands releases carbon; restoring them stores it.
+        source: output
+        variables: [Land Use Area]
+        series: category
+        labels: {Other: Other land}
+        view: stacked
+        scale: 1.0e-6
+        unit: million ha
+      - key: forest_stock
+        title: Carbon stock in forests
+        why: Carbon held in forest biomass.
+        source: output
+        variables: [Total C Stock in Forests]
+        series: category
+        view: total
+        scale: 1.0
+        unit: Mt C
+
+  - key: waste
+    title: Waste
+    subsectors: [waso, trww, wali]
+    cards:
+      - key: waste_generated
+        title: Solid waste generated
+        why: Organic waste in landfills and dumps produces methane.
+        source: output
+        variables: [Total Solid Waste Produced]
+        series: category
+        labels: {Other: Other waste}
+        view: stacked
+        scale: 1.0e-6
+        unit: Mt
+      - key: waste_destination
+        title: Where solid waste goes
+        why: Landfills and open dumps emit methane; recycling, composting and digestion avoid most of it.
+        source: output
+        variables:
+          - Total Waste Landfilled
+          - Total Waste Open Dumped
+          - Total Waste Recycled
+          - Total Waste Composted
+          - Total Waste Incinerated
+          - Total Waste Anaerobic Biogas
+        series: variable
+        labels: {Anaerobic Biogas: Anaerobic digestion, Open Dumped: Open dumps}
+        view: share
+        scale: 1.0e-6
+        unit: "% of Mt"
+      - key: ww_urban
+        title: Urban wastewater treatment
+        why: Untreated and latrine wastewater emits methane; advanced treatment with biogas capture emits least.
+        source: input
+        variables:
+          - Treatment Fraction Advanced Aerobic
+          - Treatment Fraction Advanced Anaerobic
+          - Treatment Fraction Secondary Aerobic
+          - Treatment Fraction Secondary Anaerobic
+          - Treatment Fraction Primary
+          - Treatment Fraction Septic
+          - Treatment Fraction Improved Latrine
+          - Treatment Fraction Unimproved Latrine
+          - Treatment Fraction Untreated With Sewerage
+          - Treatment Fraction Untreated No Sewerage
+        series: variable
+        view: share
+        categories: [ww_domestic_urban]
+        scale: 100.0
+        unit: "% of population"
+      - key: ww_rural
+        title: Rural wastewater treatment
+        why: Same treatment pathways for the rural population.
+        source: input
+        variables:
+          - Treatment Fraction Advanced Aerobic
+          - Treatment Fraction Advanced Anaerobic
+          - Treatment Fraction Secondary Aerobic
+          - Treatment Fraction Secondary Anaerobic
+          - Treatment Fraction Primary
+          - Treatment Fraction Septic
+          - Treatment Fraction Improved Latrine
+          - Treatment Fraction Unimproved Latrine
+          - Treatment Fraction Untreated With Sewerage
+          - Treatment Fraction Untreated No Sewerage
+        series: variable
+        view: share
+        categories: [ww_domestic_rural]
+        scale: 100.0
+        unit: "% of population"

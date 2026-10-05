@@ -30,7 +30,7 @@ class AppState:
     # not equality, so setting the *same* mutated object again is a silent no-op. This counter is bumped
     # on every mutation; anything that needs to react to transformations_obj changes must read this too.
     transformations_revision: reactive.Value  # int
-    library_items: reactive.Value  # List[library_service.LibraryItem] -- NDC news set, loaded with the first baseline
+    library_items: reactive.Value  # List[library_service.LibraryItem] -- NDC set, loaded with the first baseline
 
     # --- Strategy Builder (M3) ---
     strategies_map: reactive.Value  # Dict[int, StrategyEntry] -- starts with only {0: baseline}; ids > 0 are "pathways"
@@ -47,6 +47,11 @@ class AppState:
     # --- Costs and Benefits ---
     cb_wrapper: reactive.Value  # CBSSPWrapperForDFComparison | None -- built once at session start
     cb_results: reactive.Value  # Dict[str, Tuple[pd.DataFrame, pd.DataFrame]] keyed by baseline_id -- (df_cb, df_attr_variable)
+
+    # --- Results pages (shared results bar) ---
+    results_baseline_id: reactive.Value  # str | None -- baseline shown on the results pages (None = default baseline)
+    results_pathways: reactive.Value  # frozenset[int] | None -- pathway chips switched on (None = all that ran)
+    results_custom_vars: reactive.Value  # List[str] -- ModelVariables added as driver cards (advanced)
 
     # --- Output Explorer (M5) ---
     io_fields_cache: reactive.Value  # output variable catalog, built once from model_attributes
@@ -81,6 +86,9 @@ def new_app_state() -> AppState:
         run_history=reactive.Value([]),
         cb_wrapper=reactive.Value(None),
         cb_results=reactive.Value({}),
+        results_baseline_id=reactive.Value(None),
+        results_pathways=reactive.Value(None),
+        results_custom_vars=reactive.Value([]),
         io_fields_cache=reactive.Value(None),
         validation_dataset=reactive.Value(None),
         validation_crosswalk=reactive.Value(None),
