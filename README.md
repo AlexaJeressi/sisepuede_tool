@@ -7,7 +7,7 @@ dataset, put transformations together into pathways, run them, and compare
 emissions and costs & benefits against business as usual.
 
 This branch (`ndc-v1`) is the Egypt NDC version. It ships with a library of
-NDC transformations and a sample Egypt baseline.
+NDC transformations and an example input file.
 
 ## Requirements
 
@@ -79,8 +79,9 @@ happens. That's expected: it only happens once and nothing has hung.
 ## Quick start
 
 1. **Baseline data**: upload a baseline CSV and click *Add baseline*. To try
-   the app, use the sample Egypt baseline at
-   `tests/fixtures/egypt_baseline_biomass_fix.csv`.
+   the app, you can use the example input file
+   `tests/fixtures/egypt_baseline_biomass_fix.csv`. It's an example input,
+   not Egypt's actual baseline.
 2. **Pathways**: open a transformer, reuse an NDC transformation or create
    your own, and add it to a pathway.
 3. **Run**: pick the baselines and pathways you want and run them.
@@ -94,8 +95,8 @@ baseline after that has to be for the same region.
 
 A baseline is a SISEPUEDE input data frame. That means one row per time period
 and one column per model input variable, plus `region`, `time_period` and
-`year` columns. Use `tests/fixtures/egypt_baseline_biomass_fix.csv` as a
-template.
+`year` columns. The example input `tests/fixtures/egypt_baseline_biomass_fix.csv`
+shows the expected format.
 
 When you choose a file, the *Baseline data* page checks it and lists any model
 inputs it's missing. SISEPUEDE still accepts a file with missing columns, but
@@ -122,7 +123,7 @@ src/sisepuede_tool/
   models/             dataclasses shared between UI and services
   resources/          YAML configs, the NDC transformation library, CSS theme
   ref/                Egypt projects workbook
-tests/                pytest suite; tests/fixtures/ has sample baselines and the C&B config
+tests/                pytest suite; tests/fixtures/ has example input files and the C&B config
 scripts/              helpers that regenerate metadata in resources/
 docs/                 design notes
 ```
