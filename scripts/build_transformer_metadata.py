@@ -26,7 +26,7 @@ from sisepuede_tool import config
 from sisepuede_tool.services import catalog_service
 from sisepuede_tool.services import transformer_metadata_service as tms
 
-DEFAULT_BASELINE = config.REPO_ROOT / "tests" / "fixtures" / "egypt_baseline_biomass_fix.csv"
+DEFAULT_BASELINE = config.REPO_ROOT / "tests" / "fixtures" / "example_input.csv"
 
 
 def _sisepuede_version() -> str:

@@ -9,7 +9,7 @@ from sisepuede_tool.models.param_spec import WidgetKind
 from sisepuede_tool.services import catalog_service, param_schema_service as pss, transformation_service, widget_metadata
 from sisepuede_tool.ui.components import param_widget
 
-EGYPT_CSV = pathlib.Path(__file__).parent / "fixtures" / "egypt_baseline_biomass_fix.csv"
+EGYPT_CSV = pathlib.Path(__file__).parent / "fixtures" / "example_input.csv"
 SCHEMAS = pss.load_schemas()
 
 

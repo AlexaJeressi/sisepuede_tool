@@ -19,7 +19,7 @@ from sisepuede_tool.models.param_spec import WidgetKind
 from sisepuede_tool.services import catalog_service, labels, transformer_metadata_service, widget_metadata
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_CSV = ROOT / "tests" / "fixtures" / "egypt_baseline_biomass_fix.csv"
+DEFAULT_CSV = ROOT / "tests" / "fixtures" / "example_input.csv"
 OUT = ROOT / "docs" / "advanced_options_proposal.md"
 
 

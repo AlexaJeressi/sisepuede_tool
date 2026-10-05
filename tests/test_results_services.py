@@ -29,7 +29,7 @@ from sisepuede_tool.services import (
     transformation_service,
 )
 
-EGYPT_CSV = pathlib.Path(__file__).parent / "fixtures" / "egypt_baseline_biomass_fix.csv"
+EGYPT_CSV = pathlib.Path(__file__).parent / "fixtures" / "example_input.csv"
 
 
 @pytest.fixture(scope="module")

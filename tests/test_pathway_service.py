@@ -13,7 +13,7 @@ from sisepuede_tool.services import (
     transformation_service,
 )
 
-FIXTURE_CSV = pathlib.Path(__file__).parent / "fixtures" / "egypt_baseline_biomass_fix.csv"
+FIXTURE_CSV = pathlib.Path(__file__).parent / "fixtures" / "example_input.csv"
 YEARS = list(range(2015, 2051))
 RICE_FIELD = "ef_agrc_anaerobicdom_rice_kg_ch4_ha"
 

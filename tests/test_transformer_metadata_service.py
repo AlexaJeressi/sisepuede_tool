@@ -6,7 +6,7 @@ import pytest
 from sisepuede_tool.services import catalog_service, labels
 from sisepuede_tool.services import transformer_metadata_service as tms
 
-FIXTURE_CSV = pathlib.Path(__file__).parent / "fixtures" / "egypt_baseline_biomass_fix.csv"
+FIXTURE_CSV = pathlib.Path(__file__).parent / "fixtures" / "example_input.csv"
 
 
 @pytest.fixture(scope="module")

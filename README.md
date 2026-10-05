@@ -80,7 +80,7 @@ happens. That's expected: it only happens once and nothing has hung.
 
 1. **Baseline data**: upload a baseline CSV and click *Add baseline*. To try
    the app, you can use the example input file
-   `tests/fixtures/egypt_baseline_biomass_fix.csv`. It's an example input,
+   `tests/fixtures/example_input.csv`. It's an example input,
    not Egypt's actual baseline.
 2. **Pathways**: open a transformer, reuse an NDC transformation or create
    your own, and add it to a pathway.
@@ -95,7 +95,7 @@ baseline after that has to be for the same region.
 
 A baseline is a SISEPUEDE input data frame. That means one row per time period
 and one column per model input variable, plus `region`, `time_period` and
-`year` columns. The example input `tests/fixtures/egypt_baseline_biomass_fix.csv`
+`year` columns. The example input `tests/fixtures/example_input.csv`
 shows the expected format.
 
 When you choose a file, the *Baseline data* page checks it and lists any model
@@ -123,7 +123,7 @@ src/sisepuede_tool/
   models/             dataclasses shared between UI and services
   resources/          YAML configs, the NDC transformation library, CSS theme
   ref/                Egypt projects workbook
-tests/                pytest suite; tests/fixtures/ has example input files and the C&B config
+tests/                pytest suite; tests/fixtures/ has the example input and the C&B config
 scripts/              helpers that regenerate metadata in resources/
 docs/                 design notes
 ```
