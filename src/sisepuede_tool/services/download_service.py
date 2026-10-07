@@ -124,3 +124,54 @@ def cb_workbook(long: pd.DataFrame, names: Dict[int, str], baseline_label: str, 
         }
     )
     return _xlsx({"cb_by_variable": by_var, "cb_by_category": by_cat, "totals_by_rate": npv, "items_by_rate": npv_items, "notes": notes})
+
+
+def article6_workbook(
+    runs: List[Tuple[str, pd.DataFrame]],
+    baseline_label: str,
+    ref: Dict[str, pd.DataFrame],
+    price_note: Optional[str] = None,
+) -> bytes:
+    """`runs`: [(pathway name, article6_service.credit_estimate frame)] for one baseline.
+    `ref["prices"]` is the price table used (edited or not); `price_note` says which."""
+    cols = ["year", "pathway", "baseline", "emission_group", "emissions_mt", "target_mt", "surplus_mt", "modelled", "credits_mt", "price_usd_per_t", "value_musd"]
+    parts = []
+    for name, est in runs:
+        d = est.rename(
+            columns={
+                "emission_groups": "emission_group",
+                "emissions": "emissions_mt",
+                "target": "target_mt",
+                "surplus": "surplus_mt",
+                "price": "price_usd_per_t",
+            }
+        )
+        parts.append(d.assign(pathway=name, baseline=baseline_label))
+    by_group = pd.concat(parts)[cols] if parts else pd.DataFrame(columns=cols)
+    totals = (
+        by_group.groupby(["year", "pathway", "baseline"], as_index=False)[["emissions_mt", "target_mt", "credits_mt", "value_musd"]].sum()
+        if parts
+        else pd.DataFrame(columns=["year", "pathway", "baseline", "emissions_mt", "target_mt", "credits_mt", "value_musd"])
+    )
+    notes = pd.DataFrame(
+        {
+            "note": [
+                "surplus_mt = NDC target - pathway emissions (MtCO2e); positive = below the target.",
+                "credits_mt = surplus_mt when positive, else 0; a group above its target does not reduce another group's credits.",
+                "modelled = FALSE: the run has no emissions for a group with a target (e.g. electricity without the electricity model); it earns no credits.",
+                "value_musd = credits_mt x carbon price (USD per tCO2e = million USD per MtCO2e).",
+                "Targets, carbon prices and emission groupings are demo/example values from sisepuede_a6 (sheets below).",
+            ]
+            + ([price_note] if price_note else [])
+        }
+    )
+    return _xlsx(
+        {
+            "credits_by_group": by_group,
+            "credits_by_year": totals,
+            "ndc_targets": ref["targets"],
+            "carbon_prices": ref["prices"],
+            "emission_groupings": ref["groupings"],
+            "notes": notes,
+        }
+    )

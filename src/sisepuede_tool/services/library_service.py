@@ -6,6 +6,14 @@ ssp_egypt repo, branch btr_invent, e.g. `TX:IPPU:DEC_CLINKER_STRATEGY_NDC`.
 One transformation per NDC lever; the news-reported projects that map to it
 are linked by transformer (see projects_service.default_links).
 
+A second set, Egypt's LEP transformations (resources/library/egypt_lep),
+is the higher-ambition pathway used to demonstrate Article 6 opportunities:
+the `*_LEP.yaml` files from the same branch (commit 802be90, jcsyme), e.g.
+`TX:TRNS:SHIFT_MODE_PASSENGER_LEP`. The LEP strategy (6005 PFLO:LEP) is 13
+NDC transformations plus these 9; its list is in egypt_lep/pathway_LEP.txt.
+Their names were changed from "Scaled Default Max Parameters by 1.0 - ..." /
+"Default Value - ..." to "LEP · ...". Projects are linked to the NDC set only.
+
 Files are loaded one at a time so that one bad file (e.g. a transformer that
 no longer exists in sisepuede) is reported instead of blocking the rest.
 """
@@ -24,12 +32,18 @@ logger = logging.getLogger(__name__)
 
 SOURCE_USER = "user"
 SOURCE_NDC = "ndc"
+SOURCE_LEP = "lep"
+SOURCE_LABELS = {SOURCE_NDC: "NDC", SOURCE_LEP: "LEP"}
 
 
 def default_library_dir() -> pathlib.Path:
     import sisepuede_tool
 
     return pathlib.Path(sisepuede_tool.__file__).parent / "resources" / "library" / "egypt_ndc"
+
+
+def lep_library_dir() -> pathlib.Path:
+    return default_library_dir().parent / "egypt_lep"
 
 
 @dataclasses.dataclass
@@ -56,8 +70,8 @@ def parse_citations(citations) -> List[str]:
     return [c.strip() for c in str(citations).split("|") if c.strip()]
 
 
-def load_library(dir_path=None) -> List[LibraryItem]:
-    """Read every transformation_*.yaml in `dir_path`, without sisepuede."""
+def load_library(dir_path=None, source: str = SOURCE_NDC) -> List[LibraryItem]:
+    """Read every transformation_*.yaml in `dir_path` (default: the NDC set), without sisepuede."""
     dir_path = pathlib.Path(dir_path or default_library_dir())
     items = []
     for fp in sorted(dir_path.glob("transformation_*.yaml")):
@@ -75,10 +89,35 @@ def load_library(dir_path=None) -> List[LibraryItem]:
                 transformer_code=config.get("transformer"),
                 config=config,
                 path=fp,
+                source=source,
                 citations=parse_citations(config.get("citations")),
             )
         )
     return items
+
+
+def load_lep_library() -> List[LibraryItem]:
+    return load_library(lep_library_dir(), source=SOURCE_LEP)
+
+
+def load_all_libraries() -> List[LibraryItem]:
+    """The NDC set, then the LEP set."""
+    return load_library() + load_lep_library()
+
+
+def lep_pathway_codes() -> List[str]:
+    """Transformation codes of the LEP strategy (6005 PFLO:LEP): NDC and LEP items."""
+    lines = (lep_library_dir() / "pathway_LEP.txt").read_text().splitlines()
+    return [x.strip() for x in lines if x.strip() and not x.startswith("#")]
+
+
+def strip_set_prefix(name: str) -> str:
+    """'NDC · ENTC: Clean hydrogen' -> 'ENTC: Clean hydrogen' (same for 'LEP · ')."""
+    for label in SOURCE_LABELS.values():
+        prefix = f"{label} · "
+        if name and name.startswith(prefix):
+            return name[len(prefix) :]
+    return name
 
 
 def build_library_transformations(
@@ -106,9 +145,10 @@ def add_library_to_collection(
     transformers_catalog: trf.TransformerKernels,
     items: Optional[List[LibraryItem]] = None,
 ) -> List[LibraryItem]:
-    """Load the library into `transformations_obj` (once; existing codes are
-    not overwritten). Returns all items, with `error` set on unusable ones."""
-    items = load_library() if items is None else items
+    """Load the library (default: NDC + LEP sets) into `transformations_obj`
+    (once; existing codes are not overwritten). Returns all items, with `error`
+    set on unusable ones."""
+    items = load_all_libraries() if items is None else items
     built = build_library_transformations(items, transformers_catalog)
     for code, transformation in built.items():
         if code not in transformations_obj.dict_transformations:

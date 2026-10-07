@@ -1,17 +1,22 @@
 """Emissions from a run's output, grouped for the results pages.
 
-Two levels:
-- by subsector: the model's own `emission_co2e_subsector_total_<abv>` fields;
-- detail: every `emission_co2e_<gas>_<abv>_<category>` field labelled with a
-  mid-level `detail` group (e.g. Transportation -> Road / Rail / Aviation) and a
-  gas group (CO2 / CH4 / N2O / F-gases).
+Which fields make up total emissions comes from the model:
+`model_attributes.dict_gas_to_total_emission_fields` (all gases together, see
+total_emission_fields). Two levels:
+- detail: each of those fields, `emission_co2e_<gas>_<abv>_<category>`,
+  labelled with a mid-level `detail` group (e.g. Transportation -> Road / Rail /
+  Aviation) and a gas group (CO2 / CH4 / N2O / F-gases);
+- by subsector: the detail fields summed by subsector.
 
-The detail rules, gas groups and double-counting exclusions are ported from
-the Egypt repo (ssp_egypt, ssp_modeling/notebooks/shared_scripts/
-tableau_postprocessing.py, branch btr_invent). With the double-counted fields
-dropped, the detail fields add up to the subsector totals; a category that
-matches no rule is labelled "Other" rather than dropped, so the totals still
-add up.
+The model's own `emission_co2e_subsector_total_<abv>` fields are not used:
+the IPPU one also adds the `emission_co2e_hfcs_ippu_*` fields, which restate
+the individual HFC gases, so it counts them twice (+15.9 MtCO2e in 2050 on the
+Egypt baseline). Every other subsector total equals the sum of its fields.
+
+The detail rules and gas groups are ported from the Egypt repo (ssp_egypt,
+ssp_modeling/notebooks/shared_scripts/tableau_postprocessing.py, branch
+btr_invent). A category that matches no rule is labelled "Other" rather than
+dropped, so the totals still add up.
 """
 
 import functools
@@ -157,19 +162,6 @@ DETAIL_RULES: Dict[str, Tuple[Tuple[str, str], ...]] = {
     ),
 }
 
-# fields that restate others from another angle (summing them double counts):
-# electricity re-attributed to the consuming sector, and the land-use
-# "converted away from type" roll-ups of the <from>_to_<to> pairs. The installed
-# sisepuede names the latter `conversion_{agb,bgb}_away_`.
-DOUBLE_COUNTING_PATTERNS = (
-    "_entc_generation_for_",
-    "_lndu_conversion_away_",
-    "_lndu_conversion_agb_away_",
-    "_lndu_conversion_bgb_away_",
-)
-# biogenic CO2 that the model reports but leaves out of the subsector totals
-# (checked against emission_co2e_subsector_total_* on an Egypt run)
-EXCLUDED_PATTERNS = ("_co2_inen_bmass_", "_co2_scoe_bmass_")
 _ACCOUNTING_PREFIXES = ("nbmass_", "bmass_", "fuel_")
 _TOTAL_PREFIX = "emission_co2e_subsector_total_"
 _FIELD_RE = re.compile(r"^emission_co2e_(?P<gas>.+?)_(?P<sub>" + "|".join(SUBSECTORS) + r")_(?P<cat>.+)$")
@@ -204,13 +196,25 @@ def detail_of(abv: str, category: str) -> str:
     return "Other"
 
 
+@functools.lru_cache(maxsize=1)
+def total_emission_fields() -> frozenset:
+    """Every field that makes up total emissions, from the model:
+    sum(list(model_attributes.dict_gas_to_total_emission_fields.values()), []).
+    It leaves out what restates other fields (the HFC aggregates, electricity
+    re-attributed to the consuming sector, land-use conversion roll-ups) and
+    biogenic CO2."""
+    from sisepuede_tool.services import catalog_service
+
+    ma = catalog_service.build_model_attributes()
+    return frozenset(sum(list(ma.dict_gas_to_total_emission_fields.values()), []))
+
+
 @functools.lru_cache(maxsize=8)
 def _classify(fields: Tuple[str, ...]) -> pd.DataFrame:
+    keep = total_emission_fields()
     rows = []
     for f in fields:
-        if not f.startswith("emission_co2e_") or f.startswith(_TOTAL_PREFIX):
-            continue
-        if any(p in f for p in DOUBLE_COUNTING_PATTERNS + EXCLUDED_PATTERNS):
+        if f not in keep:
             continue
         m = _FIELD_RE.match(f)
         if m is None:
@@ -238,10 +242,15 @@ def _years(df: pd.DataFrame) -> pd.Series:
 
 
 def by_subsector(df_output: pd.DataFrame) -> pd.DataFrame:
-    """Long: year, subsector_abv, subsector, sector, value (MtCO2e)."""
-    cols = [c for c in df_output.columns if c.startswith(_TOTAL_PREFIX)]
-    wide = df_output[cols].copy()
-    wide.columns = [c[len(_TOTAL_PREFIX) :] for c in cols]
+    """Long: year, subsector_abv, subsector, sector, value (MtCO2e): the
+    total-emission fields summed by subsector, for every subsector the model
+    reports a total for (zero when it has no fields in this output)."""
+    cls = classify_fields(df_output.columns)
+    abvs = [c[len(_TOTAL_PREFIX) :] for c in df_output.columns if c.startswith(_TOTAL_PREFIX)]
+    abvs += [a for a in dict.fromkeys(cls["subsector_abv"]) if a not in abvs]
+    wide = pd.DataFrame(
+        {abv: df_output[cls.loc[cls["subsector_abv"] == abv, "field"].tolist()].sum(axis=1).values for abv in abvs}
+    )
     wide["year"] = _years(df_output).values
     out = wide.melt(id_vars="year", var_name="subsector_abv", value_name="value")
     out["subsector"] = out["subsector_abv"].map(subsector_label)

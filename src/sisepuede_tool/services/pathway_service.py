@@ -102,11 +102,19 @@ def rename_pathway(pathways: PathwayMap, transformations_obj, sid: int, name: st
 
 
 def add_library_pathway(
-    pathways: PathwayMap, transformations_obj, library_items, name: str = "NDC", description: str = ""
+    pathways: PathwayMap,
+    transformations_obj,
+    library_items,
+    name: str = "NDC",
+    description: str = "",
+    codes: Optional[Iterable[str]] = None,
 ) -> Tuple[PathwayMap, Optional[int]]:
-    """Add a pathway holding every usable library transformation (the shipped
-    NDC set). Returns (pathways, None) if no library item is usable."""
-    codes = [i.code for i in library_items if i.ok and i.code in transformations_obj.dict_transformations]
+    """Add a pathway holding the usable library transformations in `codes`
+    (default: the NDC set). Returns (pathways, None) if none is usable."""
+    usable = {i.code for i in library_items if i.ok and i.code in transformations_obj.dict_transformations}
+    if codes is None:
+        codes = [i.code for i in library_items if getattr(i, "source", "ndc") == "ndc"]
+    codes = [c for c in codes if c in usable]
     if not codes:
         return pathways, None
     out, sid = create_pathway(pathways, transformations_obj, name, description=description)

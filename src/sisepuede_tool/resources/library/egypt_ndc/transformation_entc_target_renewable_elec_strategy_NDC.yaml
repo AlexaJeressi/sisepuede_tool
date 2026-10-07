@@ -1,5 +1,6 @@
 citations: null
-description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent. Renewable mix
+  updated by jcsyme in commit 802be90 (2026-10-06), as used for the Article 6 demo targets.
 
   Set a target for renewable electricity. Includes minimum targets for specific renewable
   energy technologies.'
@@ -9,11 +10,16 @@ identifiers:
 parameters:
   categories_entc_max_investment_ramp: null
   categories_entc_renewable:
+  - pp_geothermal
+  - pp_hydropower
+  - pp_nuclear
   - pp_solar
   - pp_wind
   dict_entc_renewable_target_msp:
-    pp_wind: 0.5
-    pp_solar: 0.35
+    pp_hydropower: 0.05
+    pp_nuclear: 0.05
+    pp_solar: 0.5
+    pp_wind: 0.25
   magnitude: 0.85
   scale_non_renewables_to_match_surplus_msp: true
   vec_implementation_ramp:

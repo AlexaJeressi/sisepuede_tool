@@ -280,6 +280,16 @@ def page_data_input_server(input, output, session, state: AppState):
         pathways, _ = pathway_service.add_library_pathway(
             pathways, transformations_obj, library_items, name="NDC", description="Egypt NDC transformations"
         )
+        # the LEP pathway (strategy 6005 in ssp_egypt btr_invent): NDC + LEP transformations,
+        # the example used to demonstrate Article 6 opportunities
+        pathways, _ = pathway_service.add_library_pathway(
+            pathways,
+            transformations_obj,
+            library_items,
+            name="LEP",
+            description="Egypt LEP pathway: NDC plus higher-ambition LEP transformations",
+            codes=library_service.lep_pathway_codes(),
+        )
         state.strategies_map.set(pathways)
 
     @reactive.effect

@@ -29,6 +29,7 @@ from shiny.module import resolve_id
 from sisepuede_tool.models.param_spec import WidgetKind
 from sisepuede_tool import config
 from sisepuede_tool.services import (
+    library_service,
     pathway_service,
     projects_service,
     ramp_service,
@@ -102,9 +103,7 @@ def _codes_by_area(tk) -> Dict[str, List[str]]:
 
 
 def _strip_ndc_prefix(name: str) -> str:
-    if name and name.startswith("NDC · "):
-        return name[len("NDC · ") :]
-    return name
+    return library_service.strip_set_prefix(name)
 
 
 @module.ui
@@ -220,6 +219,9 @@ def page_pathways_server(input, output, session, state: AppState):
             return None
         linked = projects_service.projects_for_transformation(code, state.project_links.get())
         if code in ctx()["library"]:
+            item = ctx()["library"][code]
+            if item.source == library_service.SOURCE_LEP:
+                return "LEP (beyond the NDC)"
             return "NDC target" + (f" · {len(linked)} linked project{'s' if len(linked) != 1 else ''}" if linked else "")
         return f"Based on project: {', '.join(linked)}" if linked else None
 
@@ -615,7 +617,7 @@ def page_pathways_server(input, output, session, state: AppState):
                             ui.div(
                                 ui.span(class_="dot" if t_code in in_pathway else "dot off"),
                                 ui.span(tx_label(t_code), class_="label", title=t_code),
-                                ui.span("NDC", class_="tx-src") if lib else None,
+                                ui.span(library_service.SOURCE_LABELS.get(lib.source, "NDC"), class_="tx-src") if lib else None,
                                 ui.span(tx_summary(t_code).split(" · ")[0], class_="spec"),
                                 class_="tx-item active" if t_code == open_code else "tx-item",
                                 onclick=_ev("tx", t_code),
@@ -1243,12 +1245,22 @@ def page_pathways_server(input, output, session, state: AppState):
         cards = {tfr: card(tfr) for tfr in groups}
         in_pathway = set(entry.transformation_codes)
 
-        raising = []
+        # why a transformer is flagged: "increases" = raises emissions on its own;
+        # "grid" = moves emissions to power plants and no grid transformation is in
+        # the pathway. Library transformations (NDC, LEP) are judged by their own
+        # run, since their parameters can change the sign of the transformer default.
+        raising: Dict[str, str] = {}
         for tfr, cd in cards.items():
-            direction = cd.get("emissions_direction")
+            lib_dirs = [transformer_metadata_service.library_direction(catalog_meta(), code) for code in groups[tfr]]
+            if lib_dirs and all(d is not None for d in lib_dirs):
+                direction = "increases" if "increases" in lib_dirs else ("depends_on_grid" if "depends_on_grid" in lib_dirs else lib_dirs[0])
+            else:
+                direction = cd.get("emissions_direction")
             pair_ok = any(any(t in in_pathway for t in c["by_transformer"].get(p, [])) for p in cd.get("pair_with") or [])
-            if direction == "increases" or (direction == "depends_on_grid" and not pair_ok):
-                raising.append(tfr)
+            if direction == "increases":
+                raising[tfr] = "increases"
+            elif direction == "depends_on_grid" and not pair_ok:
+                raising[tfr] = "grid"
         broken = [tfr for tfr, cd in cards.items() if cd.get("status") == "error"]
         stacked = [tfr for tfr, codes in groups.items() if len(codes) > 1]
 
@@ -1256,8 +1268,8 @@ def page_pathways_server(input, output, session, state: AppState):
         if raising:
             warnings.append(
                 ui.div(
-                    f"{len(raising)} transformer{'s' if len(raising) != 1 else ''} may raise emissions on "
-                    "their own. Add a grid transformation or check the run.",
+                    f"{len(raising)} transformer{'s' if len(raising) != 1 else ''} may raise emissions"
+                    + (". Add a grid transformation or check the run." if "grid" in raising.values() else " on their own. Check the run."),
                     class_="warn-box small",
                 )
             )
@@ -1281,7 +1293,11 @@ def page_pathways_server(input, output, session, state: AppState):
                 )
             flag = None
             if tfr in raising:
-                flag = ui.div("May raise emissions without a cleaner grid", class_="small", style="color:var(--rust);padding-left:16px")
+                flag = ui.div(
+                    "May raise emissions without a cleaner grid" if raising[tfr] == "grid" else "Raises emissions on its own in the model",
+                    class_="small",
+                    style="color:var(--rust);padding-left:16px",
+                )
             rows.append(
                 ui.div(
                     ui.div(

@@ -10,6 +10,14 @@ FIXTURE_CSV = pathlib.Path(__file__).parent / "fixtures" / "example_input.csv"
 
 
 @pytest.fixture(scope="module")
+def model_attributes_for_effects():
+    """ModelAttributes and two total-emission fields of one subsector (agrc)."""
+    ma = catalog_service.build_model_attributes()
+    fields = [f for f in tms.gas_total_emission_fields(ma) if f.split("_")[3] == "agrc"][:2]
+    return ma, fields
+
+
+@pytest.fixture(scope="module")
 def transformers_catalog():
     return catalog_service.build_transformers_catalog(pd.read_csv(FIXTURE_CSV))
 
@@ -79,6 +87,27 @@ def test_merge_keeps_curated_and_replaces_computed():
     assert merged["TFR:A:X"]["computed"] == {"status": "ok"}
     assert merged["TFR:B:Z"]["curated"]["pair_with"] == ["TFR:ENTC:TARGET_RENEWABLE_ELEC"]
     assert merged["TFR:GONE:Y"]["computed"]["status"] == "missing_in_sisepuede"
+
+
+def test_library_results_are_kept_and_read_by_code():
+    lib = {"TX:LNDU:INC_REFORESTATION_STRATEGY_NDC": {"transformer": "TFR:LNDU:INC_REFORESTATION", "emissions_alone": {"direction": "decreases"}}}
+    first = tms.merge_catalog({"TFR:A:X": {"status": "ok"}}, None, meta={}, library=lib)
+    assert tms.library_direction(first, "TX:LNDU:INC_REFORESTATION_STRATEGY_NDC") == "decreases"
+    assert tms.library_direction(first, "TX:UNKNOWN") is None
+    # a rebuild without library results (e.g. --no-emissions) keeps the existing ones
+    again = tms.merge_catalog({"TFR:A:X": {"status": "ok"}}, first, meta={})
+    assert again["library"] == first["library"]
+
+
+def test_emission_effects_count_blank_fields_as_zero(model_attributes_for_effects):
+    ma, fields = model_attributes_for_effects
+    base = pd.DataFrame({f: [1.0, 1.0] for f in fields})
+    trns = base.copy()
+    trns.loc[0, fields[0]] = float("nan")  # blank in one year only
+    trns.loc[1, fields[1]] = 3.0
+    eff = tms.compute_emission_effects(ma, base, trns)
+    assert eff["total_delta_mtco2e"] == pytest.approx(2.0)
+    assert eff["cumulative_delta_mtco2e"] == pytest.approx(1.0)  # -1 (blank) + 2
 
 
 def test_save_and_load_round_trip(tmp_path):

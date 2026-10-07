@@ -29,6 +29,7 @@ from sisepuede_tool.services import (
     run_service,
     transformer_metadata_service,
 )
+from sisepuede_tool.ui.components import result_charts
 from sisepuede_tool.ui.page_article_6 import page_article_6_server, page_article_6_ui
 from sisepuede_tool.ui.page_cost_benefits import page_cost_benefits_server, page_cost_benefits_ui
 from sisepuede_tool.ui.page_data_input import page_data_input_server, page_data_input_ui
@@ -253,6 +254,7 @@ def server(input, output, session):
     state = new_app_state()
     model_attributes = catalog_service.build_model_attributes()
     state.model_attributes.set(model_attributes)
+    result_charts.use_model_subsector_colors(model_attributes)
     state.transformer_metadata.set(transformer_metadata_service.load_catalog())
     # default project -> NDC transformation links (by transformer); unusable items are
     # unlinked once the library is checked against sisepuede (first baseline)

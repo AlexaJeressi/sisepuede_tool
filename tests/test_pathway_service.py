@@ -54,7 +54,7 @@ def test_library_parses_all_files():
     assert item.transformer_code == "TFR:ENTC:TARGET_RENEWABLE_ELEC"
     assert item.name == "NDC · ENTC: Renewable electricity target"
     assert item.config["parameters"]["magnitude"] == 0.85
-    assert item.config["parameters"]["dict_entc_renewable_target_msp"] == {"pp_wind": 0.5, "pp_solar": 0.35}
+    assert item.config["parameters"]["dict_entc_renewable_target_msp"] == {"pp_hydropower": 0.05, "pp_nuclear": 0.05, "pp_solar": 0.5, "pp_wind": 0.25}
     # one transformation per transformer
     assert len({i.transformer_code for i in items}) == 18
 
@@ -70,7 +70,19 @@ def test_add_library_pathway_holds_every_ndc_transformation(tx, catalog, bau_onl
     items = library_service.add_library_to_collection(tx, catalog)
     pathways, sid = pathway_service.add_library_pathway(bau_only, tx, items, name="NDC")
     assert pathways[sid].strategy.name == "NDC"
-    assert sorted(pathways[sid].transformation_codes) == sorted(i.code for i in items)
+    assert sorted(pathways[sid].transformation_codes) == sorted(i.code for i in items if i.source == library_service.SOURCE_NDC)
+
+
+def test_lep_library_loads_and_makes_the_lep_pathway(tx, catalog, bau_only):
+    items = library_service.add_library_to_collection(tx, catalog)
+    lep = [i for i in items if i.source == library_service.SOURCE_LEP]
+    assert len(lep) == 9 and all(i.ok for i in lep)
+    assert all(i.name.startswith("LEP · ") for i in lep)
+    codes = library_service.lep_pathway_codes()
+    assert len(codes) == 22  # strategy 6005 PFLO:LEP: 13 NDC + 9 LEP
+    assert {i.code for i in lep} <= set(codes)
+    pathways, sid = pathway_service.add_library_pathway(bau_only, tx, items, name="LEP", codes=codes)
+    assert sorted(pathways[sid].transformation_codes) == sorted(codes)
 
 
 # pathways

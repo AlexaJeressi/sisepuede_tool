@@ -80,6 +80,20 @@ def test_emission_detail_adds_up_to_subsector_totals(egypt_runs):
         assert gap.max() < 1e-4, gap[gap >= 1e-4].head()
 
 
+def test_subsector_totals_match_the_model_except_ippu_hfc_double_count(egypt_runs):
+    """by_subsector sums the model's total-emission fields. That equals the model's
+    emission_co2e_subsector_total_<abv> everywhere except IPPU, whose model total
+    also adds the emission_co2e_hfcs_ippu_* aggregates (the HFC gases counted twice)."""
+    for r in egypt_runs["results"].values():
+        df = r.df_output
+        ours = emissions_service.by_subsector(df).pivot_table(index="year", columns="subsector_abv", values="value")
+        for abv in ours.columns:
+            model = df[f"emission_co2e_subsector_total_{abv}"].to_numpy()
+            if abv == "ippu":
+                model = model - df[[c for c in df.columns if c.startswith("emission_co2e_hfcs_ippu_")]].sum(axis=1).to_numpy()
+            assert abs(ours[abv].to_numpy() - model).max() < 1e-4, abv
+
+
 def test_every_emission_field_has_a_detail_group(egypt_runs):
     r = egypt_runs["results"][0]
     cls = emissions_service.classify_fields(r.df_output.columns)

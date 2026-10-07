@@ -87,6 +87,21 @@ def main(argv=None) -> int:
         emis = (entry.get("emissions_alone") or {}).get("direction")
         log.info("[%2d/%d] %-45s %-22s emissions=%-24s %.1fs", i, len(codes), code, entry.get("status"), emis, time.time() - t)
 
+    # the library transformations (NDC, LEP) with their own parameters: a
+    # transformer's default can differ in sign from the version used in a pathway
+    library = None
+    if not args.no_emissions:
+        from sisepuede_tool.services import library_service
+
+        items = library_service.load_all_libraries()
+        built = library_service.build_library_transformations(items, tk)
+        library = {}
+        for i, (code, transformation) in enumerate(built.items(), 1):
+            t = time.time()
+            library[code] = tms.build_library_entry(tk, transformation, models, df_out_baseline, regions=regions)
+            emis = (library[code].get("emissions_alone") or {}).get("direction")
+            log.info("[library %2d/%d] %-55s emissions=%-24s %.1fs", i, len(built), code, emis, time.time() - t)
+
     meta = {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "sisepuede": _sisepuede_version(),
@@ -95,9 +110,10 @@ def main(argv=None) -> int:
         "emissions_year": int(ma.get_dimensional_attribute_table(ma.dim_time_period).table["year"].max()),
         "emissions_computed": not args.no_emissions,
         "emissions_units": "MtCO2e",
-        "notes": "Defaults only. Emissions without the electricity model (NemoMod).",
+        "notes": "Transformers at default parameters; `library`: the shipped NDC/LEP transformations with "
+        "their own parameters. Emissions without the electricity model (NemoMod).",
     }
-    catalog = tms.merge_catalog(computed, existing, meta)
+    catalog = tms.merge_catalog(computed, existing, meta, library=library)
     tms.save_catalog(catalog, args.out)
 
     statuses = pd.Series([e["computed"].get("status") for e in catalog["transformers"].values()]).value_counts()

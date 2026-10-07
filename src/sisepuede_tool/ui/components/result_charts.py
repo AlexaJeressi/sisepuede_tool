@@ -20,6 +20,8 @@ ZERO = "#B9AE98"
 NET = "#1C2B33"
 COST = "#B4532A"
 
+# Fallback colours; replaced at startup by the model's own subsector colours
+# (use_model_subsector_colors). wali and enfu have no colour in the model.
 SUBSECTOR_COLORS: Dict[str, str] = {
     # Energy
     "entc": "#E0A33A",
@@ -43,6 +45,24 @@ SUBSECTOR_COLORS: Dict[str, str] = {
     "trww": "#93CAD1",
     "wali": "#93CAD1",
 }
+
+_TOTAL_FIELD_PREFIX = "emission_co2e_subsector_total_"
+
+
+def model_subsector_colors(model_attributes) -> Dict[str, str]:
+    """{subsector abbreviation: colour} from model_attributes.get_subsector_color_map(),
+    which is keyed by emission_co2e_subsector_total_<abv>."""
+    try:
+        cmap = model_attributes.get_subsector_color_map() or {}
+    except Exception:
+        return {}
+    return {k[len(_TOTAL_FIELD_PREFIX) :] if k.startswith(_TOTAL_FIELD_PREFIX) else k: v for k, v in cmap.items()}
+
+
+def use_model_subsector_colors(model_attributes) -> None:
+    """Update SUBSECTOR_COLORS in place with the model's colours (kept for subsectors it has none for)."""
+    SUBSECTOR_COLORS.update(model_subsector_colors(model_attributes))
+
 
 PATHWAY_PALETTE = ["#0F6E6E", "#C46B2A", "#6A5ACD", "#B8860B", "#2E8B57", "#A0446E"]
 BAU_COLOR = "#7C8A8F"
@@ -349,5 +369,35 @@ def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str) -> go.Figu
     fig.update_xaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
     fig = _base_layout(fig, max(220, 30 * len(d) + 80), legend=False)
     fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12.5, color=TEXT), automargin=True)
+    fig.update_layout(hovermode="closest")
+    return fig
+
+
+def credit_bars(frames: Dict[str, pd.DataFrame], colors: Dict[str, str], order: List[str], unit: str, height: int = 380) -> go.Figure:
+    """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
+    one stacked bar per target year, stacked by emission group in `order`."""
+    titles = list(frames.keys())
+    fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
+    years: List[int] = sorted({int(y) for f in frames.values() for y in f["year"].unique()})
+    for j, title in enumerate(titles, start=1):
+        wide = frames[title].pivot_table(index="year", columns="series", values="value", aggfunc="sum").fillna(0.0)
+        x = [int(y) for y in wide.index]
+        for name in order:
+            if name not in wide.columns or (wide[name].abs() < 1e-9).all():
+                continue
+            fig.add_trace(
+                go.Bar(x=x, y=wide[name].to_numpy(), width=2.2, name=name, legendgroup=name,
+                       showlegend=name not in {t.name for t in fig.data}, marker_color=colors.get(name, OTHER_COLOR),
+                       hovertemplate=f"{name}: %{{y:,.1f}} {unit}<extra></extra>"),
+                row=1, col=j,
+            )
+        for xi, v in zip(x, wide.sum(axis=1).to_numpy()):
+            fig.add_annotation(x=xi, y=float(v), text=fmt(float(v)), showarrow=False, yshift=10,
+                               font=dict(family=MONO, size=11.5, color=NET), row=1, col=j)
+    fig.update_layout(barmode="stack")
+    fig.update_yaxes(title_text=unit, row=1, col=1, title_font=dict(size=11.5, color=LABEL))
+    fig = _base_layout(fig, height)
+    if years:
+        fig.update_xaxes(tickvals=years, range=[years[0] - 3, years[-1] + 3])
     fig.update_layout(hovermode="closest")
     return fig

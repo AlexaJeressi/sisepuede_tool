@@ -237,31 +237,54 @@ def emission_total_fields(ma) -> Dict[str, str]:
     return ma.get_all_subsector_emission_total_fields(return_type="dict_abv")
 
 
+def gas_total_emission_fields(ma) -> List[str]:
+    """Every field that makes up total emissions, by gas
+    (`ma.dict_gas_to_total_emission_fields`). Unlike the subsector totals, it
+    leaves out the `emission_co2e_hfcs_ippu_*` aggregates, which restate the
+    individual HFC gases: emission_co2e_subsector_total_ippu counts them twice
+    (+15.9 MtCO2e in 2050 on the Egypt baseline)."""
+    return sum(list(ma.dict_gas_to_total_emission_fields.values()), [])
+
+
+def _fields_by_subsector(ma, columns) -> Dict[str, List[str]]:
+    """subsector abbreviation -> its gas-total emission fields present in `columns`."""
+    present = set(columns)
+    out: Dict[str, List[str]] = {}
+    for abv in emission_total_fields(ma):
+        fields = [f for f in gas_total_emission_fields(ma) if f in present and f.split("_")[3:4] == [abv]]
+        if fields:
+            out[abv] = fields
+    return out
+
+
 def compute_emission_effects(
     ma,
     df_out_baseline: pd.DataFrame,
     df_out_transformed: pd.DataFrame,
     year_index: int = -1,
 ) -> Dict[str, Any]:
-    """Change in subsector emission totals (MtCO2e) at one time period
-    (default: the last) between two model outputs."""
-    fields = {abv: f for abv, f in emission_total_fields(ma).items() if f in df_out_baseline.columns}
-    base = df_out_baseline[list(fields.values())].iloc[year_index]
-    trns = df_out_transformed[list(fields.values())].iloc[year_index]
+    """Change in emissions (MtCO2e) at one time period (default: the last)
+    between two model outputs, summed over gas_total_emission_fields by subsector."""
+    fields = _fields_by_subsector(ma, df_out_baseline.columns)
+    # some fields are blank (NaN) in some years: count them as zero
+    df_out_baseline = df_out_baseline.fillna({f: 0.0 for fs in fields.values() for f in fs})
+    df_out_transformed = df_out_transformed.fillna({f: 0.0 for fs in fields.values() for f in fs})
+    base = pd.Series({abv: float(df_out_baseline[f].iloc[year_index].sum()) for abv, f in fields.items()})
+    trns = pd.Series({abv: float(df_out_transformed[f].iloc[year_index].sum()) for abv, f in fields.items()})
     delta = trns - base
     total_base = float(base.sum())
     total_delta = float(delta.sum())
-    by_subsector = {abv: round(float(delta[f]), 4) for abv, f in fields.items() if abs(float(delta[f])) > 1e-6}
+    by_subsector = {abv: round(float(delta[abv]), 4) for abv in fields if abs(float(delta[abv])) > 1e-6}
 
     sector_of = subsector_to_sector(ma)
     by_sector: Dict[str, float] = {}
-    for abv, f in fields.items():
+    for abv in fields:
         sector = sector_of.get(abv)
         if sector is not None:
-            by_sector[sector] = by_sector.get(sector, 0.0) + float(delta[f])
+            by_sector[sector] = by_sector.get(sector, 0.0) + float(delta[abv])
     by_sector = {s: round(v, 4) for s, v in by_sector.items() if abs(v) > 1e-6}
 
-    cols = list(fields.values())
+    cols = [f for fs in fields.values() for f in fs]
     cumulative_delta = float((df_out_transformed[cols] - df_out_baseline[cols]).to_numpy().sum())
 
     return {
@@ -386,6 +409,36 @@ def build_entry(
     return computed
 
 
+def build_library_entry(
+    tk,
+    transformation,
+    models,
+    df_out_baseline: pd.DataFrame,
+    regions: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """"Emissions if used alone" for one library transformation, with its own
+    parameters (e.g. the NDC magnitude), classified like its transformer.
+    Never raises: failures are recorded under `error`."""
+    code_tfr = transformation.transformer_code
+    entry: Dict[str, Any] = {"transformer": code_tfr}
+    try:
+        df_out = models.project(transformation(), include_nemo_fuel_production=False, regions=regions)
+        effects = compute_emission_effects(tk.model_attributes, df_out_baseline, df_out)
+        fp_primary = bool(_attribute_row(tk, code_tfr).get("requires_fp_model_for_primary_effect") or 0)
+        effects.update(classify_emissions(code_tfr, effects, fp_primary))
+        entry["emissions_alone"] = effects
+    except Exception as e:
+        logger.exception("emissions run failed for %s", transformation.code)
+        entry["emissions_alone"] = {"direction": None, "error": f"{type(e).__name__}: {e}"}
+    return entry
+
+
+def library_direction(catalog: dict, transformation_code: str) -> Optional[str]:
+    """Direction of "emissions if used alone" for a library transformation, or None if not computed."""
+    entry = ((catalog or {}).get("library") or {}).get(transformation_code) or {}
+    return (entry.get("emissions_alone") or {}).get("direction")
+
+
 def seed_curated(code: str, computed: Dict[str, Any]) -> Dict[str, Any]:
     curated = dict(_CURATED_TEMPLATE)
     curated["pair_with"] = []
@@ -395,7 +448,12 @@ def seed_curated(code: str, computed: Dict[str, Any]) -> Dict[str, Any]:
     return curated
 
 
-def merge_catalog(new_computed: Dict[str, Dict[str, Any]], existing: Optional[dict], meta: Dict[str, Any]) -> dict:
+def merge_catalog(
+    new_computed: Dict[str, Dict[str, Any]],
+    existing: Optional[dict],
+    meta: Dict[str, Any],
+    library: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> dict:
     """Replace every `computed` block; keep existing `curated` blocks (adding
     any template keys they lack); seed `curated` for new transformers.
     Entries for transformers no longer in sisepuede are kept but flagged."""
@@ -411,7 +469,11 @@ def merge_catalog(new_computed: Dict[str, Dict[str, Any]], existing: Optional[di
     for code, old in old_entries.items():
         if code not in entries:
             entries[code] = {**old, "computed": {**(old.get("computed") or {}), "status": "missing_in_sisepuede"}}
-    return {"schema_version": SCHEMA_VERSION, "meta": meta, "transformers": dict(sorted(entries.items()))}
+    out = {"schema_version": SCHEMA_VERSION, "meta": meta, "transformers": dict(sorted(entries.items()))}
+    library = library if library is not None else (existing or {}).get("library")
+    if library:
+        out["library"] = dict(sorted(library.items()))
+    return out
 
 
 def load_catalog(path=None) -> dict:
