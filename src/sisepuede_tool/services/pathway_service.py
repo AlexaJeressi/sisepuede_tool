@@ -259,3 +259,23 @@ def summarize(
     """'30% · 2026→2040 · S-curve'"""
     mag = format_magnitude(magnitude_of(transformation, magnitude_param, magnitude_default))
     return f"{mag} · {ramp_service.describe(policy_ramp_of(transformation, years, default_ramp))}"
+
+
+def electricity_needs(
+    entries: Iterable[StrategyEntry], transformations_obj: trf.Transformations, need_of
+) -> Dict[str, List[str]]:
+    """{'needed': [...], 'optional': [...]}: transformer codes used by the
+    pathways, by whether they need the electricity dispatch. `need_of` maps a
+    transformer code to 'needed' | 'optional' | 'not_needed'."""
+    out: Dict[str, List[str]] = {"needed": [], "optional": []}
+    seen = set()
+    for entry in entries:
+        for code in pathway_codes(entry, transformations_obj):
+            t = transformations_obj.dict_transformations.get(code)
+            if t is None or t.transformer_code in seen:
+                continue
+            seen.add(t.transformer_code)
+            need = need_of(t.transformer_code)
+            if need in out:
+                out[need].append(t.transformer_code)
+    return out

@@ -717,6 +717,22 @@ def page_pathways_server(input, output, session, state: AppState):
             )
         return None
 
+    def _electricity_note(cd):
+        """When to switch on the electricity dispatch, from the attribute table flags."""
+        need = cd.get("electricity_need")
+        if need not in ("needed", "optional"):
+            return None
+        label, text = transformer_metadata_service.ELECTRICITY_NEEDS[need]
+        note = cd.get("electricity_model_note")
+        more = ui.tags.details(ui.tags.summary("Why", class_="small muted"), ui.div(note, class_="small muted")) if note else None
+        if need == "needed":
+            return ui.div(
+                ui.div(ui.tags.b(f"{label}. "), text, " Switch on “Run electricity dispatch (NemoMod)” on the Run page."),
+                more,
+                class_="info-box",
+            )
+        return ui.div(ui.div(ui.tags.b(f"{label}. "), text), more, class_="small muted")
+
     def _moves_panel(cd, ramp):
         rows = []
         for v in cd.get("top_variables") or []:
@@ -966,9 +982,11 @@ def page_pathways_server(input, output, session, state: AppState):
                     )
                     if no_basic
                     else None,
+                    # trajectory sits under the magnitude, left of the timing controls it previews
+                    ui.div(ui.output_ui("ramp_preview"), class_="ramp-chart mb-3") if blocks["ramp"] is not None else None,
                     blocks["basic"],
                 ),
-                ui.div(blocks["ramp"], ui.div(ui.output_ui("ramp_preview"), class_="ramp-chart")),
+                ui.div(blocks["ramp"]),
                 class_="editor-grid",
             ),
             ui.div(
@@ -1106,6 +1124,7 @@ def page_pathways_server(input, output, session, state: AppState):
         if ed is not None:
             return ui.TagList(
                 _status_notes(cd),
+                _electricity_note(cd),
                 _moves_panel(cd, ramp_values(ed["params"])),
                 _pair_note(cd),
                 _adds_up(code),
@@ -1159,6 +1178,7 @@ def page_pathways_server(input, output, session, state: AppState):
         return ui.TagList(
             header,
             _status_notes(cd),
+            _electricity_note(cd),
             default_block,
             _moves_panel(cd, default_ramp_vals),
             _pair_note(cd),
@@ -1275,6 +1295,17 @@ def page_pathways_server(input, output, session, state: AppState):
             )
         if broken:
             warnings.append(ui.div(f"{len(broken)} transformer(s) fail in the installed sisepuede; this pathway will fail to run.", class_="warn-box small"))
+        needs_dispatch = [tfr for tfr, cd in cards.items() if cd.get("electricity_need") == "needed"]
+        if needs_dispatch:
+            n = len(needs_dispatch)
+            warnings.append(
+                ui.div(
+                    f"{n} transformer{'s' if n != 1 else ''} need{'s' if n == 1 else ''} the electricity dispatch: "
+                    "switch it on in Run.",
+                    class_="info-box small",
+                    title=", ".join(cards[t]["name"] for t in needs_dispatch),
+                )
+            )
         if stacked:
             warnings.append(ui.div(f"{len(stacked)} transformer(s) have several transformations, applied one after another.", class_="info-box small"))
 

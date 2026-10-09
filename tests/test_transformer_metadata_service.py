@@ -161,3 +161,23 @@ def test_get_card_live_fallback(transformers_catalog):
     card = tms.get_card("TFR:AGRC:DEC_CH4_RICE", {"transformers": {}}, tk=transformers_catalog)
     assert card["status"] == "live"
     assert card["top_variables"][0]["direction"] == "decreases"
+
+
+@pytest.mark.parametrize(
+    "requires, expected",
+    [
+        ({"primary_effect": True, "full_effect": True}, "needed"),
+        ({"primary_effect": False, "full_effect": True}, "optional"),
+        ({"primary_effect": False, "full_effect": False}, "not_needed"),
+        (None, "not_needed"),
+    ],
+)
+def test_electricity_need(requires, expected):
+    assert tms.electricity_need(requires) == expected
+
+
+def test_shipped_names_do_not_imply_a_magnitude():
+    catalog = tms.load_catalog()
+    card = tms.get_card("TFR:ENTC:TARGET_RENEWABLE_ELEC", catalog)
+    assert "95%" not in card["name"]
+    assert card["electricity_need"] == "needed"

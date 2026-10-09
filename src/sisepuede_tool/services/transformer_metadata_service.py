@@ -512,6 +512,32 @@ def save_catalog(catalog: dict, path=None) -> None:
 
 MAX_INPUT_VARIABLES_DISPLAYED = 2
 
+# Whether a transformer needs the electricity dispatch (NemoMod), from the
+# attribute table's requires_fp_model_for_{primary,full}_effect flags:
+# "needed" = its main effect is only computed with the dispatch; "optional" =
+# the dispatch only adds indirect energy effects.
+ELECTRICITY_NEEDS = {
+    "needed": (
+        "Needs electricity dispatch",
+        "Its main effect is only calculated when the electricity dispatch (NemoMod) runs.",
+    ),
+    "optional": (
+        "Electricity dispatch optional",
+        "Its main effect is calculated without the electricity dispatch; running it adds indirect effects on energy.",
+    ),
+    "not_needed": ("No electricity dispatch needed", "The electricity dispatch does not change its effect."),
+}
+
+
+def electricity_need(requires: Optional[Dict[str, Any]]) -> str:
+    """'needed' | 'optional' | 'not_needed' from a card's requires_electricity_model."""
+    requires = requires or {}
+    if requires.get("primary_effect"):
+        return "needed"
+    if requires.get("full_effect"):
+        return "optional"
+    return "not_needed"
+
 
 def pick_display_variables(
     inputs: List[Dict[str, Any]],
@@ -544,6 +570,12 @@ def get_card(code: str, catalog: dict, tk=None) -> Dict[str, Any]:
             computed = {"name": tk.get_tkernel(code).name, "description": tk.get_tkernel(code).description}
             computed.update(compute_variable_effects(tk, tk.get_tkernel(code)()))
             computed["status"] = "live"
+            attr = _attribute_row(tk, code)
+            computed["requires_electricity_model"] = {
+                "primary_effect": bool(attr.get("requires_fp_model_for_primary_effect") or 0),
+                "full_effect": bool(attr.get("requires_fp_model_for_full_effect") or 0),
+            }
+            computed["electricity_model_note"] = attr.get("description_of_fp_model_interaction")
         except Exception as e:
             computed.setdefault("status", "error")
             computed["error"] = f"{type(e).__name__}: {e}"
@@ -572,6 +604,7 @@ def get_card(code: str, catalog: dict, tk=None) -> Dict[str, Any]:
         "emissions": emis,
         "requires_electricity_model": computed.get("requires_electricity_model") or {},
         "electricity_model_note": computed.get("electricity_model_note"),
+        "electricity_need": electricity_need(computed.get("requires_electricity_model")),
         "pair_with": curated.get("pair_with") or [],
         "notes": curated.get("notes"),
         "status": computed.get("status"),

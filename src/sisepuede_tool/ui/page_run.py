@@ -23,6 +23,8 @@ from shiny import module, reactive, render, ui
 from shiny.module import resolve_id
 
 from sisepuede_tool.services import cost_benefit_service, pathway_service, run_service
+from sisepuede_tool.services import transformer_metadata_service as tms
+from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -52,6 +54,7 @@ def page_run_ui():
                         "Adds about 2 min per scenario.",
                         class_="small muted",
                     ),
+                    ui.output_ui("dispatch_advice"),
                 ),
                 ui.div(
                     ui.div(ui.span("Sectors to run", class_="section-label"), ui.span("ADVANCED", class_="adv-tag")),
@@ -158,6 +161,51 @@ def page_run_server(input, output, session, state: AppState):
         return ui.div(
             f"{len(combos)} scenario{'s' if len(combos) != 1 else ''} ({n_bau} business as usual) · {eta_txt}",
             class_="small muted",
+        )
+
+    @render.ui
+    def dispatch_advice():
+        """Which selected transformations need the electricity dispatch (attribute table flags)."""
+        tx = state.transformations_obj.get()
+        state.transformations_revision.get()
+        if tx is None:
+            return None
+        pathways = state.strategies_map.get()
+        sids = {sid for sid, _ in selected_combinations() if sid != _BAU and sid in pathways}
+        if not sids:
+            return None
+        meta, tk = state.transformer_metadata.get(), state.transformers_catalog.get()
+        cards = {}
+
+        def card(code):
+            if code not in cards:
+                cards[code] = tms.get_card(code, meta, tk=tk)
+            return cards[code]
+
+        needs = pathway_service.electricity_needs([pathways[s] for s in sorted(sids)], tx, lambda c: card(c)["electricity_need"])
+        n, m = len(needs["needed"]), len(needs["optional"])
+        on = bool(input.run_energy_production())
+        # a short explanation in the ⓘ bubble; each transformer's own note is on the Pathways page
+        tip = []
+        if n:
+            tip.append(
+                "Their main effect happens in power generation and fuel production, which are only calculated "
+                "when the electricity dispatch runs."
+            )
+        if m:
+            tip.append(f"{m} other selected transformer{'s' if m != 1 else ''} also get indirect energy effects from it (optional).")
+        tip.append("Each transformer on the Pathways page says whether it needs it.")
+        more = info_tip(" ".join(tip), class_="tip-right")
+        if not n:
+            return ui.div("None of the selected transformations needs the electricity dispatch. ", more, class_="small muted mt-1")
+        plural = "s" if n != 1 else ""
+        if on:
+            return ui.div(f"✓ Covers the {n} selected transformer{plural} that need it. ", more, class_="ok-box small mt-1")
+        return ui.div(
+            ui.tags.b(f"{n} selected transformer{plural} need{'s' if n == 1 else ''} the electricity dispatch. "),
+            "Without it their effect will be missing or partial. ",
+            more,
+            class_="warn-box small mt-1",
         )
 
     @reactive.effect
