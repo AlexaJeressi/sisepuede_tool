@@ -804,6 +804,7 @@ body.advanced-on .adv-only.d-flex-adv { display: flex !important; }
 /* simple card used by redesigned pages */
 .box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
 .box-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.box-head .btn-row .shiny-input-container { margin-bottom: 0; width: auto; }
 
 @media (max-width: 1180px) {
   .pw-grid { grid-template-columns: 330px minmax(0, 1fr); height: auto; }
@@ -1007,6 +1008,26 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .drv-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .drv-title { font-weight: 500; }
 .drv-sum { margin-top: 2px; }
+.drv-card.dim { opacity: .62; }
+.drv-divider { grid-column: 1 / -1; margin-top: 4px; }
+/* drivers header: pinned to the top of the page while the drivers scroll (above Plotly's modebar) */
+.drv-sticky {
+  position: sticky; top: 0; z-index: 1002;
+  margin: -16px -18px 0; padding: 12px 18px 10px;
+  background: var(--surface); border-bottom: 1px solid var(--border-soft); border-radius: 8px 8px 0 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.drv-sticky-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.drv-sticky-pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.drv-sticky-title { font-weight: 600; font-size: 15.5px; }
+.drv-sticky .shiny-input-container { margin-bottom: 0; width: auto; }
+.drv-vals { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.drv-val { display: inline-flex; align-items: center; gap: 5px; font-family: "IBM Plex Mono", monospace; }
+.chip-btn {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  border-radius: 999px; padding: 2px 10px; font: 12.5px "IBM Plex Mono", monospace; cursor: pointer;
+}
+.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
 .cb-side { position: sticky; top: 0; }
 .cb-kpis .v { font-size: 18px; }
@@ -1088,4 +1109,5 @@ body.advanced-on .code-tip { display: inline-flex !important; }
   opacity: 0; visibility: hidden; pointer-events: none; z-index: 1060; transition: opacity .12s;
 }
 .info-tip.tip-left::after { left: auto; right: -4px; transform: none; }
+.info-tip.tip-right::after { left: -4px; transform: none; }
 .info-tip:hover::after, .info-tip:focus-visible::after, .info-tip.open::after { opacity: 1; visibility: visible; }

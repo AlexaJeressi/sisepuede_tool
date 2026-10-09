@@ -17,6 +17,9 @@
 #              share   one panel per pathway, 100% stacked by series
 #   categories (optional) keep only these categories; a trailing * is a prefix match
 #   labels     (optional) {automatic series name: display name}
+#   subsectors (optional) emitting subsectors this card explains; when one is
+#              focused, its cards come first and the rest of the area is dimmed.
+#              Untagged cards apply to every subsector of the area.
 #   needs_electricity_model (optional) true if the variable is only filled when
 #              the run includes the electricity model (NemoMod)
 #   scale      multiply raw values by this before display
@@ -51,6 +54,7 @@ areas:
     subsectors: [entc, fgtv, ccsq]
     cards:
       - key: entc_generation
+        subsectors: [entc]
         needs_electricity_model: true
         title: Electricity generation by technology
         why: The power mix sets the emissions of every kWh used in buildings, industry and transport.
@@ -62,6 +66,7 @@ areas:
         scale: 1.0
         unit: PJ
       - key: entc_capacity
+        subsectors: [entc]
         needs_electricity_model: true
         title: Generation capacity
         why: Capacity that has to be built (and paid for) to deliver the generation mix.
@@ -73,6 +78,7 @@ areas:
         scale: 1.0
         unit: GW
       - key: elec_demand
+        subsectors: [entc]
         title: Electricity use by sector
         why: Electrification moves emissions from end uses to the power sector.
         source: output
@@ -87,6 +93,7 @@ areas:
         scale: 1.0
         unit: PJ
       - key: transmission_loss
+        subsectors: [entc]
         needs_electricity_model: true
         title: Transmission & distribution losses
         why: Electricity lost in the grid has to be generated anyway.
@@ -97,6 +104,7 @@ areas:
         scale: 1.0
         unit: PJ
       - key: fuel_production
+        subsectors: [entc, fgtv]
         needs_electricity_model: true
         title: Fuel production
         why: Domestic oil and gas production drives fugitive emissions (leaks, flaring, venting).
@@ -112,6 +120,7 @@ areas:
     subsectors: [inen, ippu]
     cards:
       - key: ippu_production
+        subsectors: [ippu, inen]
         title: Industrial production
         why: Process emissions (cement, chemicals, metals) scale with output.
         source: output
@@ -121,6 +130,7 @@ areas:
         scale: 1.0e-6
         unit: Mt
       - key: clinker
+        subsectors: [ippu]
         title: Clinker share of cement
         why: Clinker is the source of cement's process CO2; less clinker per tonne means less CO2.
         source: input
@@ -130,6 +140,7 @@ areas:
         scale: 100.0
         unit: "%"
       - key: inen_energy
+        subsectors: [inen]
         title: Industrial energy use by industry
         why: Fuel burnt for heat and power in factories.
         source: output
@@ -139,6 +150,7 @@ areas:
         scale: 1.0
         unit: PJ
       - key: inen_fuels
+        subsectors: [inen]
         title: Industrial fuel mix
         why: Switching from fossil fuels to electricity or hydrogen cuts combustion emissions.
         source: output
@@ -226,6 +238,7 @@ areas:
     subsectors: [agrc, soil]
     cards:
       - key: crop_area
+        subsectors: [agrc, soil]
         title: Crop area
         why: Cropland drives fertilizer use, residue burning and rice methane.
         source: output
@@ -235,6 +248,7 @@ areas:
         scale: 1.0e-6
         unit: million ha
       - key: food_loss
+        subsectors: [agrc]
         title: Food lost before consumption
         why: Food lost in the supply chain still had to be grown, and part of it ends up in landfills.
         source: output
@@ -244,6 +258,7 @@ areas:
         scale: 1.0e-6
         unit: Mt
       - key: fertilizer
+        subsectors: [soil]
         title: Fertilizer nitrogen use
         why: Nitrogen applied to soils is the main source of agricultural N2O.
         source: output
@@ -259,6 +274,7 @@ areas:
     subsectors: [lvst, lsmm]
     cards:
       - key: herd
+        subsectors: [lvst, lsmm]
         title: Herd size
         why: Enteric fermentation and manure methane scale with the number of animals.
         source: output
@@ -268,6 +284,7 @@ areas:
         scale: 1.0e-6
         unit: million head
       - key: manure_biogas
+        subsectors: [lsmm]
         title: Biogas recovered from manure
         why: Methane captured in digesters instead of released.
         source: output
@@ -282,6 +299,7 @@ areas:
     subsectors: [lndu, frst]
     cards:
       - key: land_area
+        subsectors: [lndu, frst]
         title: Land area by use
         why: Converting forests and grasslands releases carbon; restoring them stores it.
         source: output
@@ -292,6 +310,7 @@ areas:
         scale: 1.0e-6
         unit: million ha
       - key: forest_stock
+        subsectors: [frst]
         title: Carbon stock in forests
         why: Carbon held in forest biomass.
         source: output
@@ -306,6 +325,7 @@ areas:
     subsectors: [waso, trww, wali]
     cards:
       - key: waste_generated
+        subsectors: [waso]
         title: Solid waste generated
         why: Organic waste in landfills and dumps produces methane.
         source: output
@@ -316,6 +336,7 @@ areas:
         scale: 1.0e-6
         unit: Mt
       - key: waste_destination
+        subsectors: [waso]
         title: Where solid waste goes
         why: Landfills and open dumps emit methane; recycling, composting and digestion avoid most of it.
         source: output
@@ -332,6 +353,7 @@ areas:
         scale: 1.0e-6
         unit: "% of Mt"
       - key: ww_urban
+        subsectors: [trww]
         title: Urban wastewater treatment
         why: Untreated and latrine wastewater emits methane; advanced treatment with biogas capture emits least.
         source: input
@@ -352,6 +374,7 @@ areas:
         scale: 100.0
         unit: "% of population"
       - key: ww_rural
+        subsectors: [trww]
         title: Rural wastewater treatment
         why: Same treatment pathways for the rural population.
         source: input

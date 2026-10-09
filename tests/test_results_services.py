@@ -244,3 +244,45 @@ def test_not_discounted_is_the_plain_sum(cb_long, egypt_runs):
     plain = cb_long[(cb_long["strategy_id"] == sid) & (cb_long["year"] >= cb_summary_service.START_YEAR)]["value_busd"].sum()
     assert cb_summary_service.DEFAULT_RATE == 0
     assert cb_summary_service.npv_summary(cb_long, sid, 0)["net"] == pytest.approx(plain)
+
+
+def test_split_cards_for_subsector():
+    cards = [{"key": "a", "subsectors": ["ippu"]}, {"key": "b", "subsectors": ["inen"]}, {"key": "c"}]
+    primary, others = results_groups_service.split_cards_for_subsector(cards, "inen")
+    assert [c["key"] for c in primary] == ["b", "c"]
+    assert [c["key"] for c in others] == ["a"]
+    assert results_groups_service.split_cards_for_subsector(cards, None) == (cards, [])
+    # nothing tagged for the subsector: every card counts
+    tagged = cards[:2]
+    assert results_groups_service.split_cards_for_subsector(tagged, "ccsq") == (tagged, [])
+
+
+def test_shipped_card_subsectors_belong_to_their_area():
+    groups = results_groups_service.load_groups()
+    for area in groups["areas"]:
+        for card in area["cards"]:
+            assert set(card.get("subsectors") or []) <= set(area["subsectors"]), card["key"]
+
+
+def test_largest_changes():
+    def frame(values):
+        return pd.DataFrame(
+            [{"year": 2050, "subsector_abv": k, "value": v} for k, v in values.items()]
+        )
+
+    bau = frame({"entc": 100.0, "trns": 50.0, "waso": 10.0, "agrc": 5.0})
+    frames = {"A": frame({"entc": 60.0, "trns": 45.0, "waso": 10.0, "agrc": 5.0}), "B": frame({"entc": 90.0, "trns": 30.0, "waso": 12.0, "agrc": 5.0})}
+    top = emissions_service.largest_changes(frames, bau, n=3)
+    assert top == [("entc", -40.0), ("trns", -20.0), ("waso", 2.0)]
+    assert emissions_service.largest_changes(frames, bau, subsectors=["trns", "agrc"]) == [("trns", -20.0)]
+
+
+def test_subsector_totals_by_gas_add_up(egypt_runs):
+    r = next(iter(egypt_runs["results"].values()))
+    total = emissions_service.by_subsector_for_gas(r.df_output).groupby(["year", "subsector_abv"])["value"].sum()
+    parts = sum(
+        emissions_service.by_subsector_for_gas(r.df_output, gas).groupby(["year", "subsector_abv"])["value"].sum()
+        .reindex(total.index, fill_value=0.0)
+        for gas in ("CO2", "CH4", "N2O", "F-gases")
+    )
+    pd.testing.assert_series_equal(parts, total, check_names=False, atol=1e-6)

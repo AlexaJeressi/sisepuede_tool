@@ -4,11 +4,16 @@ Top to bottom:
 - shared results bar (baseline, pathway chips, run stamp, Excel download);
 - headline KPIs per pathway (net 2030 / 2050, % vs BAU, avoided emissions);
 - "Net GHG emissions": small multiples per pathway stacked by subsector, or
-  the change vs BAU by subsector in 2030 and 2050. Focusing a subsector shows
-  its detail (e.g. Transportation -> Road / Rail / Aviation) and a gas filter;
-- "What drives it": curated driver cards for the matching area
-  (resources/results_groups.yaml), plus population and GDP. In advanced mode
-  users can add a card for any model variable.
+  the change vs BAU by subsector in 2030 and 2050, with sector and gas
+  filters. Picking a subsector filters the chart to it; in advanced mode it
+  can be broken down by emission source (e.g. Transportation -> Road / Rail);
+- "What drives ... emissions": curated driver cards for the matching area
+  (resources/results_groups.yaml), plus population and GDP (can be hidden).
+  Its header is pinned while scrolling: the same subsector picker as the
+  chart (one selection, shown in both places), 2050 emissions per pathway, and (with no subsector picked)
+  shortcuts to the subsectors that change most vs BAU. The focused
+  subsector's cards come first; the rest of its area is dimmed. In advanced
+  mode users can add a card for any model variable.
 
 No data tables: everything on the page (and the full emissions detail) is in
 the Excel download (services/download_service.py).
@@ -67,9 +72,10 @@ def page_emissions_ui():
                 ),
                 ui.div(ui.input_radio_buttons("sector", None, _SECTORS, inline=True), class_="seg"),
                 ui.input_select("focus", None, {"": "All subsectors", **_emitting_subsectors()}, width="240px"),
+                ui.div(ui.input_radio_buttons("gas", None, _GASES, inline=True), class_="seg"),
                 ui.panel_conditional(
                     "input.focus !== ''",
-                    ui.div(ui.input_radio_buttons("gas", None, _GASES, inline=True), class_="seg"),
+                    ui.div(ui.input_switch("breakdown", "Break down by emission source", value=False), class_="adv-only"),
                 ),
                 class_="res-controls",
             ),
@@ -78,16 +84,25 @@ def page_emissions_ui():
             class_="box",
         ),
         ui.div(
+            # pinned while scrolling through the drivers: the subsector picker
+            # (same selection as the chart's) and its 2050 emissions
             ui.div(
-                ui.span("What drives it", class_="section-label"),
-                ui.input_select(
-                    "area", None, {a["key"]: a["title"] for a in groups["areas"]}, width="240px"
+                ui.div(
+                    ui.div(
+                        ui.span("What drives", class_="drv-sticky-title"),
+                        ui.input_select("focus_bar", None, {"": "All subsectors", **_emitting_subsectors()}, width="240px"),
+                        ui.span("emissions", class_="drv-sticky-title"),
+                        class_="drv-sticky-pick",
+                    ),
+                    ui.input_switch("show_context", "Population & GDP", value=True),
+                    class_="drv-sticky-row",
                 ),
-                class_="box-head",
+                ui.output_ui("drivers_context"),
+                class_="drv-sticky",
             ),
             ui.div(
-                "Key model variables for this area, one line or panel per pathway. "
-                "Pick a subsector above to switch area. Click ⓘ to see why each one matters.",
+                "Key model variables, one line or panel per pathway. The subsector picked here or on the chart above "
+                "filters both. Click ⓘ to see why each one matters.",
                 class_="small muted",
             ),
             ui.output_ui("drivers_grid"),
@@ -137,12 +152,24 @@ def page_emissions_server(input, output, session, state: AppState):
 
     @reactive.calc
     def subsector_frames() -> Dict[str, pd.DataFrame]:
+        """Emissions by subsector per pathway, for the selected gas group."""
         _, rows = runs()
-        return {name: emissions_service.by_subsector(rr.df_output) for _, name, rr in rows}
+        gas = input.gas()
+        return {name: emissions_service.by_subsector_for_gas(rr.df_output, gas) for _, name, rr in rows}
 
+    @reactive.calc
     def _bau_frame() -> Optional[pd.DataFrame]:
         rr = bau_run()
-        return emissions_service.by_subsector(rr.df_output) if rr is not None else None
+        return emissions_service.by_subsector_for_gas(rr.df_output, input.gas()) if rr is not None else None
+
+    def _breakdown() -> bool:
+        """Detail by emission source (advanced) instead of the subsector itself."""
+        return bool(input.focus()) and state.advanced_mode.get() and bool(input.breakdown())
+
+    def _shown(abv: str) -> bool:
+        """Subsectors the chart keeps: the picked one, else those in the sector filter."""
+        focus = input.focus()
+        return abv == focus if focus else _sector_ok(abv)
 
     # ------------------------------------------------------------------ events
 
@@ -155,13 +182,21 @@ def page_emissions_server(input, output, session, state: AppState):
             results_bar.toggle_pathway(state, int(value))
         elif kind == "remove_card":
             state.results_custom_vars.set([v for v in state.results_custom_vars.get() if v != value])
+        elif kind == "focus":
+            ui.update_select("focus", selected=value)
 
+    # one subsector selection, shown in two places: the chart filter and the drivers header
     @reactive.effect
     @reactive.event(input.focus)
-    def _focus_to_area():
-        area = results_groups_service.area_for_subsector(groups, input.focus())
-        if area is not None:
-            ui.update_select("area", selected=area["key"])
+    def _focus_to_bar():
+        if input.focus_bar() != input.focus():
+            ui.update_select("focus_bar", selected=input.focus())
+
+    @reactive.effect
+    @reactive.event(input.focus_bar)
+    def _bar_to_focus():
+        if input.focus() != input.focus_bar():
+            ui.update_select("focus", selected=input.focus_bar())
 
     @reactive.effect
     def _add_var_choices():
@@ -235,17 +270,17 @@ def page_emissions_server(input, output, session, state: AppState):
         if not rows:
             return rc.empty_figure("Run business as usual and at least one pathway to see results.")
         focus = input.focus()
-        gas = input.gas() if focus else "all"
+        gas = input.gas()
         if input.view() == "delta":
             return _delta_figure(rows, focus, gas)
         frames, net = {}, {}
-        if not focus:
+        if not _breakdown():
             labels = {abv: emissions_service.subsector_label(abv) for abv in _emitting_subsectors()}
             colors = {labels[a]: rc.SUBSECTOR_COLORS.get(a, rc.OTHER_COLOR) for a in labels}
             order = [labels[a] for a in labels]
             for _, name, rr in rows:
                 d = subsector_frames()[name]
-                d = d[d["subsector_abv"].map(_sector_ok)]
+                d = d[d["subsector_abv"].map(_shown)]
                 f = d.assign(series=d["subsector_abv"].map(emissions_service.subsector_label))[["year", "series", "value"]]
                 frames[name] = f
                 net[name] = f.groupby("year")["value"].sum()
@@ -278,9 +313,9 @@ def page_emissions_server(input, output, session, state: AppState):
         if bau is None:
             return rc.empty_figure("Business as usual has not run for this baseline: run it to compare.")
         def table(df_output):
-            if not focus:
-                d = emissions_service.by_subsector(df_output)
-                d = d[d["subsector_abv"].map(_sector_ok)]
+            if not _breakdown():
+                d = emissions_service.by_subsector_for_gas(df_output, gas)
+                d = d[d["subsector_abv"].map(_shown)]
                 return d.groupby(["year", "subsector"])["value"].sum()
             d = emissions_service.detail(df_output, focus)
             if gas != "all":
@@ -312,25 +347,32 @@ def page_emissions_server(input, output, session, state: AppState):
             return None
         if input.view() == "delta":
             return ui.div("Bars left of zero are reductions compared with business as usual.", class_="small muted")
-        if input.focus():
+        if _breakdown():
             return ui.div(
-                "Detail groups follow the IPCC-style breakdown used for Egypt's inventory. "
+                "Emission sources follow the IPCC-style breakdown used for Egypt's inventory. "
                 "Negative areas are removals.",
                 class_="small muted",
             )
         return ui.div(
             "Areas below zero are removals (forests, land use). The dark line is net emissions. "
-            "Click a legend item to hide it; pick a subsector to see its detail.",
+            "Click a legend item to hide it. Picking a subsector here or in the drivers below filters both.",
             class_="small muted",
         )
 
     # ------------------------------------------------------------------ drivers
 
     @reactive.calc
+    def driver_area() -> Optional[dict]:
+        """The focused subsector's area; None with "all subsectors"."""
+        return results_groups_service.area_for_subsector(groups, input.focus_bar())
+
+    @reactive.calc
     def cards() -> List[dict]:
         cat = catalog()
-        area = next((a for a in groups["areas"] if a["key"] == input.area()), groups["areas"][0])
-        out = [dict(c, _context=True) for c in groups.get("context", [])] + list(area["cards"])
+        area = driver_area()
+        context = [dict(c, _context=True) for c in groups.get("context", [])] if input.show_context() else []
+        primary, others = results_groups_service.split_cards_for_subsector(area["cards"] if area else [], input.focus_bar())
+        out = context + primary + [dict(c, _dim=True) for c in others]
         if cat is not None:
             for v in state.results_custom_vars.get():
                 out.append(results_groups_service.custom_card(v, cat))
@@ -356,12 +398,79 @@ def page_emissions_server(input, output, session, state: AppState):
         return "2050 · " + " · ".join(bits)
 
     @render.ui
+    def drivers_context():
+        """2050 emissions of what the drivers explain, per pathway; with no
+        subsector picked, shortcuts to the subsectors that change most."""
+        bid, rows = runs()
+        if not rows:
+            return None
+        focus = input.focus_bar()
+        colors = results_bar.colors_for(state, bid)
+        bau_name = results_bar.pathway_name(state, _BAU)
+        # same totals as the chart above: subsector frames for the selected gas
+        def total_frame(d):
+            d = d[d["subsector_abv"].map(_shown) & (d["year"] == 2050)]
+            return float(d["value"].sum())
+
+        gas = input.gas()
+        if focus:
+            scope = emissions_service.subsector_label(focus)
+        else:
+            scope = "Net emissions" if input.sector() == "all" else _SECTORS[input.sector()]
+        scope += "" if gas == "all" else f" · {_GASES[gas]}"
+        vals = {sid: total_frame(subsector_frames()[name]) for sid, name, _ in rows}
+        bau_f = _bau_frame()
+        bau_v = total_frame(bau_f) if bau_f is not None else None
+        chips = []
+        for sid, name, _ in rows:
+            v = vals[sid]
+            pct = f" ({(v / bau_v - 1) * 100:+.0f}%)" if bau_v and sid != _BAU else ""
+            chips.append(
+                ui.span(ui.span(class_="swatch", style=f"background:{colors.get(sid)}"), f"{name} {rc.fmt(v)} Mt{pct}", class_="drv-val")
+            )
+        line = ui.div(ui.span(f"{scope} in 2050:", class_="muted"), *chips, class_="drv-vals small")
+        if focus:
+            return line
+        bau_f = _bau_frame()
+        shortcuts = None
+        if bau_f is not None:
+            frames = {name: subsector_frames()[name] for sid, name, _ in rows if sid != _BAU}
+            allowed = [a for a in _emitting_subsectors() if _sector_ok(a)]
+            top = emissions_service.largest_changes(frames, bau_f, subsectors=allowed)
+            if top:
+                btns = []
+                for abv, delta in top:
+                    payload = json.dumps({"type": "focus", "value": abv})
+                    btns.append(
+                        ui.tags.button(
+                            f"{emissions_service.subsector_label(abv)} {delta:+.1f} Mt",
+                            class_="chip-btn",
+                            onclick=f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;",
+                        )
+                    )
+                shortcuts = ui.div(ui.span("Biggest changes vs BAU in 2050:", class_="muted"), *btns, class_="drv-vals small")
+        return ui.TagList(line, shortcuts)
+
+    @render.ui
     def drivers_grid():
         bid, rows = runs()
         if not rows:
             return ui.div("Run a pathway to see its drivers.", class_="info-box")
+        hint = None
+        if driver_area() is None:
+            hint = ui.div(
+                "Pick a subsector after “What drives”, or click one of the biggest changes, to see what drives its emissions.",
+                class_="info-box",
+            )
         tiles = []
+        divided = False
         for i, card in enumerate(cards()):
+            if card.get("_dim") and not divided:
+                divided = True
+                # named with the same subsector labels as the pickers, not the area title
+                related = [emissions_service.subsector_label(a) for a in driver_area()["subsectors"]
+                           if a != input.focus_bar() and a in _emitting_subsectors()]
+                tiles.append(ui.div("Related subsectors · " + ", ".join(related), class_="drv-divider section-label"))
             frames = _card_frames(card)
             empty = all(f.empty for f in frames.values())
             remove = None
@@ -392,10 +501,11 @@ def page_emissions_server(input, output, session, state: AppState):
                     if empty
                     else output_widget(f"slot_{i}"),
                     ui.div(_summary(card, frames) or "", class_="small muted mono drv-sum"),
-                    class_="drv-card" + (" wide" if wide else "") + (" ctx" if card.get("_context") else ""),
+                    class_="drv-card" + (" wide" if wide else "") + (" ctx" if card.get("_context") else "")
+                    + (" dim" if card.get("_dim") else ""),
                 )
             )
-        return ui.div(*tiles, class_="drv-grid")
+        return ui.TagList(hint, ui.div(*tiles, class_="drv-grid") if tiles else None)
 
     def _slot_figure(i: int):
         cs = cards()

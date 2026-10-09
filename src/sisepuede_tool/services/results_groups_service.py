@@ -9,7 +9,7 @@ card to model fields and pulls its values out of run results, without any UI.
 import functools
 import pathlib
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import yaml
@@ -108,6 +108,17 @@ def area_for_subsector(groups: dict, subsector_abv: Optional[str]) -> Optional[d
         if subsector_abv in area.get("subsectors", []):
             return area
     return None
+
+
+def split_cards_for_subsector(cards: List[dict], subsector_abv: Optional[str]) -> Tuple[List[dict], List[dict]]:
+    """(cards that explain `subsector_abv`, the rest of the area). Untagged
+    cards explain every subsector; if nothing matches, every card counts."""
+    if not subsector_abv:
+        return list(cards), []
+    primary = [c for c in cards if not c.get("subsectors") or subsector_abv in c["subsectors"]]
+    if not primary:
+        return list(cards), []
+    return primary, [c for c in cards if c not in primary]
 
 
 def _match(category: Optional[str], patterns: Optional[List[str]]) -> bool:

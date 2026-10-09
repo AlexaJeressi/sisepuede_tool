@@ -271,6 +271,39 @@ def detail(df_output: pd.DataFrame, subsector_abv: Optional[str] = None) -> pd.D
     return out[["year", "subsector_abv", "detail", "gas_group", "gas", "field", "value"]]
 
 
+def by_subsector_for_gas(df_output: pd.DataFrame, gas: str = "all") -> pd.DataFrame:
+    """Like `by_subsector` (year, subsector_abv, subsector, sector, value),
+    restricted to one gas group (CO2 | CH4 | N2O | F-gases) unless gas is 'all'."""
+    if gas == "all":
+        return by_subsector(df_output)
+    d = detail(df_output)
+    d = d[d["gas_group"] == gas]
+    out = d.groupby(["year", "subsector_abv"], as_index=False)["value"].sum()
+    out["subsector"] = out["subsector_abv"].map(subsector_label)
+    out["sector"] = out["subsector_abv"].map(sector_of)
+    return out
+
+
+def largest_changes(
+    frames: Dict[str, pd.DataFrame], bau: pd.DataFrame, year: int = 2050, n: int = 3, subsectors: Optional[Iterable[str]] = None
+) -> List[Tuple[str, float]]:
+    """[(subsector_abv, change)] for the `n` subsectors whose `year`
+    emissions differ most from BAU in any pathway (`by_subsector` frames);
+    the change kept is the largest in absolute terms, in MtCO2e."""
+    base = bau[bau["year"] == year].groupby("subsector_abv")["value"].sum()
+    best: Dict[str, float] = {}
+    for d in frames.values():
+        delta = d[d["year"] == year].groupby("subsector_abv")["value"].sum().sub(base, fill_value=0)
+        for abv, v in delta.items():
+            if abs(v) > abs(best.get(abv, 0.0)):
+                best[abv] = float(v)
+    if subsectors is not None:
+        keep = set(subsectors)
+        best = {k: v for k, v in best.items() if k in keep}
+    ranked = sorted(((k, v) for k, v in best.items() if abs(v) >= 0.01), key=lambda kv: -abs(kv[1]))
+    return ranked[:n]
+
+
 def net_total(df_output: pd.DataFrame) -> pd.Series:
     """Net emissions by year (MtCO2e)."""
     s = by_subsector(df_output).groupby("year")["value"].sum()
