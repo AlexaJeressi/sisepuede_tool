@@ -2,7 +2,7 @@ citations: null
 description: Missing
 identifiers:
   transformation_code: "TX:FGTV:DEC_LEAKS_STRATEGY_LEP"
-  transformation_name: 'LEP · FGTV: Minimize leaks'
+  transformation_name: 'LEP · FGTV: Reduce leaks'
 parameters:
   magnitude: 0.95
   vec_implementation_ramp:

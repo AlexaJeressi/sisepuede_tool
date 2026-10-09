@@ -961,7 +961,7 @@ transformers:
   TFR:ENTC:TARGET_RENEWABLE_ELEC:
     curated:
       reviewed: false
-      name: null
+      name: Renewable electricity target
       short_description: null
       magnitude_label: null
       magnitude_help: null
@@ -1030,7 +1030,7 @@ transformers:
   TFR:FGTV:DEC_LEAKS:
     curated:
       reviewed: false
-      name: null
+      name: Reduce leaks
       short_description: null
       magnitude_label: null
       magnitude_help: null
@@ -1097,7 +1097,7 @@ transformers:
   TFR:FGTV:INC_FLARE:
     curated:
       reviewed: false
-      name: null
+      name: Increase flaring
       short_description: null
       magnitude_label: null
       magnitude_help: null
@@ -1390,7 +1390,7 @@ transformers:
   TFR:INEN:INC_EFFICIENCY_ENERGY:
     curated:
       reviewed: false
-      name: null
+      name: Increase industrial energy efficiency
       short_description: null
       magnitude_label: null
       magnitude_help: null
@@ -1515,7 +1515,7 @@ transformers:
   TFR:INEN:INC_EFFICIENCY_PRODUCTION:
     curated:
       reviewed: false
-      name: null
+      name: Increase industrial production efficiency
       short_description: null
       magnitude_label: null
       magnitude_help: null
@@ -2453,7 +2453,7 @@ transformers:
   TFR:LNDU:DEC_DEFORESTATION:
     curated:
       reviewed: false
-      name: null
+      name: Reduce deforestation
       short_description: null
       magnitude_label: null
       magnitude_help: null
