@@ -17,6 +17,8 @@ not saved in the zip, autosave + snapshots, sidebar export/import, Download CSV
 header buttons (done for the results pages on `ndc-v1`, 2026-10-05: one Excel download per page), NDC target line, Monitoring upload, two §7 bugs, a curation
 phase). Ask before picking them up.
 
+**Latest (2026-10-09, `ndc-v1`):** tester feedback round, see the §9 log entry for that date.
+
 **Next: Phase 3** (section 3). On `ndc-v1`, 3.1, 3.2 and 3.4 are done (2026-10-05); the rest, in this order:
 1. ~~3.1~~ Shared results sub-bar (baseline picker defaulting to
    `state.default_baseline_id`, pathway chips, run stamp from `state.run_history`).
@@ -341,3 +343,27 @@ Status: `todo` / `wip` / `done` / `blocked`.
   fuel_cost rows are "Fuel Cost bio fuel_biogas": fix in the config). ⓘ are
   click-to-open bubbles (`ui/components/info_tip.py`); modals themed; chart
   legends on the right. 189 tests pass.
+- **2026-10-09 (`ndc-v1`, pushed 3aec49d / cf5e312 / e5ed0b7)**: tester feedback.
+  - Names: transformers whose names implied a fixed size got curated names in
+    `transformer_catalog.yaml` ("95% of electricity…" → "Renewable electricity
+    target"; Stop/Maximize/Minimize → Reduce/Increase); NDC/LEP library names
+    to match. Descriptions with default numbers ("by 45%") are still as-is.
+  - Electricity dispatch: `transformer_metadata_service.electricity_need()` from
+    the attribute table's `requires_fp_model_for_{primary,full}_effect`
+    (needed = primary, optional = full only; 29 / 31 / 15 of 75). Run page: one-line
+    warning/ok under the switch, with a short ⓘ (no list of transformers, user
+    request). Pathways: a note per transformer and a count in the tray (no ⚡ icon).
+  - Editor: the trajectory chart sits under magnitude / Exact value, left of
+    the timing controls.
+  - Emissions & drivers: **one subsector selection** shown in the chart filter
+    and the drivers header ("What drives [subsector] emissions"), two-way.
+    Picking a subsector only **filters** the chart to that subsector (user: same
+    sisepuede subsectors in both, don't swap them for other categories); the
+    IPCC-style breakdown by source is an advanced switch. Gas filter always on
+    (`emissions_service.by_subsector_for_gas`). Driver cards tagged with
+    `subsectors` in `results_groups.yaml`; other cards of the area are dimmed under
+    "Related subsectors · …". With "All subsectors": only Population/GDP, a hint
+    and "Biggest changes vs BAU in 2050" shortcuts. The drivers header is sticky;
+    Population & GDP can be hidden. 209 tests pass.
+  - Seen, not fixed: Forest shows a ~3 Mt spike in 2015 (first period, from the data).
+  - `README.md` has older uncommitted edits (not from this session): ask the user.
