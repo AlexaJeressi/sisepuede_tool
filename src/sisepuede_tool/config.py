@@ -20,3 +20,4 @@ NEMOMOD_REFERENCE_DIR = SISEPUEDE_PACKAGE_DIR / "ref" / "nemo_mod"
 
 PROJECTS_XLSX_PATH = SISEPUEDE_TOOL_PACKAGE_DIR / "ref" / "Egypt_Projects_SISEPUEDE_NDC_LTS.xlsx"
 CB_CONFIG_XLSX_PATH = REPO_ROOT / "tests" / "fixtures" / "cb_config_params.xlsx"
+EXAMPLE_INPUT_PATH = REPO_ROOT / "tests" / "fixtures" / "example_input.csv"

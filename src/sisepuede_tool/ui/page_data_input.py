@@ -2,7 +2,8 @@
 validate each, and manage and preview the collection (Claude Design
 prototype, "Baseline data").
 
-Choosing a file validates it right away (checklist), "Add baseline" adds it.
+The example input (tests/fixtures/example_input.csv) is preloaded at session
+start. Choosing a file validates it right away (checklist), "Add baseline" adds it.
 All loaded baselines must share one region (the first baseline fixes it for
 the session). The transformer catalog, the transformations collection with
 the NDC library, and the business-as-usual strategy are built once,
@@ -25,6 +26,7 @@ import numpy as np
 from shiny import module, reactive, render, ui
 from shiny.module import resolve_id
 
+from sisepuede_tool import config
 from sisepuede_tool.models.baseline import BaselineDataset
 from sisepuede_tool.models.strategy_entry import StrategyEntry
 from sisepuede_tool.services import (
@@ -42,6 +44,7 @@ from sisepuede_tool.ui.state import AppState
 
 _SECTORS = ["AFOLU", "Energy", "Circular Economy", "IPPU", "Socioeconomic"]
 _PREVIEW_ROW_LIMIT = 60
+EXAMPLE_INPUT_LABEL = "Example input"
 _PREVIEW_YEARS = (2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050)
 
 _FIELD_CATALOGS = {}
@@ -238,6 +241,12 @@ def page_data_input_server(input, output, session, state: AppState):
             ui.notification_show(msg, type="error", duration=None)
             return
 
+        _add_baseline(result, label)
+        ui.notification_show(f"Added baseline '{label}' ({result.region}).", type="message")
+        ui.update_text("baseline_label", value="")
+        pending.set(None)
+
+    def _add_baseline(result, label):
         new_id = uuid.uuid4().hex[:8]
         baseline = BaselineDataset(
             id=new_id,
@@ -248,7 +257,7 @@ def page_data_input_server(input, output, session, state: AppState):
             n_time_periods=result.n_time_periods,
             interpolated_periods=result.interpolated_periods,
         )
-        baselines = dict(baselines)
+        baselines = dict(state.baselines.get())
         baselines[new_id] = baseline
         state.baselines.set(baselines)
         if state.default_baseline_id.get() not in baselines:
@@ -258,9 +267,18 @@ def page_data_input_server(input, output, session, state: AppState):
         if state.transformers_catalog.get() is None:
             _init_catalog(baseline)
 
-        ui.notification_show(f"Added baseline '{label}' ({result.region}).", type="message")
-        ui.update_text("baseline_label", value="")
-        pending.set(None)
+    # the shipped example input is loaded when the session starts, so the NDC/LEP
+    # pathways are ready without an upload; it can be removed like any other baseline
+    @reactive.effect
+    def _preload_example():
+        with reactive.isolate():
+            if state.baselines.get() or not config.EXAMPLE_INPUT_PATH.exists():
+                return
+            result = input_service.validate_baseline(
+                input_service.load_csv(config.EXAMPLE_INPUT_PATH), state.model_attributes.get()
+            )
+            if result.ok:
+                _add_baseline(result, EXAMPLE_INPUT_LABEL)
 
     def _init_catalog(baseline):
         transformers_catalog = catalog_service.build_transformers_catalog(baseline.df)
