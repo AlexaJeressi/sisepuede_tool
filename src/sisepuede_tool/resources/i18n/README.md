@@ -66,18 +66,45 @@ downloads; error messages raised by services (exception text).
 
 ## Glossary
 
-Use these consistently; change them here first if the review prefers others.
+The terms to use everywhere. Arabic is Modern Standard Arabic as written in
+Egyptian government climate documents; Spanish is neutral Latin American,
+addressing the user as "usted".
 
 | English | Español | العربية |
 |---|---|---|
 | baseline | línea base | خط الأساس |
 | pathway | trayectoria | مسار |
 | transformation | transformación | تحوّل |
-| transformer | transformador | مُحوِّل |
-| run (the model) | ejecutar | تشغيل |
-| business as usual (BAU) | escenario tendencial | سيناريو العمل كالمعتاد |
-| NDC | NDC | المساهمة المحددة وطنيًا |
+| transformer | transformador | محوّل |
+| run (the model) / a run | ejecutar / ejecución | تشغيل / عملية تشغيل |
+| business as usual (BAU) | escenario tendencial (short: tendencial) | سيناريو العمل كالمعتاد (short: العمل كالمعتاد) |
+| electricity dispatch (NemoMod) | despacho eléctrico | توزيع الأحمال الكهربائية |
+| NDC | NDC (contribución determinada a nivel nacional) | المساهمة المحددة وطنيًا |
+| LEP, LTS | LEP, LTS | LEP، LTS |
 | MRV | MRV | القياس والإبلاغ والتحقق |
 | costs & benefits | costos y beneficios | التكاليف والمنافع |
-| emissions | emisiones | الانبعاثات |
-| AFOLU, IPPU | AFOLU, IPPU | AFOLU, IPPU (to confirm) |
+| emissions / net emissions | emisiones / emisiones netas | الانبعاثات / صافي الانبعاثات |
+| fugitive emissions | emisiones fugitivas | الانبعاثات المتسربة |
+| driver (of emissions) | factor | محرّك |
+| credits (Article 6) | créditos | أرصدة |
+| carbon price | precio del carbono | سعر الكربون |
+| target (NDC) | meta | هدف / مستهدف |
+| magnitude | magnitud | الحجم |
+| ramp (implementation curve) | rampa de implementación | منحنى التدرّج |
+| full effect | efecto completo | التأثير الكامل |
+| default | predeterminado | افتراضي |
+| advanced options | opciones avanzadas | خيارات متقدمة |
+| subsector | subsector | قطاع فرعي |
+| landfill | relleno sanitario | مدفن صحي |
+| (solid) waste | residuos (sólidos) | المخلفات (الصلبة) |
+| manure (management) | (manejo del) estiércol | (إدارة) السماد الحيواني |
+| greenhouse gases | gases de efecto invernadero | غازات الاحتباس الحراري |
+| land use | uso del suelo | استخدام الأراضي |
+| settlements (land category) | asentamientos | الأراضي العمرانية |
+| direct air capture | captura directa de aire | احتجاز الكربون مباشرة من الهواء |
+| septic tanks | fosas sépticas | خزانات التحليل |
+| final time period (of the model) | periodo final | آخر فترة زمنية في النموذج |
+| AFOLU, IPPU | AFOLU, IPPU | AFOLU، IPPU |
+
+Numbers use Western digits (0–9). Arabic uses its own punctuation (، ؛ ؟) and
+«» quotes; Spanish uses “” quotes and opening ¿ ¡.
