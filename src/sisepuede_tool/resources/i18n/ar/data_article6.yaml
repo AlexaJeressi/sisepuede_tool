@@ -8,7 +8,7 @@
     "carbon_capture_and_sequestration":
       "name": "احتجاز الكربون وعزله"
     "energy_technology":
-      "name": "تكنولوجيا الطاقة"
+      "name": "إنتاج الكهرباء والوقود"
     "fugitive_emissions":
       "name": "الانبعاثات المتسربة"
     "forest":
@@ -32,4 +32,4 @@
     "wastewater_treatment":
       "name": "معالجة مياه الصرف"
     "solid_waste":
-      "name": "النفايات الصلبة"
+      "name": "المخلفات الصلبة"
