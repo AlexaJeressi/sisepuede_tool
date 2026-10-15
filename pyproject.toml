@@ -28,3 +28,7 @@ sisepuede-tool = "sisepuede_tool.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.rsconnect]
+app_mode = "python-shiny"
+entrypoint = "src/sisepuede_tool/app.py"
