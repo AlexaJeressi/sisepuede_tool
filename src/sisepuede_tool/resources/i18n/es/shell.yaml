@@ -31,7 +31,7 @@ nav:
       one: "{n} transf."
       other: "{n} transf."
     not_run: "Aún sin ejecutar"
-    last_run: "Última ejecución {time} · {ok} correctas"
+    last_run: "Ejecución {time} · {ok} ✓"
   data_input:
     label: "Datos de línea base"
     description: "La línea base de emisiones de la que parte cada escenario."

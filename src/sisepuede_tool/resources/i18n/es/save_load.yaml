@@ -5,7 +5,7 @@ save_load:
   export_text: "Descargue las transformaciones y estrategias de la sesión actual como un proyecto .zip de sisepuede (config_general.yaml, transformation_*.yaml, strategy_definitions.csv), que la CLI o los notebooks de sisepuede pueden cargar sin cambios."
   download: "Descargar .zip"
   import_title: "Importar sesión"
-  import_text: "Suba un proyecto .zip exportado antes (o creado con la CLI). Reemplaza las transformaciones y estrategias de la sesión actual; expórtelas primero si desea conservarlas."
+  import_text: "Cargue un proyecto .zip exportado previamente (o creado con la CLI). Reemplaza las transformaciones y estrategias de la sesión actual; expórtelas primero si desea conservarlas."
   project_zip: "Proyecto .zip"
   import_button: "Importar"
   choose_zip: "Primero elija un archivo .zip de proyecto."
