@@ -31,6 +31,7 @@ from sisepuede_tool.models.baseline import BaselineDataset
 from sisepuede_tool.models.strategy_entry import StrategyEntry
 from sisepuede_tool.services import (
     catalog_service,
+    i18n,
     input_service,
     library_service,
     output_service,
@@ -42,9 +43,8 @@ from sisepuede_tool.services import (
 from sisepuede_tool.ui.components import charts
 from sisepuede_tool.ui.state import AppState
 
-_SECTORS = ["AFOLU", "Energy", "Circular Economy", "IPPU", "Socioeconomic"]
+_SECTORS = ["AFOLU", "Energy", "Circular Economy", "IPPU", "Socioeconomic"]  # field catalog values
 _PREVIEW_ROW_LIMIT = 60
-EXAMPLE_INPUT_LABEL = "Example input"
 _PREVIEW_YEARS = (2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050)
 
 _FIELD_CATALOGS = {}
@@ -85,20 +85,27 @@ def page_data_input_ui():
     return ui.div(
         ui.div(
             ui.div(
-                ui.div(ui.span("Add a baseline", class_="section-label"), class_="box-head"),
-                ui.input_file("csv_file", None, accept=[".csv"], multiple=False, button_label="Browse", placeholder="Drop a CSV or browse"),
+                ui.div(ui.span(i18n.t("data_input.add_title"), class_="section-label"), class_="box-head"),
+                ui.input_file(
+                    "csv_file",
+                    None,
+                    accept=[".csv"],
+                    multiple=False,
+                    button_label=i18n.t("data_input.browse"),
+                    placeholder=i18n.t("data_input.drop"),
+                ),
                 ui.div(
-                    ui.input_text("baseline_label", "Label", placeholder="e.g. Egypt BAU 2024"),
-                    ui.tags.small("Shown in the run and results pickers.", class_="muted d-block"),
+                    ui.input_text("baseline_label", i18n.t("data_input.label"), placeholder=i18n.t("data_input.label_placeholder")),
+                    ui.tags.small(i18n.t("data_input.label_help"), class_="muted d-block"),
                 ),
                 ui.output_ui("validation_panel"),
-                ui.input_action_button("add_baseline", "Add baseline", class_="btn-primary"),
+                ui.input_action_button("add_baseline", i18n.t("data_input.add_button"), class_="btn-primary"),
                 class_="box",
             ),
             ui.div(
                 ui.div(
-                    ui.span("Loaded baselines", class_="section-label"),
-                    ui.span("Click a row to preview", class_="small muted"),
+                    ui.span(i18n.t("data_input.loaded_title"), class_="section-label"),
+                    ui.span(i18n.t("data_input.click_row"), class_="small muted"),
                     class_="box-head",
                 ),
                 ui.output_ui("baselines_table"),
@@ -110,7 +117,7 @@ def page_data_input_ui():
             ui.output_ui("preview_head"),
             ui.div(
                 ui.output_ui("preview_chips"),
-                ui.div(ui.input_text("preview_search", None, placeholder="Search variables…"), style="width:280px"),
+                ui.div(ui.input_text("preview_search", None, placeholder=i18n.t("data_input.search_placeholder")), style="width:280px"),
                 class_="btn-row",
                 style="justify-content:space-between",
             ),
@@ -127,6 +134,13 @@ def page_data_input_server(input, output, session, state: AppState):
     pending = reactive.Value(None)  # {"result", "missing", "filename"} for the chosen file
     preview_id = reactive.Value(None)
     preview_sector = reactive.Value("All")
+    example_id = reactive.Value(None)  # the preloaded example baseline
+
+    def _t(key, **fmt):
+        return i18n.t(f"data_input.{key}", state.lang(), **fmt)
+
+    def _tn(key, n, **fmt):
+        return i18n.tn(f"data_input.{key}", n, state.lang(), **fmt)
 
     def _ev(kind, value=""):
         payload = json.dumps({"type": kind, "value": value})
@@ -146,7 +160,7 @@ def page_data_input_server(input, output, session, state: AppState):
         try:
             df = input_service.load_csv(info["datapath"])
         except Exception as e:
-            pending.set({"result": None, "error": f"Could not read the file: {e}", "filename": info["name"]})
+            pending.set({"result": None, "error": _t("read_error", error=e), "filename": info["name"]})
             return
         result = input_service.validate_baseline(df, model_attributes)
         missing = input_service.missing_input_fields(df, model_attributes) if result.ok else []
@@ -158,12 +172,12 @@ def page_data_input_server(input, output, session, state: AppState):
     def validation_panel():
         p = pending.get()
         if p is None:
-            return ui.div("Choose a baseline CSV. It is checked against the SISEPUEDE schema before you add it.", class_="info-box")
+            return ui.div(_t("choose_csv"), class_="info-box")
         result = p.get("result")
         if result is None:
             return ui.div(f"✕ {p.get('error')}", class_="warn-box")
         if not result.ok:
-            return ui.div(ui.tags.b("✕ Not a valid SISEPUEDE baseline. "), result.error, class_="warn-box")
+            return ui.div(ui.tags.b(f"✕ {_t('not_valid')} "), result.error, class_="warn-box")
 
         ma = state.model_attributes.get()
         years = ramp_service.model_years(ma)
@@ -176,20 +190,19 @@ def page_data_input_server(input, output, session, state: AppState):
             return ui.div(ui.span(mark, style=f"color:{color};font-weight:600;width:14px;display:inline-block"), text, class_="small")
 
         lines = [
-            line(not missing, f"Schema matches SISEPUEDE ({n_inputs - len(missing):,} of {n_inputs:,} input variables)", warn=True),
-            line(True, f"Region: {result.region}"),
-            line(True, f"{result.n_time_periods} years, {years[0]}–{years[result.n_time_periods - 1]}"),
-            line(not result.interpolated_periods, "No missing years" if not result.interpolated_periods
-                 else f"Interpolated missing years: {', '.join(str(years[t]) for t in result.interpolated_periods)}", warn=True),
+            line(not missing, _t("schema_matches", found=n_inputs - len(missing), total=n_inputs), warn=True),
+            line(True, _t("region", region=result.region)),
+            line(True, _tn("years", result.n_time_periods, start=years[0], end=years[result.n_time_periods - 1])),
+            line(not result.interpolated_periods, _t("no_missing_years") if not result.interpolated_periods
+                 else _t("interpolated", years=", ".join(str(years[t]) for t in result.interpolated_periods)), warn=True),
         ]
         detail = None
         if missing:
             detail = ui.div(
-                ui.tags.b(f"{len(missing)} input variable(s) missing. "),
-                "sisepuede accepts the file, but sector models that need them fail when run "
-                "(e.g. a baseline made for an older sisepuede version). ",
+                ui.tags.b(_tn("missing_inputs", len(missing)) + " "),
+                _t("missing_explain") + " ",
                 ui.tags.details(
-                    ui.tags.summary("Show missing fields", class_="small"),
+                    ui.tags.summary(_t("show_missing"), class_="small"),
                     ui.div(*[ui.div(f, class_="code") for f in missing[:200]]),
                 ),
                 class_="warn-box small",
@@ -198,8 +211,7 @@ def page_data_input_server(input, output, session, state: AppState):
         if existing_regions and result.region not in existing_regions:
             (session_region,) = existing_regions
             detail = ui.div(
-                f"✕ Region mismatch: this file is '{result.region}', but this session is locked to "
-                f"'{session_region}' (set by the first baseline).",
+                "✕ " + _t("region_mismatch", region=result.region, session_region=session_region),
                 class_="warn-box small",
             )
         return ui.div(
@@ -216,33 +228,30 @@ def page_data_input_server(input, output, session, state: AppState):
     def _on_add_baseline():
         p = pending.get()
         if p is None or p.get("result") is None:
-            ui.notification_show("Choose a CSV file first.", type="error")
+            ui.notification_show(_t("choose_first"), type="error")
             return
         result = p["result"]
         if not result.ok:
-            ui.notification_show(f"Validation failed: {result.error}", type="error", duration=None)
+            ui.notification_show(_t("validation_failed", error=result.error), type="error", duration=None)
             return
         label = (input.baseline_label() or "").strip()
         if not label:
-            ui.notification_show("Enter a label for this baseline.", type="error")
+            ui.notification_show(_t("enter_label"), type="error")
             return
         baselines = state.baselines.get()
         if any(b.label == label for b in baselines.values()):
-            ui.notification_show(f"A baseline labelled '{label}' is already loaded.", type="error")
+            ui.notification_show(_t("duplicate_label", label=label), type="error")
             return
         existing_regions = {b.region for b in baselines.values()}
         if existing_regions and result.region not in existing_regions:
             (session_region,) = existing_regions
-            msg = (
-                f"Region mismatch: this baseline is '{result.region}', but this "
-                f"session is locked to '{session_region}' (set by the first baseline loaded)."
-            )
+            msg = _t("region_mismatch", region=result.region, session_region=session_region)
             pending.set({**p, "result": dataclasses.replace(result, ok=False, error=msg)})
             ui.notification_show(msg, type="error", duration=None)
             return
 
         _add_baseline(result, label)
-        ui.notification_show(f"Added baseline '{label}' ({result.region}).", type="message")
+        ui.notification_show(_t("added", label=label, region=result.region), type="message")
         ui.update_text("baseline_label", value="")
         pending.set(None)
 
@@ -266,6 +275,7 @@ def page_data_input_server(input, output, session, state: AppState):
 
         if state.transformers_catalog.get() is None:
             _init_catalog(baseline)
+        return new_id
 
     # the shipped example input is loaded when the session starts, so the NDC/LEP
     # pathways are ready without an upload; it can be removed like any other baseline
@@ -278,7 +288,18 @@ def page_data_input_server(input, output, session, state: AppState):
                 input_service.load_csv(config.EXAMPLE_INPUT_PATH), state.model_attributes.get()
             )
             if result.ok:
-                _add_baseline(result, EXAMPLE_INPUT_LABEL)
+                example_id.set(_add_baseline(result, _t("example_label")))
+
+    # the example's label follows the language, unless the user gave it another one
+    @reactive.effect
+    def _relabel_example():
+        label = _t("example_label")
+        with reactive.isolate():
+            baselines = state.baselines.get()
+            b = baselines.get(example_id.get())
+            auto = {i18n.t("data_input.example_label", code) for code in i18n.LANGUAGES}
+            if b is not None and b.label in auto and b.label != label:
+                state.baselines.set({**baselines, b.id: dataclasses.replace(b, label=label)})
 
     def _init_catalog(baseline):
         transformers_catalog = catalog_service.build_transformers_catalog(baseline.df)
@@ -328,7 +349,7 @@ def page_data_input_server(input, output, session, state: AppState):
                 state.default_baseline_id.set(next(iter(baselines), None))
             if preview_id.get() == value:
                 preview_id.set(state.default_baseline_id.get())
-            ui.notification_show(f"Removed baseline '{removed.label}'. Its run results stay in the history.", type="message")
+            ui.notification_show(_t("removed", label=removed.label), type="message")
         elif kind == "sector":
             preview_sector.set(value)
 
@@ -336,7 +357,7 @@ def page_data_input_server(input, output, session, state: AppState):
     def baselines_table():
         baselines = state.baselines.get()
         if not baselines:
-            return ui.div("No baselines loaded yet. Add one on the left to get started.", class_="info-box")
+            return ui.div(_t("no_baselines"), class_="info-box")
         ma = state.model_attributes.get()
         years = ramp_service.model_years(ma)
         default_id = state.default_baseline_id.get()
@@ -344,9 +365,9 @@ def page_data_input_server(input, output, session, state: AppState):
         rows = []
         for b in baselines.values():
             default_cell = (
-                ui.span("DEFAULT", class_="pill pill-ok")
+                ui.span(_t("default"), class_="pill pill-ok")
                 if b.id == default_id
-                else ui.tags.button("Set default", class_="link-btn", onclick=_ev("default", b.id))
+                else ui.tags.button(_t("set_default"), class_="link-btn", onclick=_ev("default", b.id))
             )
             rows.append(
                 ui.tags.tr(
@@ -357,14 +378,15 @@ def page_data_input_server(input, output, session, state: AppState):
                     ui.tags.td(f"{b.loaded_at:%H:%M}", class_="mono"),
                     ui.tags.td(default_cell, onclick="event.stopPropagation()"),
                     ui.tags.td(
-                        ui.tags.button("×", class_="x-btn", title=f"Remove {b.label}", onclick=_ev("remove", b.id)),
+                        ui.tags.button("×", class_="x-btn", title=_t("remove", label=b.label), onclick=_ev("remove", b.id)),
                         onclick="event.stopPropagation()",
                     ),
                     onclick=_ev("preview", b.id),
                     style="cursor:pointer" + (";background:var(--accent-soft)" if b.id == current else ""),
                 )
             )
-        head = ui.tags.tr(*[ui.tags.th(t) for t in ("Label", "Region", "Years", "Interp.", "Loaded", "", "")])
+        cols = [_t(f"col_{c}") for c in ("label", "region", "years", "interp", "loaded")]
+        head = ui.tags.tr(*[ui.tags.th(c) for c in (*cols, "", "")])
         return ui.tags.table(ui.tags.thead(head), ui.tags.tbody(*rows), class_="history")
 
     # ---- preview
@@ -388,8 +410,8 @@ def page_data_input_server(input, output, session, state: AppState):
     def preview_head():
         b = _preview_baseline()
         if b is None:
-            return ui.div(ui.span("Preview", class_="section-label"))
-        return ui.div(ui.span(f"Preview · {b.label}", class_="section-label"), class_="box-head")
+            return ui.div(ui.span(_t("preview"), class_="section-label"))
+        return ui.div(ui.span(_t("preview_of", label=b.label), class_="section-label"), class_="box-head")
 
     @render.ui
     def preview_chips():
@@ -399,7 +421,7 @@ def page_data_input_server(input, output, session, state: AppState):
         active = preview_sector.get()
         chips = [
             ui.tags.button(
-                "All", ui.span(f"{len(cat):,}", class_="n"), class_="chip active" if active == "All" else "chip", onclick=_ev("sector", "All")
+                _t("all"), ui.span(f"{len(cat):,}", class_="n"), class_="chip active" if active == "All" else "chip", onclick=_ev("sector", "All")
             )
         ]
         for sector in _SECTORS:
@@ -407,7 +429,10 @@ def page_data_input_server(input, output, session, state: AppState):
             if n:
                 chips.append(
                     ui.tags.button(
-                        sector, ui.span(f"{n:,}", class_="n"), class_="chip active" if active == sector else "chip", onclick=_ev("sector", sector)
+                        i18n.t(f"sectors.{sector.lower().replace(' ', '_')}", state.lang()),
+                        ui.span(f"{n:,}", class_="n"),
+                        class_="chip active" if active == sector else "chip",
+                        onclick=_ev("sector", sector),
                     )
                 )
         return ui.div(*chips, class_="btn-row")
@@ -417,7 +442,7 @@ def page_data_input_server(input, output, session, state: AppState):
         b = _preview_baseline()
         cat = _preview_catalog()
         if b is None or cat is None:
-            return ui.div("Add a baseline to preview its variables.", class_="small muted")
+            return ui.div(_t("no_preview"), class_="small muted")
         sector = preview_sector.get()
         if sector != "All":
             cat = cat[cat["sector"] == sector]
@@ -439,19 +464,19 @@ def page_data_input_server(input, output, session, state: AppState):
                 ui.tags.tr(
                     ui.tags.td(ui.div(rec["label"], style="font-weight:500"), ui.div(rec["field"], class_="code")),
                     ui.tags.td(rec["units"] or "", class_="small muted"),
-                    *[ui.tags.td(_fmt(series[i]), class_="mono", style="text-align:right") for i in idx],
+                    *[ui.tags.td(_fmt(series[i]), class_="mono", style="text-align:end") for i in idx],
                     ui.tags.td(charts.mini_ramp(np.nan_to_num(norm, nan=0.5), width=70, height=18)),
                 )
             )
         head = ui.tags.tr(
-            ui.tags.th("Variable"),
-            ui.tags.th("Unit"),
-            *[ui.tags.th(str(years[i]), style="text-align:right") for i in idx],
-            ui.tags.th("Trend"),
+            ui.tags.th(_t("col_variable")),
+            ui.tags.th(_t("col_unit")),
+            *[ui.tags.th(str(years[i]), style="text-align:end") for i in idx],
+            ui.tags.th(_t("col_trend")),
         )
         note = (
-            ui.div(f"Showing {len(cat)} of {n_match:,} matching variables. Search to narrow down.", class_="small muted mt-2")
+            ui.div(_t("showing", shown=len(cat), total=n_match), class_="small muted mt-2")
             if n_match > len(cat)
-            else ui.div(f"{n_match:,} variable field{'s' if n_match != 1 else ''}.", class_="small muted mt-2")
+            else ui.div(_tn("n_fields", n_match), class_="small muted mt-2")
         )
         return ui.div(ui.tags.table(ui.tags.thead(head), ui.tags.tbody(*rows), class_="history"), note, class_="table-wrap")

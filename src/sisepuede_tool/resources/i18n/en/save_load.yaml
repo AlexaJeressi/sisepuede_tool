@@ -1,0 +1,15 @@
+# Project files page (en; hidden in the NDC version).
+
+save_load:
+  export_title: "Export session"
+  export_text: "Download the current session's Transformations and Strategies as a sisepuede project .zip (config_general.yaml, transformation_*.yaml, strategy_definitions.csv) -- loadable unmodified by the sisepuede CLI or notebooks."
+  download: "Download .zip"
+  import_title: "Import session"
+  import_text: "Upload a previously exported (or CLI-authored) project .zip. This replaces the current session's Transformations and Strategies -- export first if you want to keep them."
+  project_zip: "Project .zip"
+  import_button: "Import"
+  choose_zip: "Choose a project .zip file first."
+  add_baseline_first: "Add a baseline on the Baseline Data page first."
+  import_failed: "Import failed: {error}"
+  imported: "Imported. Transformations: {transformations}. Strategies: {strategies}."
+  session_imported: "Session imported."

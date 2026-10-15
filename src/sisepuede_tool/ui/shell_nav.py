@@ -2,7 +2,8 @@
 
 One place both the sidebar renderer and the topbar renderer read from --
 adding, renaming, or reordering pages is a change here, not a change to the
-rendering logic itself.
+rendering logic itself. Labels, descriptions and breadcrumbs are UI text in
+resources/i18n/<lang>.yaml under nav.<id>.* (group names under nav.groups.*).
 """
 
 import dataclasses
@@ -12,11 +13,8 @@ from typing import List, Optional
 @dataclasses.dataclass(frozen=True)
 class NavItem:
     id: str  # matches the module id used in app_shell's ui.nav_panel(..., value=id)
-    label: str
-    group: str
+    group: str  # nav.groups.<group> in the i18n catalogs; also the topbar breadcrumb unless nav.<id>.crumb exists
     icon_svg: str
-    description: str
-    crumb: str = ""  # topbar breadcrumb; defaults to the group name
     step: Optional[int] = None  # workflow step number shown as a badge in the sidebar
     flush: bool = False  # page manages its own padding/scrolling (e.g. the 3-column Pathways page)
     hidden: bool = False  # page still exists (and can be reached with mrvGoTo) but isn't in the sidebar
@@ -46,82 +44,59 @@ _ICON_PATHWAYS = _ICON_STRATEGIES
 NAV_ITEMS: List[NavItem] = [
     NavItem(
         id="data_input",
-        label="Baseline data",
-        group="Workflow",
+        group="workflow",
         icon_svg=_svg(_ICON_BASELINE),
-        description="The emissions baseline every scenario builds from.",
-        crumb="Setup / 1",
         step=1,
     ),
     NavItem(
         id="pathways",
-        label="Pathways",
-        group="Workflow",
+        group="workflow",
         icon_svg=_svg(_ICON_PATHWAYS),
-        description="Open a transformer, reuse or create transformations, and add them to a pathway.",
-        crumb="Build / 2",
         step=2,
         flush=True,
     ),
     NavItem(
         id="run",
-        label="Run",
-        group="Workflow",
+        group="workflow",
         icon_svg=_svg(_ICON_RUN),
-        description="Pick baselines and pathways, then run.",
-        crumb="Execute / 3",
         step=3,
     ),
     NavItem(
         id="output_explorer",
-        label="Emissions & drivers",
-        group="Results",
+        group="results",
         icon_svg=_svg(_ICON_EXPLORER),
-        description="Where emissions come from, how pathways change them, and what drives them.",
     ),
     NavItem(
         id="cost_benefits",
-        label="Costs & benefits",
-        group="Results",
+        group="results",
         icon_svg=_svg(_ICON_COST_BENEFITS),
-        description="Relative to business as usual.",
     ),
     NavItem(
         id="macroeconomic_impacts",
-        label="Macroeconomic impacts",
-        group="Results",
+        group="results",
         icon_svg=_svg(_ICON_MACRO_IMPACTS),
-        description="GDP and jobs relative to business as usual.",
         hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
     NavItem(
         id="article_6",
-        label="Article 6",
-        group="Results",
+        group="results",
         icon_svg=_svg(_ICON_ARTICLE_6),
-        description="Mitigation beyond the NDC target that could be transferred.",
     ),
     NavItem(
         id="validation",
-        label="Monitoring",
-        group="MRV",
+        group="mrv",
         icon_svg=_svg(_ICON_MONITORING),
-        description="Compare model output with observed inventory data.",
         hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
     NavItem(
         id="projects",
-        label="Projects",
-        group="Portfolio · optional",
+        group="portfolio",
         icon_svg=_svg(_ICON_PROJECTS),
-        description="Consult announced projects and link each one to a transformation.",
     ),
     NavItem(
         id="persistence",
-        label="Project files",
-        group="System",
+        group="system",
         icon_svg=_svg(_ICON_PERSISTENCE),
-        description="Export the project as sisepuede files, or import one.",
         hidden=True,  # hidden for the NDC version (2026-10-05)
     ),
 ]

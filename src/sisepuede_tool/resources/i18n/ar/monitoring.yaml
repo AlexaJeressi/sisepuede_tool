@@ -1,0 +1,26 @@
+# Monitoring page (ar; hidden in the NDC version). Draft.
+
+monitoring:
+  upload_title: "تحميل بيانات الرصد"
+  dataset_csv: "ملف CSV لبيانات الرصد"
+  crosswalk_csv: "ملف CSV للمطابقة"
+  validate_load: "التحقق والتحميل"
+  compare_title: "المقارنة"
+  comparison: "المقارنة"
+  runs_to_compare: "عمليات التشغيل المراد مقارنتها"
+  chart_title: "القيم المرصودة مقابل المُنمذجة"
+  choose_both: "اختر ملف CSV لبيانات الرصد وملف CSV للمطابقة."
+  crosswalk_errors: "أخطاء في ملف المطابقة:"
+  loaded:
+    zero: "تم التحميل. لا توجد مقارنات متاحة."
+    one: "تم التحميل. تتوفر مقارنة واحدة."
+    two: "تم التحميل. تتوفر مقارنتان."
+    few: "تم التحميل. تتوفر {n} مقارنات."
+    other: "تم التحميل. عدد المقارنات المتاحة: {n}."
+  data_loaded: "تم تحميل بيانات الرصد."
+  no_data: "لم تُحمَّل بيانات رصد بعد."
+  chart_empty: "حمّل بيانات التحقق، واختر مقارنة، وحدّد عمليات التشغيل المراد مقارنتها."
+  axis_year: "الفترة الزمنية"
+  axis_value: "القيمة"
+  metrics: "{label}: RMSE={rmse:.4g}، MAE={mae:.4g}، الانحياز={bias:.4g}"
+  no_overlap: "لا توجد فترات زمنية مشتركة للتقييم."

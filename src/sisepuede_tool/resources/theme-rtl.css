@@ -1,0 +1,105 @@
+/* Right-to-left additions, loaded after theme.css only for RTL languages
+   (Arabic; app_shell._head). theme.css uses logical properties
+   (margin-inline-start, text-align: start, ...), so the layout mirrors by
+   itself under <html dir="rtl">; this file covers what doesn't:
+   Bootstrap 5 as bundled with Shiny is LTR-only, glyphs that point a way,
+   shadows, and Arabic typography. */
+
+/* ---------- Typography ---------- */
+
+html[dir="rtl"] body {
+  font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+}
+/* letter-spacing breaks the joins between Arabic letters */
+html[dir="rtl"] body * { letter-spacing: 0 !important; }
+
+/* Labels that theme.css sets in Plex Mono as a style (not for numbers): with
+   Arabic text the letters fall back to Plex Sans Arabic but the spaces stay
+   monospace-wide, so these use the Arabic face directly. */
+html[dir="rtl"] .section-label,
+html[dir="rtl"] .brand-eyebrow,
+html[dir="rtl"] .nav-group-label,
+html[dir="rtl"] .nav-item .nav-meta,
+html[dir="rtl"] .sidebar-foot .foot-note,
+html[dir="rtl"] .topbar-crumb,
+html[dir="rtl"] .adv-tag,
+html[dir="rtl"] .pill,
+html[dir="rtl"] .tf-head .crumb,
+html[dir="rtl"] .kind-tag,
+html[dir="rtl"] .matrix th,
+html[dir="rtl"] .history th,
+html[dir="rtl"] .chip-sector,
+html[dir="rtl"] .kpi-vals .k,
+html[dir="rtl"] .modal-body .shiny-input-container > label,
+html[dir="rtl"] .modal-body .control-label {
+  font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", sans-serif;
+}
+
+/* Numbers, years, units and codes keep their own left-to-right order
+   ("2015–2050", "CO₂e", "EGY") inside Arabic text. */
+html[dir="rtl"] .mono,
+html[dir="rtl"] .num,
+html[dir="rtl"] .code,
+html[dir="rtl"] .chip .n {
+  unicode-bidi: isolate;
+}
+html[dir="rtl"] td.mono,
+html[dir="rtl"] th.mono,
+html[dir="rtl"] .code {
+  direction: ltr;
+}
+html[dir="rtl"] td.mono:not([style*="text-align"]) { text-align: right; }
+html[dir="rtl"] .code { text-align: right; }
+
+/* ---------- Glyphs and shadows that point a way ---------- */
+
+html[dir="rtl"] .chip-filter > summary::before { content: "◂"; }
+html[dir="rtl"] .chip-filter[open] > summary::before { content: "▾"; }
+html[dir="rtl"] .sidebar:hover,
+html[dir="rtl"] .sidebar:focus-within { box-shadow: -6px 0 24px rgba(0, 0, 0, 0.22); }
+
+/* ---------- Bootstrap 5 (LTR build) ---------- */
+
+html[dir="rtl"] .form-check { padding-left: 0; padding-right: 1.5em; }
+html[dir="rtl"] .form-check .form-check-input { float: right; margin-left: 0; margin-right: -1.5em; }
+html[dir="rtl"] .form-switch { padding-left: 0; padding-right: 2.5em; }
+html[dir="rtl"] .form-switch .form-check-input { margin-left: 0; margin-right: -2.5em; background-position: right center; }
+html[dir="rtl"] .form-switch .form-check-input:checked { background-position: left center; }
+html[dir="rtl"] .modal-body .form-check { padding-right: 1.7em; }
+
+html[dir="rtl"] .form-select { background-position: left 0.75rem center; }
+html[dir="rtl"] .app-shell .form-select { padding: 0 12px 0 2.25rem; }
+
+/* input-group: the first item now sits on the right */
+html[dir="rtl"] .input-group > * { margin-left: 0; }
+html[dir="rtl"] .input-group > :not(:first-child) { margin-right: -1px; }
+html[dir="rtl"] .input-group > :first-child,
+html[dir="rtl"] .input-group > :first-child .btn {
+  border-radius: 0 6px 6px 0;
+}
+html[dir="rtl"] .input-group > :last-child,
+html[dir="rtl"] .input-group > :last-child .btn {
+  border-radius: 6px 0 0 6px;
+}
+
+html[dir="rtl"] .modal-header .btn-close { margin: -0.5rem auto -0.5rem -0.5rem; }
+
+/* Shiny notifications: bottom-left, away from the sidebar */
+html[dir="rtl"] #shiny-notification-panel { right: auto; left: 0; }
+html[dir="rtl"] .shiny-notification-close { right: auto; left: 4px; }
+
+/* Year columns run right-to-left, so a table's trend sparkline does too */
+html[dir="rtl"] table.history svg.mini-ramp { transform: scaleX(-1); }
+
+/* ---------- Charts ---------- */
+
+/* Plotly and the hand-drawn SVG charts anchor text assuming left-to-right; under
+   rtl their labels flip sides and get clipped. Charts keep time running left to
+   right; result_charts.bidi() isolates the Arabic titles and names inside them. */
+html[dir="rtl"] .js-plotly-plot,
+html[dir="rtl"] .plot-container { direction: ltr; }
+html[dir="rtl"] svg text { direction: ltr; }
+
+/* KPI values: "590 Mt" keeps its order, Arabic words ("مرجعي") theirs */
+html[dir="rtl"] .kpi-vals .v { unicode-bidi: plaintext; text-align: right; }

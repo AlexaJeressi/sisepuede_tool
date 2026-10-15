@@ -1,0 +1,165 @@
+# Parameter labels and help from resources/param_schemas.yaml (ar). Draft: needs review by an Egyptian reviewer.
+# data.params.<transformer code>.<parameter>.{label,help}; English is param_schemas.yaml.
+
+data:
+  params:
+    "TFR:AGRC:TARGET_RESIDUE_MANAGEMENT":
+      dict_categories_to_magnitude:
+        label: "حصة الأراضي الزراعية دون حرث بحلول السنة الأخيرة"
+        help: "الحد الأدنى لحصة أرض كل محصول دون حرث (الزراعة الحافظة). هذه المحاصيل الستة فقط لها متغير للزراعة دون حرث؛ والمحاصيل المتروكة فارغة تحتفظ بحصتها الحالية."
+      include_conservation_agriculture:
+        label: "تطبيق الزراعة الحافظة"
+        help: "أبقِ هذا الخيار مفعّلًا؛ فعند إيقافه يتعطل إصدار sisepuede المثبت."
+      magnitude_burned:
+        label: "المخلفات المحروقة"
+        help: "لا تأثير له في إصدار sisepuede المثبت (الشفرة التي تستخدمه معطّلة)."
+      magnitude_removed:
+        label: "المخلفات المُزالة"
+        help: "لا تأثير له في إصدار sisepuede المثبت (الشفرة التي تستخدمه معطّلة)."
+    "TFR:LNDU:BOUND_CLASSES":
+      dict_directional_categories_to_magnitude:
+        label: "حدود المساحة حسب فئة استخدام الأرض"
+        help: "الحد الأدنى و/أو الأقصى للمساحة (بالهكتار) لكل فئة من فئات استخدام الأراضي في السنة الأخيرة. اترك الخانة فارغة لعدم وضع حد. وإذا لم تُحدَّد أي حدود فلن يكون للتحوّل أي أثر."
+      delim_key:
+        label: "فاصل المفاتيح"
+        help: "يحدده التطبيق."
+    "TFR:LNDU:DEC_CLASS_LOSS":
+      cat_lndu:
+        label: "فئة استخدام الأرض المراد حمايتها"
+    "TFR:LNDU:INC_REFORESTATION":
+      cats_inflow_restriction:
+        label: "الأراضي التي لا يجوز أن تأتي منها الغابات الجديدة"
+    "TFR:LSMM:INC_MANAGEMENT_CATTLE_PIGS":
+      dict_lsmm_pathways:
+        label: "نظم إدارة الروث بحلول السنة الأخيرة"
+        help: "حصة روث الحيوانات المختارة التي يعالجها كل نظام في السنة الأخيرة. النظم المتروكة فارغة تنخفض حصتها بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+      vec_cats_lvst:
+        label: "الحيوانات"
+    "TFR:LSMM:INC_MANAGEMENT_OTHER":
+      dict_lsmm_pathways:
+        label: "نظم إدارة الروث بحلول السنة الأخيرة"
+        help: "حصة روث الحيوانات المختارة التي يعالجها كل نظام في السنة الأخيرة. النظم المتروكة فارغة تنخفض حصتها بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+      vec_cats_lvst:
+        label: "الحيوانات"
+    "TFR:LSMM:INC_MANAGEMENT_POULTRY":
+      dict_lsmm_pathways:
+        label: "نظم إدارة الروث بحلول السنة الأخيرة"
+        help: "حصة روث الحيوانات المختارة التي يعالجها كل نظام في السنة الأخيرة. النظم المتروكة فارغة تنخفض حصتها بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+      vec_cats_lvst:
+        label: "الحيوانات"
+    "TFR:LVST:DEC_ENTERIC_FERMENTATION":
+      dict_lvst_reductions:
+        label: "خفض الميثان المعوي لكل حيوان"
+        help: "خفض معامل انبعاث الميثان لكل نوع من الحيوانات بحلول السنة الأخيرة. الحيوانات المتروكة فارغة لا تتغير."
+    "TFR:LVST:SHIFT_DIETARY_BOUNDS":
+      dict_lvst_shifts:
+        label: "تغييرات النظام الغذائي للماشية"
+        help: "غير مُنفَّذ في إصدار sisepuede المثبت؛ هذا المُحوِّل يترك خط الأساس دون تغيير."
+    "TFR:WALI:INC_TREATMENT_INDUSTRIAL":
+      dict_magnitude:
+        label: "مسارات المعالجة بحلول السنة الأخيرة"
+        help: "حصة هذا التدفق من مياه الصرف التي يعالجها كل مسار في السنة الأخيرة. المسارات المتروكة فارغة تنخفض بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+    "TFR:WALI:INC_TREATMENT_RURAL":
+      dict_magnitude:
+        label: "مسارات المعالجة بحلول السنة الأخيرة"
+        help: "حصة هذا التدفق من مياه الصرف التي يعالجها كل مسار في السنة الأخيرة. المسارات المتروكة فارغة تنخفض بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+    "TFR:WALI:INC_TREATMENT_URBAN":
+      dict_magnitude:
+        label: "مسارات المعالجة بحلول السنة الأخيرة"
+        help: "حصة هذا التدفق من مياه الصرف التي يعالجها كل مسار في السنة الأخيرة. المسارات المتروكة فارغة تنخفض بالتناسب. لا يجوز أن يتجاوز المجموع 100%؛ وإلا تجاهل sisepuede التحوّل بالكامل."
+    "TFR:ENTC:INCREASE_EFFICIENCY_FUEL_PROD":
+      dict_magnitudes:
+        label: "كفاءة إنتاج الوقود"
+        help: "لكل وقود منتَج، الناتج المستهدف لكل وحدة من وقود الإدخال (مثل الهيدروجين لكل وحدة كهرباء). لا تتغير إلا أول تقنية تنتج هذا الوقود. وإذا لم توجد صفوف فلن يكون للتحوّل أي أثر."
+      kwargs:
+        label: "خيارات إضافية"
+        help: "لا يستخدمها التطبيق."
+    "TFR:ENTC:TARGET_RENEWABLE_ELEC":
+      dict_entc_renewable_target_msp:
+        label: "الحد الأدنى لحصة الكهرباء حسب التقنية"
+        help: "حد أدنى اختياري لحصة كل مصدر متجدد من التوليد في السنة الأخيرة. إذا تجاوز المجموع هدف الطاقة المتجددة الإجمالي، يخفّضها sisepuede لتتوافق معه."
+      categories_entc_renewable:
+        label: "التقنيات المحسوبة ضمن الطاقة المتجددة"
+        help: "اتركها فارغة لاستخدام قائمة sisepuede (الحرارة الجوفية، والطاقة الكهرومائية، وطاقة المحيطات، والطاقة الشمسية، وطاقة الرياح). إذا حددت قائمة، فلن تُعد متجددة إلا التقنيات التي لها أيضًا حصة دنيا أعلاه."
+      categories_entc_max_investment_ramp:
+        label: "تقنيات بنمو استثماري محدود"
+    "TFR:ENTC:TARGET_CLEAN_HYDROGEN":
+      categories_source:
+        label: "إنتاج الهيدروجين المراد استبداله"
+      categories_target:
+        label: "إنتاج الهيدروجين النظيف"
+    "TFR:INEN:INC_EFFICIENCY_PRODUCTION":
+      categories:
+        label: "الصناعات"
+        help: "اتركها فارغة لتشمل جميع الصناعات."
+    "TFR:INEN:SHIFT_FUEL_HEAT":
+      frac_high_given_high:
+        label: "حصة الطلب على الحرارة عالية الحرارة"
+        help: "حسب الصناعة. هذه الصناعات الست فقط يشملها أيضًا تحويل الحرارة المنخفضة؛ وترك إحداها فارغة يستبعدها من التحويلين."
+    "TFR:SCOE:INC_EFFICIENCY_HEAT":
+      dict_cats_to_magnitude:
+        label: "تحسن كفاءة التدفئة حسب الوقود"
+        help: "الزيادة في كفاءة الحرارة من كل وقود بحلول السنة الأخيرة. أنواع الوقود المتروكة فارغة لا تتغير."
+    "TFR:SCOE:SHIFT_FUEL_HEAT":
+      cat_enfu_target:
+        label: "الوقود المراد التحول إليه"
+      cats_enfu_source:
+        label: "أنواع الوقود المراد التحول عنها"
+        help: "اتركها فارغة لتشمل الجميع. لا تُدرج الوقود الذي تتحول إليه."
+      cats_scoe_apply:
+        label: "أنواع المباني"
+        help: "اتركها فارغة لتشمل الجميع."
+    "TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY":
+      dict_fuel_allocation:
+        label: "مزيج الوقود الجديد للحصة المحوَّلة"
+        help: "كيفية توزيع استهلاك الوقود المحوَّل على أنواع الوقود الجديدة. يجب أن يكون المجموع 100% تمامًا؛ وإلا استخدم sisepuede توزيعه الافتراضي دون تنبيه."
+      categories:
+        label: "أنواع المركبات"
+    "TFR:TRNS:SHIFT_FUEL_RAIL":
+      dict_fuel_allocation:
+        label: "مزيج الوقود الجديد للحصة المحوَّلة"
+        help: "كيفية توزيع استهلاك الوقود المحوَّل على أنواع الوقود الجديدة. يجب أن يكون المجموع 100% تمامًا؛ وإلا استخدم sisepuede توزيعه الافتراضي دون تنبيه."
+      categories:
+        label: "أنواع المركبات"
+    "TFR:TRNS:SHIFT_FUEL_MARITIME":
+      dict_allocation_fuels_target:
+        label: "مزيج الوقود الجديد للحصة المحوَّلة"
+        help: "كيفية توزيع استهلاك الوقود المحوَّل على أنواع الوقود الجديدة. يجب أن يكون المجموع 100% تمامًا؛ وإلا استخدم sisepuede قيمته الافتراضية دون تنبيه. ثم ينتقل استهلاك الوقود غير المحوَّل إلى الكهرباء."
+      fuels_source:
+        label: "أنواع الوقود المراد التحول عنها"
+      categories:
+        label: "أنواع المركبات"
+    "TFR:TRNS:SHIFT_FUEL_MEDIUM_DUTY":
+      dict_allocation_fuels_target:
+        label: "مزيج الوقود الجديد للحصة المحوَّلة"
+        help: "كيفية توزيع استهلاك الوقود المحوَّل على أنواع الوقود الجديدة. يجب أن يكون المجموع 100% تمامًا؛ وإلا استخدم sisepuede قيمته الافتراضية دون تنبيه. ثم ينتقل استهلاك الوقود غير المحوَّل إلى الهيدروجين."
+      fuels_source:
+        label: "أنواع الوقود المراد التحول عنها"
+      categories:
+        label: "أنواع المركبات"
+    "TFR:TRNS:SHIFT_MODE_FREIGHT":
+      dict_categories_target:
+        label: "وجهة البضائع"
+        help: "الافتراضي: كلها إلى السكك الحديدية للبضائع الثقيلة. ملاحظة: يتجاهل sisepuede حاليًا هذا الإعداد (خلل معروف في sisepuede)، لذا لا يمكن تغييره هنا."
+      categories_out:
+        label: "الأنماط المراد التحول عنها"
+    "TFR:TRNS:SHIFT_MODE_PASSENGER":
+      dict_categories_target:
+        label: "وجهة الركاب"
+        help: "الافتراضي: 1/6 تنقل نشط، و2/6 دراجات كهربائية، و1/2 نقل عام بري. ملاحظة: يتجاهل sisepuede حاليًا هذا الإعداد (خلل معروف في sisepuede)، لذا لا يمكن تغييره هنا."
+      categories_out:
+        label: "الأنماط المراد التحول عنها"
+    "TFR:TRNS:SHIFT_MODE_REGIONAL":
+      dict_categories_out:
+        label: "حصة السفر المحوَّلة من كل نمط"
+        help: "نسبة السفر الإقليمي للركاب في كل نمط التي تتحول إلى أنماط أخرى بحلول السنة الأخيرة. المجموع 100% كحد أقصى."
+      dict_categories_target:
+        label: "وجهة السفر"
+        help: "الافتراضي: كله إلى النقل البري الإقليمي. ملاحظة: يتجاهل sisepuede حاليًا هذا الإعداد (خلل معروف في sisepuede)، لذا لا يمكن تغييره هنا."
+    "TFR:PFLO:INC_IND_CCS":
+      dict_magnitude_prev:
+        label: "حصة المصانع المزودة باحتجاز الكربون"
+        help: "الحد الأدنى لحصة إنتاج كل صناعة المزودة باحتجاز الكربون بحلول السنة الأخيرة. الصناعات المتروكة فارغة لا تتغير."
+      dict_magnitude_eff:
+        label: "حصة CO₂ المحتجزة حيثما رُكّب الاحتجاز"
+        help: "الحد الأدنى لكفاءة الاحتجاز حسب الصناعة. الصناعات المتروكة فارغة تحتفظ بكفاءتها الحالية."

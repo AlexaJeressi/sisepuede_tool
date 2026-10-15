@@ -1,0 +1,6 @@
+# Small inline charts (ui/components/charts.py). Draft: review before release.
+
+charts:
+  implementation: "Implementación"
+  over_time: "{label} a lo largo del tiempo"
+  today: "hoy"

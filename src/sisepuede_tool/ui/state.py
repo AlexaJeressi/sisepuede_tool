@@ -7,7 +7,11 @@ here so the shape is stable, but stay unused/empty until that page lands.
 """
 
 import dataclasses
+from collections.abc import Callable
+
 from shiny import reactive
+
+from sisepuede_tool.services import i18n
 
 
 @dataclasses.dataclass
@@ -65,8 +69,11 @@ class AppState:
     project_links: reactive.Value  # Dict[str, str | None] project name -> transformation code
     custom_projects: reactive.Value  # List[dict] -- projects added in the app (projects_service.make_custom_project)
 
+    # --- UI language (services/i18n.py): fixed per page load (?lang=), read reactively from the URL
+    lang: Callable[[], str] = lambda: i18n.DEFAULT_LANG
 
-def new_app_state() -> AppState:
+
+def new_app_state(lang: Callable[[], str] | None = None) -> AppState:
     return AppState(
         model_attributes=reactive.Value(None),
         transformer_metadata=reactive.Value({"transformers": {}}),
@@ -95,4 +102,5 @@ def new_app_state() -> AppState:
         selected_projects=reactive.Value({}),
         project_links=reactive.Value({}),
         custom_projects=reactive.Value([]),
+        **({"lang": lang} if lang else {}),
     )

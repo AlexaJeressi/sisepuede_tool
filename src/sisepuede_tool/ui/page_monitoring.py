@@ -8,7 +8,7 @@ import plotly.express as px
 from shiny import module, reactive, render, ui
 from shinywidgets import output_widget, render_plotly
 
-from sisepuede_tool.services import output_service, validation_service
+from sisepuede_tool.services import i18n, output_service, validation_service
 from sisepuede_tool.ui.state import AppState
 
 
@@ -17,22 +17,22 @@ def page_monitoring_ui():
     return ui.TagList(
         ui.layout_columns(
             ui.card(
-                ui.card_header("Upload monitoring data"),
-                ui.input_file("validation_file", "Monitoring dataset CSV", accept=[".csv"]),
-                ui.input_file("crosswalk_file", "Crosswalk CSV", accept=[".csv"]),
-                ui.input_action_button("load_btn", "Validate & Load", class_="btn-primary"),
+                ui.card_header(i18n.t("monitoring.upload_title")),
+                ui.input_file("validation_file", i18n.t("monitoring.dataset_csv"), accept=[".csv"]),
+                ui.input_file("crosswalk_file", i18n.t("monitoring.crosswalk_csv"), accept=[".csv"]),
+                ui.input_action_button("load_btn", i18n.t("monitoring.validate_load"), class_="btn-primary"),
                 ui.output_ui("load_status_ui"),
             ),
             ui.card(
-                ui.card_header("Compare"),
-                ui.input_select("comparison_id", "Comparison", choices={}),
-                ui.input_checkbox_group("combinations", "Runs to compare", choices={}),
+                ui.card_header(i18n.t("monitoring.compare_title")),
+                ui.input_select("comparison_id", i18n.t("monitoring.comparison"), choices={}),
+                ui.input_checkbox_group("combinations", i18n.t("monitoring.runs_to_compare"), choices={}),
                 ui.output_ui("metrics_ui"),
             ),
             col_widths=[6, 6],
         ),
         ui.card(
-            ui.card_header("Observed vs. Modeled"),
+            ui.card_header(i18n.t("monitoring.chart_title")),
             output_widget("chart"),
         ),
     )
@@ -41,6 +41,9 @@ def page_monitoring_ui():
 @module.server
 def page_monitoring_server(input, output, session, state: AppState):
     last_load_result = reactive.Value(None)  # (ok, message) | None
+
+    def _t(key, **fmt):
+        return i18n.t(f"monitoring.{key}", state.lang(), **fmt)
 
     @reactive.calc
     def output_catalog():
@@ -54,7 +57,7 @@ def page_monitoring_server(input, output, session, state: AppState):
         validation_file = input.validation_file()
         crosswalk_file = input.crosswalk_file()
         if not validation_file or not crosswalk_file:
-            last_load_result.set((False, "Choose both a monitoring dataset CSV and a crosswalk CSV."))
+            last_load_result.set((False, _t("choose_both")))
             return
 
         validation_df = validation_service.load_validation_dataset(validation_file[0]["datapath"])
@@ -62,19 +65,19 @@ def page_monitoring_server(input, output, session, state: AppState):
         result = validation_service.validate_crosswalk(crosswalk_df, validation_df, output_catalog())
 
         if not result.ok:
-            last_load_result.set((False, "Crosswalk errors:\n" + "\n".join(result.errors)))
+            last_load_result.set((False, _t("crosswalk_errors") + "\n" + "\n".join(result.errors)))
             return
 
         state.validation_dataset.set(validation_df)
         state.validation_crosswalk.set(crosswalk_df)
-        last_load_result.set((True, f"Loaded. {len(result.comparison_ids)} comparison(s) available."))
-        ui.notification_show("Monitoring data loaded.", type="message")
+        last_load_result.set((True, i18n.tn("monitoring.loaded", len(result.comparison_ids), state.lang())))
+        ui.notification_show(_t("data_loaded"), type="message")
 
     @render.ui
     def load_status_ui():
         result = last_load_result.get()
         if result is None:
-            return ui.p("No monitoring data loaded yet.", class_="text-muted")
+            return ui.p(_t("no_data"), class_="text-muted")
         ok, message = result
         return ui.div(ui.tags.pre(message), class_="text-success" if ok else "text-danger")
 
@@ -129,7 +132,7 @@ def page_monitoring_server(input, output, session, state: AppState):
     def chart():
         frames = _comparison_frames()
         if not frames:
-            return px.line(title="Load validation data, pick a comparison, and select run(s) to compare.")
+            return px.line(title=_t("chart_empty"))
 
         strategies_map = state.strategies_map.get()
         baselines = state.baselines.get()
@@ -142,7 +145,14 @@ def page_monitoring_server(input, output, session, state: AppState):
             combined.append(frame)
         df = pd.concat(combined, ignore_index=True)
 
-        fig = px.line(df, x="time_period", y="value", color="series_label", markers=True)
+        fig = px.line(
+            df,
+            x="time_period",
+            y="value",
+            color="series_label",
+            markers=True,
+            labels={"time_period": _t("axis_year"), "value": _t("axis_value")},
+        )
         fig.update_layout(legend_title_text=None)
         return fig
 
@@ -162,8 +172,13 @@ def page_monitoring_server(input, output, session, state: AppState):
             baseline_label = baselines[baseline_id].label if baseline_id in baselines else baseline_id
             rows.append(
                 ui.tags.li(
-                    f"{strategy_label} x {baseline_label}: "
-                    f"RMSE={metrics['rmse']:.4g}, MAE={metrics['mae']:.4g}, bias={metrics['bias']:.4g}"
+                    _t(
+                        "metrics",
+                        label=f"{strategy_label} x {baseline_label}",
+                        rmse=metrics["rmse"],
+                        mae=metrics["mae"],
+                        bias=metrics["bias"],
+                    )
                 )
             )
-        return ui.tags.ul(*rows) if rows else ui.p("No overlapping time periods to score.", class_="text-muted")
+        return ui.tags.ul(*rows) if rows else ui.p(_t("no_overlap"), class_="text-muted")

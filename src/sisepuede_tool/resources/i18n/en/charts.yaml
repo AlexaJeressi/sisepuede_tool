@@ -1,0 +1,6 @@
+# Small inline charts (ui/components/charts.py).
+
+charts:
+  implementation: "Implementation"
+  over_time: "{label} over time"
+  today: "today"

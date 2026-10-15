@@ -10,7 +10,10 @@ stale spec list read against a freshly-rendered form (or vice versa) would
 reference ids that no longer exist.
 
 Labels are plain language; the sisepuede parameter name only appears in an
-ⓘ tooltip (shown with Advanced options on).
+ⓘ tooltip (shown with Advanced options on). UI text is in
+resources/i18n/<lang>/param_widget.yaml; the render/read functions take the
+session language (`lang`), labels and help from param_schemas.yaml are
+translated by the caller (page_pathways) before they get here.
 """
 
 import dataclasses
@@ -22,17 +25,34 @@ from shiny import ui
 from shiny.module import resolve_id
 
 from sisepuede_tool.models.param_spec import ParamSpec, WidgetKind
-from sisepuede_tool.services import labels
+from sisepuede_tool.services import i18n, labels
 from sisepuede_tool.services import param_schema_service as pss
 from sisepuede_tool.ui.components.info_tip import info_tip
+
+
+def _t(key: str, lang: Optional[str] = None, **fmt) -> str:
+    return i18n.t(f"param_widget.{key}", lang, **fmt)
+
+
+def shape_label(shape: str, lang: Optional[str] = None) -> str:
+    """Ramp shape (ramp_service.SHAPES key, or 'custom') for display."""
+    return i18n.t(f"param_widget.shapes.{shape}", lang, default=shape)
+
+
+def describe_ramp(policy, lang: Optional[str] = None) -> str:
+    """'2026→2040 · S-curve' (ramp_service.describe, translated)."""
+    return _t("ramp_describe", lang, start=policy.start_year, full=policy.full_year, shape=shape_label(policy.shape, lang))
 
 
 def _param_id(name: str, field: str = None) -> str:
     return f"param__{name}" if field is None else f"param__{name}__{field}"
 
 
-def _label_text(spec: ParamSpec) -> str:
-    return labels.param_label(spec.name, spec.label or spec.extra.get("label"))
+def _label_text(spec: ParamSpec, lang: Optional[str] = None) -> str:
+    explicit = spec.label or spec.extra.get("label")
+    if not explicit and spec.name in labels.PARAM_LABELS:
+        return i18n.t(f"param_widget.params.{spec.name}", lang, default=labels.PARAM_LABELS[spec.name])
+    return labels.param_label(spec.name, explicit)
 
 
 def code_tip(name: str) -> ui.Tag:
@@ -85,7 +105,14 @@ def _range_sync_script(range_id: str, out_id: str, precise_id: str, factor: floa
 
 
 def _range_with_exact(
-    name: str, label: ui.TagChild, value: float, lo: float, hi: float, exact_in_advanced: bool, note: str = None
+    name: str,
+    label: ui.TagChild,
+    value: float,
+    lo: float,
+    hi: float,
+    exact_in_advanced: bool,
+    note: str = None,
+    lang: Optional[str] = None,
 ) -> ui.Tag:
     as_percent = lo == 0.0 and hi == 1.0
     factor = 100.0 if as_percent else 1.0
@@ -94,7 +121,7 @@ def _range_with_exact(
     range_id = _param_id(name, "range")
     out_id = _param_id(name, "range_out")
     exact = ui.div(
-        ui.input_numeric(precise_id, "Exact value", value=value, min=lo, max=hi, step=1e-5),
+        ui.input_numeric(precise_id, _t("exact_value", lang), value=value, min=lo, max=hi, step=1e-5),
         ui.tags.small(note, class_="muted d-block") if note else None,
         class_="adv-only" if exact_in_advanced else None,
     )
@@ -138,8 +165,9 @@ if (!window.mrvDictTable) {
       var v = parseFloat(i.value); if (!isNaN(v)) total += v;
     });
     var ok = rule === 'eq1' ? Math.abs(total - 100) < 1e-4 : total <= 100 + 1e-4;
-    var msg = rule === 'eq1' ? 'must total exactly 100%' : "can't be above 100%";
-    out.textContent = 'Total ' + (+total.toFixed(3)) + '% · ' + msg;
+    // text from data attributes, in the page's language (_render_value_table)
+    var msg = rule === 'eq1' ? table.dataset.msgEq1 : table.dataset.msgLeq1;
+    out.textContent = table.dataset.totalText.replace('{pct}', +total.toFixed(3)).replace('{rule}', msg);
     out.classList.toggle('bad', !ok);
     var btn = table.querySelector('.dict-scale');
     if (btn) btn.style.display = (!ok && total > 0) ? '' : 'none';
@@ -213,16 +241,13 @@ def _table_head(spec: ParamSpec, schema: dict) -> List[ui.Tag]:
     ]
 
 
-def _dropped_note(dropped: List[str]) -> Optional[ui.Tag]:
+def _dropped_note(dropped: List[str], lang: Optional[str] = None) -> Optional[ui.Tag]:
     if not dropped:
         return None
-    return ui.tags.small(
-        "Not valid for this transformer and ignored by sisepuede: " + ", ".join(dropped),
-        class_="muted d-block",
-    )
+    return ui.tags.small(_t("dropped", lang, keys=", ".join(dropped)), class_="muted d-block")
 
 
-def _render_value_table(spec: ParamSpec, schema: dict) -> ui.Tag:
+def _render_value_table(spec: ParamSpec, schema: dict, lang: Optional[str] = None) -> ui.Tag:
     keys, names = schema["keys"], schema["labels"]
     current = pss.expand_value(schema, spec.default, keys)
     dropped = [str(k) for k in current if k not in keys]
@@ -241,11 +266,11 @@ def _render_value_table(spec: ParamSpec, schema: dict) -> ui.Tag:
     if rule != pss.SUM_NONE:
         total = sum(v for v in (current.get(k) for k in keys) if isinstance(v, (int, float)))
         ok, _ = pss.check_sum({k: current.get(k) for k in keys if isinstance(current.get(k), (int, float))}, rule)
-        msg = "must total exactly 100%" if rule == pss.SUM_EQ1 else "can't be above 100%"
+        msg = _t("must_total", lang) if rule == pss.SUM_EQ1 else _t("cant_exceed", lang)
         foot = ui.div(
-            ui.span(f"Total {round(total * 100, 3):g}% · {msg}", class_="dict-total" + ("" if ok else " bad")),
+            ui.span(_t("total", lang, pct=f"{round(total * 100, 3):g}", rule=msg), class_="dict-total" + ("" if ok else " bad")),
             ui.tags.button(
-                "Scale to 100%", type="button", class_="btn btn-inline dict-scale",
+                _t("scale", lang), type="button", class_="btn btn-inline dict-scale",
                 style="" if (not ok and total > 0) else "display:none",
             ),
             class_="dict-foot",
@@ -254,15 +279,20 @@ def _render_value_table(spec: ParamSpec, schema: dict) -> ui.Tag:
         *_table_head(spec, schema),
         ui.div(*rows, class_="dict-rows"),
         foot,
-        ui.tags.small("Leave every cell blank to use sisepuede's default.", class_="muted d-block"),
-        _dropped_note(dropped),
+        ui.tags.small(_t("leave_blank", lang), class_="muted d-block"),
+        _dropped_note(dropped, lang),
         ui.tags.script(ui.HTML(_DICT_TABLE_JS)),
         class_="dict-table",
-        **{"data-rule": rule},
+        **{
+            "data-rule": rule,
+            "data-total-text": _t("total", lang, pct="{pct}", rule="{rule}"),
+            "data-msg-eq1": _t("must_total", lang),
+            "data-msg-leq1": _t("cant_exceed", lang),
+        },
     )
 
 
-def _render_bounds_table(spec: ParamSpec, schema: dict) -> ui.Tag:
+def _render_bounds_table(spec: ParamSpec, schema: dict, lang: Optional[str] = None) -> ui.Tag:
     keys, names = schema["keys"], schema["labels"]
     current: Dict[tuple, float] = {}
     dropped = []
@@ -275,7 +305,7 @@ def _render_bounds_table(spec: ParamSpec, schema: dict) -> ui.Tag:
     unit = _unit_suffix(schema)
     head = ui.div(
         ui.span("", class_="dict-key"),
-        *[ui.span(f"{d.capitalize()} ({unit})", class_="dict-bound-head muted small") for d in pss.BOUND_DIRECTIONS],
+        *[ui.span(i18n.t(f"param_widget.bound.{d}", lang, unit=unit), class_="dict-bound-head muted small") for d in pss.BOUND_DIRECTIONS],
         class_="dict-row dict-bounds",
     )
     rows = [
@@ -289,13 +319,13 @@ def _render_bounds_table(spec: ParamSpec, schema: dict) -> ui.Tag:
     return ui.div(
         *_table_head(spec, schema),
         ui.div(head, *rows, class_="dict-rows"),
-        _dropped_note(dropped),
+        _dropped_note(dropped, lang),
         class_="dict-table",
         **{"data-rule": pss.SUM_NONE},
     )
 
 
-def _render_pairs_table(spec: ParamSpec, schema: dict) -> ui.Tag:
+def _render_pairs_table(spec: ParamSpec, schema: dict, lang: Optional[str] = None) -> ui.Tag:
     names = schema["labels"]
     keys_out, keys_in = schema["keys_out"], schema["keys_in"]
     n_rows = int(schema.get("rows", 4))
@@ -321,41 +351,46 @@ def _render_pairs_table(spec: ParamSpec, schema: dict) -> ui.Tag:
     return ui.div(
         *_table_head(spec, schema),
         ui.div(
-            ui.span("Produced fuel", class_="muted small"),
-            ui.span("Per unit of input fuel", class_="muted small"),
-            ui.span("Output / input", class_="muted small"),
+            ui.span(_t("produced_fuel", lang), class_="muted small"),
+            ui.span(_t("input_fuel", lang), class_="muted small"),
+            ui.span(_t("output_input", lang), class_="muted small"),
             class_="dict-pair dict-pair-head",
         ),
         ui.div(*rows, class_="dict-rows"),
-        _dropped_note(ignored),
+        _dropped_note(ignored, lang),
         class_="dict-table",
         **{"data-rule": pss.SUM_NONE},
     )
 
 
-def _render_dict_table(spec: ParamSpec) -> ui.Tag:
+def _render_dict_table(spec: ParamSpec, lang: Optional[str] = None) -> ui.Tag:
     schema = spec.schema or {}
     widget = schema.get("widget")
     if widget == pss.WIDGET_BOUNDS:
-        return _render_bounds_table(spec, schema)
+        return _render_bounds_table(spec, schema, lang)
     if widget == pss.WIDGET_PAIRS:
-        return _render_pairs_table(spec, schema)
-    return _render_value_table(spec, schema)
+        return _render_pairs_table(spec, schema, lang)
+    return _render_value_table(spec, schema, lang)
 
 
 def _blank(v) -> bool:
     return v is None or v == "" or (isinstance(v, float) and math.isnan(v))
 
 
-def _check_range(spec: ParamSpec, schema: dict, key: str, shown: float) -> None:
+def _check_range(spec: ParamSpec, schema: dict, key: str, shown: float, lang: Optional[str] = None) -> None:
     lo, hi = _value_bounds(schema)
     suffix = _unit_suffix(schema)
     if (lo is not None and shown < lo) or (hi is not None and shown > hi):
-        bounds = f"{lo:g}{suffix} to {hi:g}{suffix}" if hi is not None else f"at least {lo:g}{suffix}"
-        raise ParamReadError(f"{_label_text(spec)}: {schema['labels'].get(key, key)} must be {bounds}.")
+        if hi is not None:
+            bounds = _t("between", lang, lo=f"{lo:g}{suffix}", hi=f"{hi:g}{suffix}")
+        else:
+            bounds = _t("at_least", lang, lo=f"{lo:g}{suffix}")
+        raise ParamReadError(
+            _t("out_of_range", lang, label=_label_text(spec, lang), key=schema["labels"].get(key, key), bounds=bounds)
+        )
 
 
-def _read_dict_table(input, spec: ParamSpec):
+def _read_dict_table(input, spec: ParamSpec, lang: Optional[str] = None):
     """The dict for sisepuede, or None when every cell is blank (the
     parameter is then left out, so sisepuede uses its default)."""
     schema = spec.schema or {}
@@ -370,9 +405,9 @@ def _read_dict_table(input, spec: ParamSpec):
             if not k_out and not k_in and _blank(v):
                 continue
             if not k_out or not k_in or _blank(v):
-                raise ParamReadError(f"{_label_text(spec)}: row {i + 1} needs a produced fuel, an input fuel and a value.")
+                raise ParamReadError(_t("pair_incomplete", lang, label=_label_text(spec, lang), row=i + 1))
             if float(v) <= 0:
-                raise ParamReadError(f"{_label_text(spec)}: row {i + 1} efficiency must be above 0.")
+                raise ParamReadError(_t("pair_positive", lang, label=_label_text(spec, lang), row=i + 1))
             out.setdefault(k_out, {})[k_in] = float(v)
         return out or None
 
@@ -383,7 +418,7 @@ def _read_dict_table(input, spec: ParamSpec):
                 v = input[_cell_id(spec.name, k, d)]()
                 if _blank(v):
                     continue
-                _check_range(spec, schema, k, float(v))
+                _check_range(spec, schema, k, float(v), lang)
                 out[pss.bound_key(k, d)] = _from_display(schema, v)
         return out or None
 
@@ -392,14 +427,16 @@ def _read_dict_table(input, spec: ParamSpec):
         v = input[_cell_id(spec.name, k)]()
         if _blank(v):
             continue
-        _check_range(spec, schema, k, float(v))
+        _check_range(spec, schema, k, float(v), lang)
         values[k] = _from_display(schema, v)
     if not values:
         return None
     rule = schema.get("sum_rule")
-    ok, message = pss.check_sum(values, rule)
+    ok, _ = pss.check_sum(values, rule)
     if not ok:
-        raise ParamReadError(f"{_label_text(spec)}: {message}")
+        pct = f"{sum(values.values()) * 100:.4g}%"
+        key = "shares_eq1" if rule == pss.SUM_EQ1 else "shares_leq1"
+        raise ParamReadError(f"{_label_text(spec, lang)}: {_t(key, lang, pct=pct)}")
     return pss.normalize_for_rule(values, rule)
 
 
@@ -407,30 +444,30 @@ def _read_dict_table(input, spec: ParamSpec):
 #    GENERIC WIDGETS                     #
 ##########################################
 
-_RAMP_FIELD_LABELS = {
-    "n_tp_ramp": ("Periods to reach full effect", "n_tp_ramp"),
-    "tp_0_ramp": ("Last period with no change", "tp_0_ramp"),
-    "alpha_logistic": ("Curve steepness (0 = straight line)", "alpha_logistic"),
-    "window_lower": ("Curve window start (below 0)", "window_logistic[0]"),
-    "window_upper": ("Curve window end (above 0)", "window_logistic[1]"),
-    "d": ("Curve centre (has no effect)", "d"),
+# field -> sisepuede name; labels are param_widget.ramp_fields.<field>
+_RAMP_FIELD_NAMES = {
+    "n_tp_ramp": "n_tp_ramp",
+    "tp_0_ramp": "tp_0_ramp",
+    "alpha_logistic": "alpha_logistic",
+    "window_lower": "window_logistic[0]",
+    "window_upper": "window_logistic[1]",
+    "d": "d",
 }
 
 
-def _ramp_label(field: str) -> ui.Tag:
-    text, name = _RAMP_FIELD_LABELS[field]
-    return _label_tag(text, name)
+def _ramp_label(field: str, lang: Optional[str] = None) -> ui.Tag:
+    return _label_tag(i18n.t(f"param_widget.ramp_fields.{field}", lang), _RAMP_FIELD_NAMES[field])
 
 
-def render_param(spec: ParamSpec) -> ui.TagList:
-    label = _label_tag(_label_text(spec), spec.name)
+def render_param(spec: ParamSpec, lang: Optional[str] = None) -> ui.TagList:
+    label = _label_tag(_label_text(spec, lang), spec.name)
     help_text = ui.tags.small(spec.help_text, class_="text-muted d-block") if spec.help_text else None
 
     if spec.kind == WidgetKind.DICT_TABLE:
-        return ui.div(_render_dict_table(spec), class_="mb-3")
+        return ui.div(_render_dict_table(spec, lang), class_="mb-3")
 
     if spec.kind == WidgetKind.NOTE:
-        return ui.div(ui.tags.b(_label_text(spec)), " ", code_tip(spec.name), ui.div(spec.help_text or ""), class_="info-box mb-3")
+        return ui.div(ui.tags.b(_label_text(spec, lang)), " ", code_tip(spec.name), ui.div(spec.help_text or ""), class_="info-box mb-3")
 
     if spec.kind == WidgetKind.BOOL:
         widget = ui.input_switch(_param_id(spec.name), label, value=bool(spec.default))
@@ -439,14 +476,14 @@ def render_param(spec: ParamSpec) -> ui.TagList:
         if spec.bounds is not None:
             lo, hi = spec.bounds
             value = float(spec.default) if isinstance(spec.default, (int, float)) else lo
-            widget = _range_with_exact(spec.name, label, value, lo, hi, exact_in_advanced=False)
+            widget = _range_with_exact(spec.name, label, value, lo, hi, exact_in_advanced=False, lang=lang)
         else:
             widget = ui.input_numeric(_param_id(spec.name), label, value=spec.default)
 
     elif spec.kind == WidgetKind.SELECT:
         choices = dict(spec.choices) if isinstance(spec.choices, dict) else {c: c for c in spec.choices or []}
         selected = spec.default if spec.default in choices else ""
-        widget = ui.input_select(_param_id(spec.name), label, {"": "sisepuede default", **choices}, selected=selected)
+        widget = ui.input_select(_param_id(spec.name), label, {"": _t("sisepuede_default", lang), **choices}, selected=selected)
 
     elif spec.kind == WidgetKind.CATEGORICAL_MULTI:
         if spec.choices:
@@ -456,7 +493,7 @@ def render_param(spec: ParamSpec) -> ui.TagList:
         else:
             widget = ui.input_text(_param_id(spec.name), label, value=", ".join(spec.default or []))
             help_text = ui.tags.small(
-                (spec.help_text + " " if spec.help_text else "") + "Separate entries with commas.",
+                (spec.help_text + " " if spec.help_text else "") + _t("separate_commas", lang),
                 class_="text-muted d-block",
             )
 
@@ -466,7 +503,7 @@ def render_param(spec: ParamSpec) -> ui.TagList:
     elif spec.kind == WidgetKind.JSON:
         widget = ui.input_text_area(_param_id(spec.name), label, value=json.dumps(spec.default), rows=3)
         help_text = ui.tags.small(
-            (spec.help_text + " " if spec.help_text else "") + "Written as JSON.", class_="text-muted d-block"
+            (spec.help_text + " " if spec.help_text else "") + _t("json_written", lang), class_="text-muted d-block"
         )
 
     elif spec.kind == WidgetKind.RAMP_VECTOR:
@@ -474,15 +511,15 @@ def render_param(spec: ParamSpec) -> ui.TagList:
         d = spec.default
         widget = ui.card(
             ui.card_header(label),
-            ui.input_numeric(_param_id(spec.name, "n_tp_ramp"), _ramp_label("n_tp_ramp"), value=d["n_tp_ramp"], min=0, max=total),
-            ui.input_numeric(_param_id(spec.name, "tp_0_ramp"), _ramp_label("tp_0_ramp"), value=d["tp_0_ramp"], min=0, max=total),
+            ui.input_numeric(_param_id(spec.name, "n_tp_ramp"), _ramp_label("n_tp_ramp", lang), value=d["n_tp_ramp"], min=0, max=total),
+            ui.input_numeric(_param_id(spec.name, "tp_0_ramp"), _ramp_label("tp_0_ramp", lang), value=d["tp_0_ramp"], min=0, max=total),
             ui.input_slider(
-                _param_id(spec.name, "alpha_logistic"), _ramp_label("alpha_logistic"),
+                _param_id(spec.name, "alpha_logistic"), _ramp_label("alpha_logistic", lang),
                 min=0.0, max=1.0, value=d["alpha_logistic"], step=0.01,
             ),
-            ui.input_numeric(_param_id(spec.name, "window_lower"), _ramp_label("window_lower"), value=d["window_logistic"][0]),
-            ui.input_numeric(_param_id(spec.name, "window_upper"), _ramp_label("window_upper"), value=d["window_logistic"][1]),
-            ui.input_numeric(_param_id(spec.name, "d"), _ramp_label("d"), value=d["d"]),
+            ui.input_numeric(_param_id(spec.name, "window_lower"), _ramp_label("window_lower", lang), value=d["window_logistic"][0]),
+            ui.input_numeric(_param_id(spec.name, "window_upper"), _ramp_label("window_upper", lang), value=d["window_logistic"][1]),
+            ui.input_numeric(_param_id(spec.name, "d"), _ramp_label("d", lang), value=d["d"]),
         )
 
     else:
@@ -493,15 +530,15 @@ def render_param(spec: ParamSpec) -> ui.TagList:
     return ui.div(widget, help_text, class_="mb-3")
 
 
-def render_params(specs: List[ParamSpec]) -> ui.TagList:
-    return ui.TagList(*[render_param(s) for s in specs])
+def render_params(specs: List[ParamSpec], lang: Optional[str] = None) -> ui.TagList:
+    return ui.TagList(*[render_param(s, lang) for s in specs])
 
 
 class ParamReadError(ValueError):
     pass
 
 
-def read_params(input, specs: List[ParamSpec]) -> Dict[str, Any]:
+def read_params(input, specs: List[ParamSpec], lang: Optional[str] = None) -> Dict[str, Any]:
     """Note and blank dict-table parameters are left out of the result, so
     sisepuede uses its own default for them."""
     values: Dict[str, Any] = {}
@@ -511,7 +548,7 @@ def read_params(input, specs: List[ParamSpec]) -> Dict[str, Any]:
             continue
 
         if spec.kind == WidgetKind.DICT_TABLE:
-            value = _read_dict_table(input, spec)
+            value = _read_dict_table(input, spec, lang)
             if value is not None:
                 values[spec.name] = value
             continue
@@ -525,14 +562,9 @@ def read_params(input, specs: List[ParamSpec]) -> Dict[str, Any]:
             d = input[_param_id(spec.name, "d")]()
 
             if window_lower >= 0 or window_upper <= 0:
-                raise ParamReadError(
-                    f"'{spec.name}': window_logistic lower bound must be < 0 and upper bound must be > 0."
-                )
+                raise ParamReadError(_t("window_bounds", lang, name=spec.name))
             if not (window_lower < d < window_upper):
-                raise ParamReadError(
-                    f"'{spec.name}': d ({d}) must lie strictly between the window bounds "
-                    f"({window_lower}, {window_upper})."
-                )
+                raise ParamReadError(_t("d_between", lang, name=spec.name, d=d, lo=window_lower, hi=window_upper))
 
             values[spec.name] = {
                 "n_tp_ramp": int(n_tp_ramp),
@@ -555,7 +587,7 @@ def read_params(input, specs: List[ParamSpec]) -> Dict[str, Any]:
             try:
                 values[spec.name] = json.loads(raw)
             except (json.JSONDecodeError, TypeError) as e:
-                raise ParamReadError(f"'{spec.name}': invalid JSON ({e}).") from e
+                raise ParamReadError(_t("invalid_json", lang, name=spec.name, error=e)) from e
         elif spec.kind == WidgetKind.SELECT:
             values[spec.name] = raw or None
         elif spec.kind == WidgetKind.CATEGORICAL_MULTI:
@@ -598,7 +630,9 @@ def spec_with_value(spec: ParamSpec, value: Any) -> ParamSpec:
     return dataclasses.replace(spec, default=value)
 
 
-def render_magnitude(spec: ParamSpec, value: float, label: str, help_text: str = None) -> ui.Tag:
+def render_magnitude(
+    spec: ParamSpec, value: float, label: str, help_text: str = None, lang: Optional[str] = None
+) -> ui.Tag:
     lo, hi = spec.bounds or (0.0, 1.0)
     return ui.div(
         _range_with_exact(
@@ -608,7 +642,8 @@ def render_magnitude(spec: ParamSpec, value: float, label: str, help_text: str =
             lo,
             hi,
             exact_in_advanced=True,
-            note="The range moves in steps; this exact value is what gets saved.",
+            note=_t("exact_note", lang),
+            lang=lang,
         ),
         ui.tags.small(help_text, class_="muted d-block") if help_text else None,
         class_="mb-3",
@@ -620,6 +655,7 @@ def render_policy_ramp(
     ramp: dict,
     years: List[int],
     default_ramp: dict,
+    lang: Optional[str] = None,
 ) -> ui.Tag:
     """Start / full-effect years + shape, with the raw sisepuede ramp in an
     advanced box. `ramp` is the transformation's ramp dict (may be partial)."""
@@ -628,12 +664,12 @@ def render_policy_ramp(
     policy = ramp_service.policy_from_ramp(ramp, years, default_ramp)
     raw_values = ramp_service.fill_ramp_defaults(ramp, default_ramp)
     raw_spec = spec_with_value(spec, {**raw_values, "window_logistic": tuple(raw_values["window_logistic"])})
-    raw_spec = dataclasses.replace(raw_spec, label="Raw timing values")
+    raw_spec = dataclasses.replace(raw_spec, label=_t("raw_timing", lang))
     shape = policy.shape if policy.shape in ramp_service.SHAPES else "linear"
     return ui.div(
         ui.input_slider(
             _param_id(spec.name, RAMP_YEARS_FIELD),
-            "Starts in → full effect by",
+            _t("starts_full", lang),
             min=years[1],
             max=years[-1],
             value=(policy.start_year, policy.full_year),
@@ -642,11 +678,11 @@ def render_policy_ramp(
             drag_range=True,
         ),
         ui.div(
-            ui.tags.label("Ramp shape", class_="d-block"),
+            ui.tags.label(_t("ramp_shape", lang), class_="d-block"),
             ui.input_radio_buttons(
                 _param_id(spec.name, RAMP_SHAPE_FIELD),
                 None,
-                choices={k: v["label"] for k, v in ramp_service.SHAPES.items()},
+                choices={k: shape_label(k, lang) for k in ramp_service.SHAPES},
                 selected=shape,
                 inline=True,
             ),
@@ -655,15 +691,11 @@ def render_policy_ramp(
         ui.div(
             ui.input_switch(
                 _param_id(spec.name, RAMP_RAW_FIELD),
-                "Set the timing with raw values instead",
+                _t("raw_switch", lang),
                 value=policy.shape == ramp_service.CUSTOM_SHAPE,
             ),
-            ui.tags.small(
-                "Periods count from the first model year. Full effect is reached at "
-                "“last period with no change” + “periods to reach full effect”.",
-                class_="muted d-block mb-2",
-            ),
-            render_param(raw_spec),
+            ui.tags.small(_t("raw_help", lang), class_="muted d-block mb-2"),
+            render_param(raw_spec, lang),
             class_="adv-only adv-box",
         ),
         class_="mb-3",
@@ -678,6 +710,7 @@ def render_editor_params(
     magnitude_name: str = None,
     magnitude_label: str = None,
     magnitude_help: str = None,
+    lang: Optional[str] = None,
 ) -> Dict[str, ui.TagList]:
     """{'magnitude': ..., 'ramp': ..., 'basic': ..., 'advanced': ...} blocks
     for the editor to place."""
@@ -686,14 +719,14 @@ def render_editor_params(
         value = values.get(spec.name)
         if spec.kind == WidgetKind.RAMP_VECTOR:
             ramp = value if isinstance(value, dict) else None
-            out["ramp"] = render_policy_ramp(spec, ramp, years, default_ramp)
+            out["ramp"] = render_policy_ramp(spec, ramp, years, default_ramp, lang)
             continue
         if spec.name == magnitude_name and spec.kind == WidgetKind.NUMERIC:
             current = float(value) if isinstance(value, (int, float)) else float(spec.default)
-            label = magnitude_label or _label_text(spec)
-            out["magnitude"] = render_magnitude(spec, current, label, magnitude_help or spec.help_text)
+            label = magnitude_label or _label_text(spec, lang)
+            out["magnitude"] = render_magnitude(spec, current, label, magnitude_help or spec.help_text, lang)
             continue
-        rendered = render_param(spec_with_value(spec, value))
+        rendered = render_param(spec_with_value(spec, value), lang)
         if spec.tier == "basic":
             out["basic"].append(rendered)
         else:
@@ -703,23 +736,25 @@ def render_editor_params(
     return out
 
 
-def read_editor_params(input, specs: List[ParamSpec], years: List[int]) -> Dict[str, Any]:
+def read_editor_params(input, specs: List[ParamSpec], years: List[int], lang: Optional[str] = None) -> Dict[str, Any]:
     """Parameters dict for transformation_service from the editor's inputs.
     Raises ParamReadError on invalid input."""
     from sisepuede_tool.services import ramp_service
 
     ramp_specs = [s for s in specs if s.kind == WidgetKind.RAMP_VECTOR]
     other_specs = [s for s in specs if s.kind != WidgetKind.RAMP_VECTOR]
-    values = read_params(input, other_specs)
+    values = read_params(input, other_specs, lang)
 
     for spec in ramp_specs:
         if input[_param_id(spec.name, RAMP_RAW_FIELD)]():
-            raw = read_params(input, [spec])[spec.name]
+            raw = read_params(input, [spec], lang)[spec.name]
             raw["window_logistic"] = [float(w) for w in raw["window_logistic"]]
             values[spec.name] = raw
             continue
         start, full = input[_param_id(spec.name, RAMP_YEARS_FIELD)]()
         shape = input[_param_id(spec.name, RAMP_SHAPE_FIELD)]()
+        if int(full) <= int(start):
+            raise ParamReadError(_t("full_after_start", lang))
         try:
             values[spec.name] = ramp_service.ramp_from_policy(int(start), int(full), shape, years)
         except ramp_service.RampError as e:

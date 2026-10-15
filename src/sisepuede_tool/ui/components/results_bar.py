@@ -12,16 +12,16 @@ from typing import Dict, List, Optional, Tuple
 
 from shiny import reactive, render, ui
 
-from sisepuede_tool.services import pathway_service
+from sisepuede_tool.services import i18n, pathway_service
 from sisepuede_tool.ui.components import result_charts
 
 BAU = pathway_service.BAU_STRATEGY_ID
 
 
-def bar_ui(download_id: str, download_label: str = "Download data (.xlsx)"):
+def bar_ui(download_id: str, download_label: Optional[str] = None):
     return ui.div(
         ui.output_ui("results_bar", class_="res-bar-left"),
-        ui.download_button(download_id, download_label, class_="btn-inline btn-ghost"),
+        ui.download_button(download_id, download_label or i18n.t("results.download"), class_="btn-inline btn-ghost"),
         class_="res-bar",
     )
 
@@ -61,7 +61,7 @@ def visible_pathways(state, baseline_id: Optional[str]) -> List[int]:
 
 def pathway_name(state, sid: int) -> str:
     if sid == BAU:
-        return "Business as usual"
+        return i18n.t("results.bau", state.lang())
     entry = state.strategies_map.get().get(sid)
     return entry.strategy.name if entry else str(sid)
 
@@ -78,8 +78,9 @@ def run_stamp(state, baseline_id: Optional[str]) -> str:
     batch = [h for h in hist if h.get("batch") == last.get("batch")]
     n_ok = sum(1 for h in batch if h["ok"])
     at = last["at"].strftime("%H:%M") if hasattr(last.get("at"), "strftime") else ""
-    elec = " · with electricity model" if last.get("nemomod") else " · no electricity model"
-    return f"Run {at} · {n_ok} scenario{'s' if n_ok != 1 else ''}{elec}"
+    lang = state.lang()
+    elec = i18n.t("results.with_elec" if last.get("nemomod") else "results.no_elec", lang)
+    return f"{i18n.tn('results.run_stamp', n_ok, lang, time=at)} · {elec}"
 
 
 def bar_server(input, state, ev_id: str):
@@ -89,10 +90,13 @@ def bar_server(input, state, ev_id: str):
     @render.ui
     def results_bar():
         runs = runs_by_baseline(state)
+        lang = state.lang()
         if not runs:
             return ui.div(
-                ui.span("No results yet.", class_="muted"),
-                ui.tags.button("Go to Run →", class_="link-btn", onclick="mrvGoTo('run')", style="margin-left:8px"),
+                ui.span(i18n.t("results.no_results", lang), class_="muted"),
+                ui.tags.button(
+                    i18n.t("results.go_to_run", lang), class_="link-btn", onclick="mrvGoTo('run')", style="margin-inline-start:8px"
+                ),
             )
         bid = current_baseline(state)
         baselines = state.baselines.get()
@@ -113,11 +117,11 @@ def bar_server(input, state, ev_id: str):
                 )
             )
         return ui.div(
-            ui.span("Baseline", class_="section-label"),
+            ui.span(i18n.t("results.baseline", lang), class_="section-label"),
             ui.input_select("rb_baseline", None, choices=choices, selected=bid, width="220px"),
-            ui.span("Pathways", class_="section-label", style="margin-left:10px"),
+            ui.span(i18n.t("results.pathways", lang), class_="section-label", style="margin-inline-start:10px"),
             *chips,
-            ui.span(run_stamp(state, bid), class_="small muted", style="margin-left:10px"),
+            ui.span(run_stamp(state, bid), class_="small muted", style="margin-inline-start:10px"),
             class_="res-bar-row",
         )
 

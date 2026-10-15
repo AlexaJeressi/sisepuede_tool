@@ -27,16 +27,15 @@ from shiny import module, reactive, render, ui
 from shiny.module import resolve_id
 from shinywidgets import output_widget, render_plotly
 
-from sisepuede_tool.services import download_service, emissions_service, output_service, results_groups_service
+from sisepuede_tool.services import download_service, emissions_service, i18n, output_service, results_groups_service
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
 
 N_SLOTS = 16  # driver card chart slots (context + area + custom cards)
-_SECTORS = {"all": "All", "Energy": "Energy", "IPPU": "IPPU", "AFOLU": "AFOLU", "Circular Economy": "Circular economy"}
-_GASES = {"all": "All gases", "CO2": "CO₂", "CH4": "CH₄", "N2O": "N₂O", "F-gases": "F-gases"}
 _BAU = results_bar.BAU
+_EMITTING = ["entc", "trns", "inen", "scoe", "fgtv", "ccsq", "ippu", "agrc", "lvst", "lsmm", "soil", "lndu", "frst", "waso", "trww"]
 
 _field_catalog_cache: Dict[int, pd.DataFrame] = {}
 
@@ -48,9 +47,23 @@ def field_catalog(model_attributes) -> pd.DataFrame:
     return _field_catalog_cache[key]
 
 
-def _emitting_subsectors() -> Dict[str, str]:
-    order = ["entc", "trns", "inen", "scoe", "fgtv", "ccsq", "ippu", "agrc", "lvst", "lsmm", "soil", "lndu", "frst", "waso", "trww"]
-    return {abv: emissions_service.subsector_label(abv) for abv in order}
+def _subsector(abv: str, lang: Optional[str] = None) -> str:
+    return i18n.t(f"subsectors.{abv}", lang, default=emissions_service.subsector_label(abv))
+
+
+def _emitting_subsectors(lang: Optional[str] = None) -> Dict[str, str]:
+    """{abv: display name} of the subsectors in the emissions chart, in chart order."""
+    return {abv: _subsector(abv, lang) for abv in _EMITTING}
+
+
+def _sectors(lang: Optional[str] = None) -> Dict[str, str]:
+    """Sector filter {value: label}; values are emissions_service sector names."""
+    names = {"Energy": "energy", "IPPU": "ippu", "AFOLU": "afolu", "Circular Economy": "circular_economy"}
+    return {"all": i18n.t("emissions.all", lang), **{v: i18n.t(f"sectors.{k}", lang, default=v) for v, k in names.items()}}
+
+
+def _gases(lang: Optional[str] = None) -> Dict[str, str]:
+    return {"all": i18n.t("emissions.all_gases", lang), "CO2": "CO₂", "CH4": "CH₄", "N2O": "N₂O", "F-gases": i18n.t("emissions.fgases", lang)}
 
 
 @module.ui
@@ -61,21 +74,23 @@ def page_emissions_ui():
         ui.output_ui("kpis"),
         ui.div(
             ui.div(
-                ui.span("Net GHG emissions", class_="section-label"),
-                ui.span("MtCO₂e · dotted line = 2030", class_="small muted"),
+                ui.span(i18n.t("emissions.net_ghg"), class_="section-label"),
+                ui.span(i18n.t("emissions.net_ghg_note"), class_="small muted"),
                 class_="box-head",
             ),
             ui.div(
                 ui.div(
-                    ui.input_radio_buttons("view", None, {"emissions": "By subsector", "delta": "Change vs BAU"}, inline=True),
+                    ui.input_radio_buttons(
+                        "view", None, {"emissions": i18n.t("emissions.view_emissions"), "delta": i18n.t("emissions.view_delta")}, inline=True
+                    ),
                     class_="seg",
                 ),
-                ui.div(ui.input_radio_buttons("sector", None, _SECTORS, inline=True), class_="seg"),
-                ui.input_select("focus", None, {"": "All subsectors", **_emitting_subsectors()}, width="240px"),
-                ui.div(ui.input_radio_buttons("gas", None, _GASES, inline=True), class_="seg"),
+                ui.div(ui.input_radio_buttons("sector", None, _sectors(), inline=True), class_="seg"),
+                ui.input_select("focus", None, {"": i18n.t("emissions.all_subsectors"), **_emitting_subsectors()}, width="240px"),
+                ui.div(ui.input_radio_buttons("gas", None, _gases(), inline=True), class_="seg"),
                 ui.panel_conditional(
                     "input.focus !== ''",
-                    ui.div(ui.input_switch("breakdown", "Break down by emission source", value=False), class_="adv-only"),
+                    ui.div(ui.input_switch("breakdown", i18n.t("emissions.breakdown"), value=False), class_="adv-only"),
                 ),
                 class_="res-controls",
             ),
@@ -89,34 +104,30 @@ def page_emissions_ui():
             ui.div(
                 ui.div(
                     ui.div(
-                        ui.span("What drives", class_="drv-sticky-title"),
-                        ui.input_select("focus_bar", None, {"": "All subsectors", **_emitting_subsectors()}, width="240px"),
-                        ui.span("emissions", class_="drv-sticky-title"),
+                        ui.span(i18n.t("emissions.drives_before"), class_="drv-sticky-title"),
+                        ui.input_select("focus_bar", None, {"": i18n.t("emissions.all_subsectors"), **_emitting_subsectors()}, width="240px"),
+                        ui.span(i18n.t("emissions.drives_after"), class_="drv-sticky-title"),
                         class_="drv-sticky-pick",
                     ),
-                    ui.input_switch("show_context", "Population & GDP", value=True),
+                    ui.input_switch("show_context", i18n.t("emissions.context_switch"), value=True),
                     class_="drv-sticky-row",
                 ),
                 ui.output_ui("drivers_context"),
                 class_="drv-sticky",
             ),
-            ui.div(
-                "Key model variables, one line or panel per pathway. The subsector picked here or on the chart above "
-                "filters both. Click ⓘ to see why each one matters.",
-                class_="small muted",
-            ),
+            ui.div(i18n.t("emissions.drivers_intro"), class_="small muted"),
             ui.output_ui("drivers_grid"),
             ui.div(
-                ui.div(ui.span("Add a variable", class_="section-label"), ui.span("ADVANCED", class_="adv-tag")),
+                ui.div(ui.span(i18n.t("emissions.add_variable"), class_="section-label"), ui.span(i18n.t("results.advanced"), class_="adv-tag")),
                 ui.div(
                     ui.input_selectize(
                         "add_var", None, choices=[], multiple=True,
-                        options={"placeholder": "Search model variables (pick one or more)…"}, width="560px",
+                        options={"placeholder": i18n.t("emissions.add_var_placeholder")}, width="560px",
                     ),
-                    ui.input_action_button("add_var_btn", "Add cards", class_="btn-inline"),
+                    ui.input_action_button("add_var_btn", i18n.t("emissions.add_cards"), class_="btn-inline"),
                     class_="btn-row",
                 ),
-                ui.div("Inputs are the drivers fed to the model; outputs are model results.", class_="small muted"),
+                ui.div(i18n.t("emissions.inputs_outputs"), class_="small muted"),
                 class_="adv-only adv-box",
             ),
             class_="box",
@@ -130,6 +141,15 @@ def page_emissions_server(input, output, session, state: AppState):
     ev_id = resolve_id("ui_event")
     results_bar.bar_server(input, state, ev_id)
     groups = results_groups_service.load_groups()
+
+    def _t(key, **fmt):
+        return i18n.t(f"emissions.{key}", state.lang(), **fmt)
+
+    def _card_text(card, field):
+        """A driver card's text from resources/results_groups.yaml, in the session language."""
+        if card.get("custom"):
+            return _t("custom_why") if field == "why" else card.get(field, "")
+        return i18n.td("results_groups", card["key"], field, card.get(field, ""), state.lang())
 
     # ------------------------------------------------------------------ data
 
@@ -207,10 +227,15 @@ def page_emissions_server(input, output, session, state: AppState):
         rows = rows[~rows["variable"].str.contains("NemoMod :math:|emission_co2e", regex=True)]
         choices: Dict[str, Dict[str, str]] = {}
         for r in rows.sort_values(["sector", "subsector", "variable"]).itertuples():
-            group = f"{r.sector or 'Other'} · {r.subsector}"
+            sector = r.sector or "Other"
+            sector = i18n.t(f"sectors.{sector.lower().replace(' ', '_')}", state.lang(), default=sector)
+            group = f"{sector} · {r.subsector}"
             name = r.label.split(" · ")[0]
-            choices.setdefault(group, {})[r.variable] = f"{name} ({'input' if r.is_input else 'output'})"
-        ui.update_selectize("add_var", choices=choices, selected=None)
+            choices.setdefault(group, {})[r.variable] = f"{name} ({_t('var_input' if r.is_input else 'var_output')})"
+        # rebuilt on a language change too: keep what the user picked
+        with reactive.isolate():
+            picked = list(input.add_var() or [])
+        ui.update_selectize("add_var", choices=choices, selected=picked, options={"placeholder": _t("add_var_placeholder")})
 
     @reactive.effect
     @reactive.event(input.add_var_btn)
@@ -249,8 +274,8 @@ def page_emissions_server(input, output, session, state: AppState):
                     ui.div(ui.div("2030", class_="k"), ui.div(f"{rc.fmt(k['net_2030'])} Mt", ui.span(pct(k["pct_2030"]), class_="pct"), class_="v")),
                     ui.div(ui.div("2050", class_="k"), ui.div(f"{rc.fmt(k['net_2050'])} Mt", ui.span(pct(k["pct_2050"]), class_="pct"), class_="v")),
                     ui.div(
-                        ui.div("Avoided 2025–2050", class_="k"),
-                        ui.div("reference" if sid == _BAU else f"{rc.fmt(k['avoided_cum'])} Mt", class_="v"),
+                        ui.div(_t("kpi_avoided"), class_="k"),
+                        ui.div(_t("kpi_reference") if sid == _BAU else f"{rc.fmt(k['avoided_cum'])} Mt", class_="v"),
                     ),
                     class_="kpi-vals",
                 ),
@@ -265,17 +290,20 @@ def page_emissions_server(input, output, session, state: AppState):
         return s == "all" or emissions_service.sector_of(abv) == s
 
     @render_plotly
+
+    @rc.bidi_for(state.lang)
     def emis_chart():
         bid, rows = runs()
+        lang = state.lang()
         if not rows:
-            return rc.empty_figure("Run business as usual and at least one pathway to see results.")
+            return rc.empty_figure(_t("empty_run"))
         focus = input.focus()
         gas = input.gas()
         if input.view() == "delta":
             return _delta_figure(rows, focus, gas)
         frames, net = {}, {}
         if not _breakdown():
-            labels = {abv: emissions_service.subsector_label(abv) for abv in _emitting_subsectors()}
+            labels = {abv: emissions_service.subsector_label(abv) for abv in _EMITTING}
             colors = {labels[a]: rc.SUBSECTOR_COLORS.get(a, rc.OTHER_COLOR) for a in labels}
             order = [labels[a] for a in labels]
             for _, name, rr in rows:
@@ -302,16 +330,16 @@ def page_emissions_server(input, output, session, state: AppState):
             v = float(s.get(2050, float("nan")))
             pct = ""
             if bau_net is not None and name != results_bar.pathway_name(state, _BAU) and bau_net.get(2050):
-                pct = f" · {((v / float(bau_net[2050])) - 1) * 100:+.0f}% vs BAU"
-            titles[name] = f"{name} · {rc.fmt(v)} Mt in 2050{pct}"
+                pct = _t("panel_pct", pct=f"{((v / float(bau_net[2050])) - 1) * 100:+.0f}")
+            titles[name] = _t("panel_title", name=name, value=rc.fmt(v), pct=pct)
         frames = {titles[k]: v for k, v in frames.items()}
         net = {titles[k]: v for k, v in net.items()}
-        return rc.stacked_panels(frames, colors, order, "MtCO₂e", net=net, height=380)
+        return rc.stacked_panels(frames, colors, order, "MtCO₂e", net=net, height=380, lang=lang)
 
     def _delta_figure(rows, focus, gas):
         bau = bau_run()
         if bau is None:
-            return rc.empty_figure("Business as usual has not run for this baseline: run it to compare.")
+            return rc.empty_figure(_t("no_bau"))
         def table(df_output):
             if not _breakdown():
                 d = emissions_service.by_subsector_for_gas(df_output, gas)
@@ -332,32 +360,25 @@ def page_emissions_server(input, output, session, state: AppState):
             parts.append(delta.assign(pathway=name))
             pcolors[name] = colors.get(sid)
         if not parts:
-            return rc.empty_figure("Select at least one pathway besides business as usual.")
+            return rc.empty_figure(_t("pick_pathway"))
         deltas = pd.concat(parts)
         deltas = deltas[deltas["year"].isin([2030, 2050])]
         keep = deltas.groupby("subsector")["delta"].apply(lambda s: s.abs().max())
         deltas = deltas[deltas["subsector"].isin(keep[keep > 0.01].index)]
         if deltas.empty:
-            return rc.empty_figure("No change vs business as usual here.")
-        return rc.delta_bars(deltas, pcolors, height=max(300, 34 * deltas["subsector"].nunique() + 120))
+            return rc.empty_figure(_t("no_change"))
+        return rc.delta_bars(deltas, pcolors, height=max(300, 34 * deltas["subsector"].nunique() + 120), lang=state.lang())
 
     @render.ui
     def emis_note():
         if not runs()[1]:
             return None
+        # charts are not mirrored in right-to-left languages, so "left of zero" holds in all of them
         if input.view() == "delta":
-            return ui.div("Bars left of zero are reductions compared with business as usual.", class_="small muted")
+            return ui.div(_t("note_delta"), class_="small muted")
         if _breakdown():
-            return ui.div(
-                "Emission sources follow the IPCC-style breakdown used for Egypt's inventory. "
-                "Negative areas are removals.",
-                class_="small muted",
-            )
-        return ui.div(
-            "Areas below zero are removals (forests, land use). The dark line is net emissions. "
-            "Click a legend item to hide it. Picking a subsector here or in the drivers below filters both.",
-            class_="small muted",
-        )
+            return ui.div(_t("note_breakdown"), class_="small muted")
+        return ui.div(_t("note_default"), class_="small muted")
 
     # ------------------------------------------------------------------ drivers
 
@@ -413,11 +434,12 @@ def page_emissions_server(input, output, session, state: AppState):
             return float(d["value"].sum())
 
         gas = input.gas()
+        lang = state.lang()
         if focus:
-            scope = emissions_service.subsector_label(focus)
+            scope = _subsector(focus, lang)
         else:
-            scope = "Net emissions" if input.sector() == "all" else _SECTORS[input.sector()]
-        scope += "" if gas == "all" else f" · {_GASES[gas]}"
+            scope = _t("net_emissions") if input.sector() == "all" else _sectors(lang)[input.sector()]
+        scope += "" if gas == "all" else f" · {_gases(lang)[gas]}"
         vals = {sid: total_frame(subsector_frames()[name]) for sid, name, _ in rows}
         bau_f = _bau_frame()
         bau_v = total_frame(bau_f) if bau_f is not None else None
@@ -426,16 +448,16 @@ def page_emissions_server(input, output, session, state: AppState):
             v = vals[sid]
             pct = f" ({(v / bau_v - 1) * 100:+.0f}%)" if bau_v and sid != _BAU else ""
             chips.append(
-                ui.span(ui.span(class_="swatch", style=f"background:{colors.get(sid)}"), f"{name} {rc.fmt(v)} Mt{pct}", class_="drv-val")
+                ui.span(ui.span(class_="swatch", style=f"background:{colors.get(sid)}"), f"{name} {i18n.isolate(f'{rc.fmt(v)} Mt{pct}', lang)}", class_="drv-val")
             )
-        line = ui.div(ui.span(f"{scope} in 2050:", class_="muted"), *chips, class_="drv-vals small")
+        line = ui.div(ui.span(_t("scope_in_2050", scope=scope), class_="muted"), *chips, class_="drv-vals small")
         if focus:
             return line
         bau_f = _bau_frame()
         shortcuts = None
         if bau_f is not None:
             frames = {name: subsector_frames()[name] for sid, name, _ in rows if sid != _BAU}
-            allowed = [a for a in _emitting_subsectors() if _sector_ok(a)]
+            allowed = [a for a in _EMITTING if _sector_ok(a)]
             top = emissions_service.largest_changes(frames, bau_f, subsectors=allowed)
             if top:
                 btns = []
@@ -443,41 +465,40 @@ def page_emissions_server(input, output, session, state: AppState):
                     payload = json.dumps({"type": "focus", "value": abv})
                     btns.append(
                         ui.tags.button(
-                            f"{emissions_service.subsector_label(abv)} {delta:+.1f} Mt",
+                            f"{_subsector(abv, lang)} {i18n.isolate(f'{delta:+.1f} Mt', lang)}",
                             class_="chip-btn",
                             onclick=f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;",
                         )
                     )
-                shortcuts = ui.div(ui.span("Biggest changes vs BAU in 2050:", class_="muted"), *btns, class_="drv-vals small")
+                shortcuts = ui.div(ui.span(_t("biggest_changes"), class_="muted"), *btns, class_="drv-vals small")
         return ui.TagList(line, shortcuts)
 
     @render.ui
     def drivers_grid():
         bid, rows = runs()
         if not rows:
-            return ui.div("Run a pathway to see its drivers.", class_="info-box")
+            return ui.div(_t("no_drivers"), class_="info-box")
+        lang = state.lang()
         hint = None
         if driver_area() is None:
-            hint = ui.div(
-                "Pick a subsector after “What drives”, or click one of the biggest changes, to see what drives its emissions.",
-                class_="info-box",
-            )
+            hint = ui.div(_t("pick_hint"), class_="info-box")
         tiles = []
         divided = False
         for i, card in enumerate(cards()):
             if card.get("_dim") and not divided:
                 divided = True
                 # named with the same subsector labels as the pickers, not the area title
-                related = [emissions_service.subsector_label(a) for a in driver_area()["subsectors"]
-                           if a != input.focus_bar() and a in _emitting_subsectors()]
-                tiles.append(ui.div("Related subsectors · " + ", ".join(related), class_="drv-divider section-label"))
+                related = [_subsector(a, lang) for a in driver_area()["subsectors"] if a != input.focus_bar() and a in _EMITTING]
+                tiles.append(
+                    ui.div(_t("related", names=i18n.t("results.list_sep", lang).join(related)), class_="drv-divider section-label")
+                )
             frames = _card_frames(card)
             empty = all(f.empty for f in frames.values())
             remove = None
             if card.get("custom"):
                 payload = json.dumps({"type": "remove_card", "value": card["variables"][0]})
                 remove = ui.tags.button(
-                    "×", class_="x-btn", title="Remove card",
+                    "×", class_="x-btn", title=_t("remove_card"),
                     onclick=f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;",
                 )
             wide = card["view"] != "total" and len(rows) > 1
@@ -485,17 +506,15 @@ def page_emissions_server(input, output, session, state: AppState):
                 ui.div(
                     ui.div(
                         ui.div(
-                            ui.span(card["title"], class_="drv-title"),
-                            info_tip(card.get("why", ""), class_="drv-why"),
-                            ui.span("input" if card["source"] == "input" else "", class_="kind-tag") if card["source"] == "input" else None,
+                            ui.span(_card_text(card, "title"), class_="drv-title"),
+                            info_tip(_card_text(card, "why"), class_="drv-why"),
+                            ui.span(_t("var_input"), class_="kind-tag") if card["source"] == "input" else None,
                         ),
-                        ui.div(ui.span(card["unit"], class_="small muted"), remove, class_="btn-row"),
+                        ui.div(ui.span(_card_text(card, "unit"), class_="small muted"), remove, class_="btn-row"),
                         class_="drv-head",
                     ),
                     ui.div(
-                        "Needs the electricity model: tick “Run electricity dispatch (NemoMod)” on the Run page."
-                        if card.get("needs_electricity_model")
-                        else "No data for this variable in these runs.",
+                        _t("needs_elec") if card.get("needs_electricity_model") else _t("no_data"),
                         class_="info-box small",
                     )
                     if empty
@@ -516,14 +535,16 @@ def page_emissions_server(input, output, session, state: AppState):
         frames = _card_frames(card)
         names = {sid: results_bar.pathway_name(state, sid) for sid, _, _ in rows}
         colors = results_bar.colors_for(state, bid)
+        unit = _card_text(card, "unit")
         if card["view"] == "total" or len(rows) == 0:
             series = {names[sid]: f.groupby("year")["value"].sum() for sid, f in frames.items() if not f.empty}
-            return rc.lines_by_pathway(series, {names[s]: colors.get(s) for s in names}, card["unit"], height=200 if card.get("_context") else 230,
+            return rc.lines_by_pathway(series, {names[s]: colors.get(s) for s in names}, unit, height=200 if card.get("_context") else 230,
                                        dashed=[names.get(_BAU, "")])
         named = {names[sid]: f for sid, f in frames.items() if not f.empty}
         named, order = rc.lumped(named, n=8)
         return rc.stacked_panels(
-            named, rc.series_colors(order), order, card["unit"], share=card["view"] == "share", height=270, legend_right=True
+            named, rc.series_colors(order), order, unit, share=card["view"] == "share", height=270, legend_right=True,
+            lang=state.lang(),
         )
 
     def _make_slot(i: int):
@@ -531,7 +552,7 @@ def page_emissions_server(input, output, session, state: AppState):
             return _slot_figure(i)
 
         fig.__name__ = f"slot_{i}"
-        output(id=f"slot_{i}")(render_plotly(fig))
+        output(id=f"slot_{i}")(render_plotly(rc.bidi_for(state.lang)(fig)))
 
     for _i in range(N_SLOTS):
         _make_slot(_i)

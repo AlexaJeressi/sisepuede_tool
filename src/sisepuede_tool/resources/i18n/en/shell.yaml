@@ -1,0 +1,75 @@
+# UI text, English (source). Keys are shared by es.yaml and ar.yaml; see README.md.
+# Plural entries have one sub-key per plural category (en/es: one, other).
+# Sidebar, topbar, page names, sector names.
+
+shell:
+  title: "Egypt: MRV with SISEPUEDE"
+  country: "Egypt"
+  console: "MRV Console"
+  pin: "Keep the menu open"
+  advanced: "Advanced options"
+  advanced_on: "Advanced options are on"
+  advanced_note: "Shows every sisepuede parameter and setting."
+  engine_note: "SISEPUEDE engine · CB module"
+  language: "Language"
+  baselines_loaded:
+    one: "{n} baseline loaded"
+    other: "{n} baselines loaded"
+
+nav:
+  groups:
+    workflow: "Workflow"
+    results: "Results"
+    mrv: "MRV"
+    portfolio: "Portfolio · optional"
+    system: "System"
+  meta:
+    no_baseline: "No baseline yet"
+    pathways:
+      one: "{n} pathway"
+      other: "{n} pathways"
+    transformations:
+      one: "{n} transformation"
+      other: "{n} transformations"
+    not_run: "Not run yet"
+    last_run: "Last run {time} · {ok} ok"
+  data_input:
+    label: "Baseline data"
+    description: "The emissions baseline every scenario builds from."
+    crumb: "Setup / 1"
+  pathways:
+    label: "Pathways"
+    description: "Open a transformer, reuse or create transformations, and add them to a pathway."
+    crumb: "Build / 2"
+  run:
+    label: "Run"
+    description: "Pick baselines and pathways, then run."
+    crumb: "Execute / 3"
+  output_explorer:
+    label: "Emissions & drivers"
+    description: "Where emissions come from, how pathways change them, and what drives them."
+  cost_benefits:
+    label: "Costs & benefits"
+    description: "Relative to business as usual."
+  macroeconomic_impacts:
+    label: "Macroeconomic impacts"
+    description: "GDP and jobs relative to business as usual."
+  article_6:
+    label: "Article 6"
+    description: "Mitigation beyond the NDC target that could be transferred."
+  validation:
+    label: "Monitoring"
+    description: "Compare model output with observed inventory data."
+  projects:
+    label: "Projects"
+    description: "Consult announced projects and link each one to a transformation."
+  persistence:
+    label: "Project files"
+    description: "Export the project as sisepuede files, or import one."
+
+sectors:
+  afolu: "AFOLU"
+  energy: "Energy"
+  circular_economy: "Circular Economy"
+  ippu: "IPPU"
+  socioeconomic: "Socioeconomic"

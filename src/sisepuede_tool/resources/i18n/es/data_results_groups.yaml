@@ -1,0 +1,105 @@
+# Driver card text (es); English is resources/results_groups.yaml.
+
+"data":
+  "results_groups":
+    "population":
+      "title": "Población"
+      "why": "La mayor parte de la demanda (alimentos, energía, residuos) crece con la población."
+      "unit": "millones de personas"
+    "gdp":
+      "title": "PIB"
+      "why": "La producción industrial y la demanda de energía y transporte crecen con el PIB."
+      "unit": "miles de millones de USD"
+    "entc_generation":
+      "title": "Generación eléctrica por tecnología"
+      "why": "La matriz eléctrica determina las emisiones de cada kWh que usan los edificios, la industria y el transporte."
+    "entc_capacity":
+      "title": "Capacidad de generación"
+      "why": "Capacidad que hay que construir (y pagar) para lograr la matriz de generación."
+    "elec_demand":
+      "title": "Uso de electricidad por sector"
+      "why": "La electrificación traslada las emisiones de los usos finales al sector eléctrico."
+    "transmission_loss":
+      "title": "Pérdidas de transmisión y distribución"
+      "why": "La electricidad que se pierde en la red debe generarse de todos modos."
+    "fuel_production":
+      "title": "Producción de combustibles"
+      "why": "La producción nacional de petróleo y gas impulsa las emisiones fugitivas (fugas, quema en antorcha, venteo)."
+    "ippu_production":
+      "title": "Producción industrial"
+      "why": "Las emisiones de proceso (cemento, químicos, metales) aumentan con la producción."
+    "clinker":
+      "title": "Proporción de clínker en el cemento"
+      "why": "El clínker es la fuente del CO2 de proceso del cemento; menos clínker por tonelada significa menos CO2."
+    "inen_energy":
+      "title": "Uso de energía industrial por industria"
+      "why": "Combustible quemado para calor y energía en las fábricas."
+    "inen_fuels":
+      "title": "Matriz de combustibles industriales"
+      "why": "Cambiar de combustibles fósiles a electricidad o hidrógeno reduce las emisiones de combustión."
+      "unit": "% de PJ"
+    "scoe_fuels":
+      "title": "Energía de edificios por combustible"
+      "why": "El gas, el GLP y otros combustibles quemados en hogares y comercios emiten directamente; la electricidad no."
+      "unit": "% de PJ"
+    "scoe_heat":
+      "title": "Demanda de calor por tipo de edificio"
+      "why": "La cocción y el calentamiento de agua y de espacios impulsan el uso directo de combustibles."
+    "scoe_energy":
+      "title": "Uso de energía en edificios"
+      "why": "Energía total usada en hogares, comercios y otros edificios."
+    "pkm":
+      "title": "Viajes de pasajeros"
+      "why": "Demanda de viajes de pasajeros, antes de elegir el modo y el combustible."
+      "unit": "miles de millones de pkm"
+    "vkm_mode":
+      "title": "Vehículos-km por modo"
+      "why": "Cuánto se recorre en cada modo; la carretera domina las emisiones del transporte."
+      "unit": "miles de millones de vkm"
+    "vkm_electric":
+      "title": "Vehículos-km eléctricos"
+      "why": "Kilómetros recorridos con electricidad en lugar de gasolina o diésel."
+      "unit": "miles de millones de vkm"
+    "trns_fuels":
+      "title": "Matriz de combustibles del transporte"
+      "why": "El diésel y la gasolina emiten por el escape; la electricidad y el hidrógeno no."
+      "unit": "% de PJ"
+    "crop_area":
+      "title": "Superficie cultivada"
+      "why": "Las tierras de cultivo impulsan el uso de fertilizantes, la quema de residuos y el metano del arroz."
+      "unit": "millones de ha"
+    "food_loss":
+      "title": "Alimentos perdidos antes del consumo"
+      "why": "Los alimentos perdidos en la cadena de suministro igual hubo que producirlos, y parte termina en rellenos sanitarios."
+    "fertilizer":
+      "title": "Uso de nitrógeno en fertilizantes"
+      "why": "El nitrógeno aplicado a los suelos es la principal fuente de N2O agrícola."
+    "herd":
+      "title": "Tamaño del hato"
+      "why": "La fermentación entérica y el metano del estiércol aumentan con el número de animales."
+      "unit": "millones de cabezas"
+    "manure_biogas":
+      "title": "Biogás recuperado del estiércol"
+      "why": "Metano capturado en biodigestores en lugar de liberarse."
+    "land_area":
+      "title": "Superficie por uso del suelo"
+      "why": "Convertir bosques y pastizales libera carbono; restaurarlos lo almacena."
+      "unit": "millones de ha"
+    "forest_stock":
+      "title": "Reservas de carbono en bosques"
+      "why": "Carbono almacenado en la biomasa forestal."
+    "waste_generated":
+      "title": "Residuos sólidos generados"
+      "why": "Los residuos orgánicos en rellenos y botaderos producen metano."
+    "waste_destination":
+      "title": "Destino de los residuos sólidos"
+      "why": "Los rellenos y botaderos emiten metano; el reciclaje, el compostaje y la digestión evitan la mayor parte."
+      "unit": "% de Mt"
+    "ww_urban":
+      "title": "Tratamiento de aguas residuales urbanas"
+      "why": "Las aguas residuales sin tratar y de letrinas emiten metano; el tratamiento avanzado con captura de biogás es el que menos emite."
+      "unit": "% de la población"
+    "ww_rural":
+      "title": "Tratamiento de aguas residuales rurales"
+      "why": "Las mismas vías de tratamiento para la población rural."
+      "unit": "% de la población"

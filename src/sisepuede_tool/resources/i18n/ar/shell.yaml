@@ -1,0 +1,87 @@
+# UI text, Arabic (Egypt). Draft: needs review by an Egyptian reviewer (see README.md).
+# Plural entries can use zero, one, two, few (3–10), many (11–99), other (100+, fallback).
+# Sidebar, topbar, page names, sector names.
+
+shell:
+  title: "مصر: القياس والإبلاغ والتحقق باستخدام SISEPUEDE"
+  country: "مصر"
+  console: "منصة MRV"
+  pin: "إبقاء القائمة مفتوحة"
+  advanced: "خيارات متقدمة"
+  advanced_on: "الخيارات المتقدمة مفعّلة"
+  advanced_note: "تعرض كل معاملات sisepuede وإعداداته."
+  engine_note: "محرك SISEPUEDE · وحدة التكاليف والمنافع"
+  language: "اللغة"
+  baselines_loaded:
+    zero: "لم يُحمَّل أي خط أساس"
+    one: "تم تحميل خط أساس واحد"
+    two: "تم تحميل خطَّي أساس"
+    few: "تم تحميل {n} خطوط أساس"
+    many: "تم تحميل {n} خط أساس"
+    other: "تم تحميل {n} خط أساس"
+
+nav:
+  groups:
+    workflow: "سير العمل"
+    results: "النتائج"
+    mrv: "القياس والإبلاغ والتحقق"
+    portfolio: "المحفظة · اختياري"
+    system: "النظام"
+  meta:
+    no_baseline: "لا يوجد خط أساس بعد"
+    pathways:
+      zero: "لا مسارات"
+      one: "مسار واحد"
+      two: "مساران"
+      few: "{n} مسارات"
+      many: "{n} مسارًا"
+      other: "{n} مسار"
+    transformations:
+      zero: "لا تحوّلات"
+      one: "تحوّل واحد"
+      two: "تحوّلان"
+      few: "{n} تحوّلات"
+      many: "{n} تحوّلًا"
+      other: "{n} تحوّل"
+    not_run: "لم يُشغَّل بعد"
+    last_run: "آخر تشغيل {time} · {ok} ناجح"
+  data_input:
+    label: "بيانات خط الأساس"
+    description: "خط أساس الانبعاثات الذي يُبنى عليه كل سيناريو."
+    crumb: "الإعداد / 1"
+  pathways:
+    label: "المسارات"
+    description: "افتح مُحوِّلًا، وأعد استخدام التحوّلات أو أنشئ تحوّلات جديدة، ثم أضفها إلى مسار."
+    crumb: "البناء / 2"
+  run:
+    label: "التشغيل"
+    description: "اختر خطوط الأساس والمسارات، ثم شغّل النموذج."
+    crumb: "التنفيذ / 3"
+  output_explorer:
+    label: "الانبعاثات ومحرّكاتها"
+    description: "من أين تأتي الانبعاثات، وكيف تغيّرها المسارات، وما الذي يحرّكها."
+  cost_benefits:
+    label: "التكاليف والمنافع"
+    description: "مقارنةً بسيناريو العمل كالمعتاد."
+  macroeconomic_impacts:
+    label: "الآثار الاقتصادية الكلية"
+    description: "الناتج المحلي الإجمالي والوظائف مقارنةً بسيناريو العمل كالمعتاد."
+  article_6:
+    label: "المادة 6"
+    description: "التخفيف الذي يتجاوز هدف المساهمة المحددة وطنيًا ويمكن نقله."
+  validation:
+    label: "الرصد"
+    description: "قارن مخرجات النموذج ببيانات الجرد الفعلية."
+  projects:
+    label: "المشروعات"
+    description: "اطّلع على المشروعات المعلنة واربط كلًا منها بتحوّل."
+  persistence:
+    label: "ملفات المشروع"
+    description: "صدّر المشروع كملفات sisepuede، أو استورد مشروعًا."
+
+sectors:
+  afolu: "AFOLU"
+  energy: "الطاقة"
+  circular_economy: "الاقتصاد الدائري"
+  ippu: "IPPU"
+  socioeconomic: "الاجتماعي والاقتصادي"

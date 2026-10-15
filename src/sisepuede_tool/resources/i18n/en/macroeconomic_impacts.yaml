@@ -1,0 +1,5 @@
+# Macroeconomic impacts page (en; hidden in the NDC version).
+
+macroeconomic_impacts:
+  title: "Macroeconomic Impacts"
+  not_implemented: "Macroeconomic impact analysis for run Strategies is not yet implemented."

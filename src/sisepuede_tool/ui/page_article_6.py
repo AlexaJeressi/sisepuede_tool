@@ -21,17 +21,24 @@ The Excel download has every group, year and pathway, with emissions, the
 target, the surplus or shortfall, the price and the value.
 """
 
+import re
+
 import pandas as pd
 from shiny import module, reactive, render, ui
 from shiny.module import resolve_id
 from shinywidgets import output_widget, render_plotly
 
 from sisepuede_tool.services import article6_service as a6
-from sisepuede_tool.services import download_service, library_service, pathway_service
+from sisepuede_tool.services import download_service, i18n, library_service, pathway_service
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
+
+
+def group_name(group: str, lang=None) -> str:
+    """An emission group (resources/article6/emission_groupings.csv) in `lang`."""
+    return i18n.td("article6", re.sub(r"[^a-z0-9]+", "_", group.lower()).strip("_"), "name", group, lang)
 
 
 @module.ui
@@ -41,16 +48,13 @@ def page_article_6_ui():
         ui.output_ui("kpis"),
         ui.div(
             ui.div(
-                ui.span("Carbon price", class_="section-label"),
-                info_tip(
-                    "Credits are valued at the carbon price of each NDC target year. Only the target years "
-                    "count, so only their prices change the result."
-                ),
+                ui.span(i18n.t("article_6.carbon_price"), class_="section-label"),
+                info_tip(i18n.t("article_6.carbon_price_tip")),
                 class_="box-head",
             ),
             ui.output_ui("price_used"),
             ui.div(
-                ui.div(ui.span("Change the carbon price", class_="section-label"), ui.span("ADVANCED", class_="adv-tag")),
+                ui.div(ui.span(i18n.t("article_6.change_price"), class_="section-label"), ui.span(i18n.t("results.advanced"), class_="adv-tag")),
                 ui.div(
                     *[
                         ui.input_numeric(f"price_{y}", f"{y} (USD/tCO₂e)", value=round(p, 2), min=0, step=0.5, width="170px")
@@ -58,29 +62,23 @@ def page_article_6_ui():
                     ],
                     class_="btn-row",
                 ),
-                ui.input_action_button("price_reset", "Reset to reference prices", class_="btn-inline btn-ghost"),
-                ui.div("The tiles, the chart and the download update right away; no new run is needed.", class_="small muted"),
+                ui.input_action_button("price_reset", i18n.t("article_6.reset"), class_="btn-inline btn-ghost"),
+                ui.div(i18n.t("article_6.instant"), class_="small muted"),
                 class_="adv-only adv-box",
             ),
             class_="box",
         ),
         ui.div(
             ui.div(
-                ui.span("Credits by emission group", class_="section-label"),
-                info_tip(
-                    "For each NDC target year, the value of the emissions a pathway keeps below the target of each "
-                    "emission group. A group above its target earns nothing and does not reduce the credits of another group."
-                ),
-                ui.span("million USD", class_="small muted"),
+                ui.span(i18n.t("article_6.by_group"), class_="section-label"),
+                info_tip(i18n.t("article_6.by_group_tip")),
+                ui.span(i18n.t("results.million_usd"), class_="small muted"),
                 class_="box-head",
             ),
             output_widget("groups_chart"),
             ui.output_ui("modelled_note"),
             ui.output_ui("excluded_note"),
-            ui.div(
-                "Credits = NDC target − pathway emissions, when positive, times the carbon price of that year.",
-                class_="small muted",
-            ),
+            ui.div(i18n.t("article_6.formula"), class_="small muted"),
             class_="box",
         ),
         class_="res-page",
@@ -94,6 +92,12 @@ def page_article_6_server(input, output, session, state: AppState):
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
     ref_price = a6.price_by_year(ref["prices"], years)
+
+    def _t(key, **fmt):
+        return i18n.t(f"article_6.{key}", state.lang(), **fmt)
+
+    def _price(p: float) -> str:
+        return i18n.t("results.price_t", state.lang(), p=f"{p:.2f}")
 
     @reactive.calc
     def edited_prices() -> dict:
@@ -120,7 +124,7 @@ def page_article_6_server(input, output, session, state: AppState):
 
     def _price_text() -> str:
         used = a6.price_by_year(ref_used()["prices"], years)
-        return " · ".join(f"{y}: ${used[y]:.2f}/t" for y in years)
+        return " · ".join(f"{y}: {_price(used[y])}" for y in years)
 
     def _earns_credits(sid: int) -> bool:
         tx = state.transformations_obj.get()
@@ -170,8 +174,15 @@ def page_article_6_server(input, output, session, state: AppState):
                 vals.append(
                     ui.div(
                         ui.div(str(y), class_="k"),
-                        ui.div(f"${rc.fmt(t['value_musd'])} M", class_="v " + ("pos" if t["value_musd"] > 0 else "")),
-                        ui.div(f"{rc.fmt(t['credits_mt'])} MtCO₂e · ${t['price']:.1f}/t", class_="small muted mono"),
+                        ui.div(
+                            i18n.t("results.money_m", state.lang(), v=rc.fmt(t["value_musd"])),
+                            class_="v " + ("pos" if t["value_musd"] > 0 else ""),
+                        ),
+                        ui.div(
+                            f"{i18n.isolate(rc.fmt(t['credits_mt']) + ' MtCO₂e', state.lang())}"
+                            f" · {i18n.isolate(_price(t['price']), state.lang())}",
+                            class_="small muted mono",
+                        ),
                     )
                 )
             tiles.append(
@@ -184,28 +195,34 @@ def page_article_6_server(input, output, session, state: AppState):
         return ui.div(*tiles, class_="kpi-row")
 
     @render_plotly
+
+    @rc.bidi_for(state.lang)
     def groups_chart():
         _, rows = estimates()
         if not rows:
-            return rc.empty_figure("Run a pathway that goes beyond the NDC (e.g. LEP) to see its credits.", height=360)
+            return rc.empty_figure(_t("empty_none"), height=360)
         frames = {
             name: est.rename(columns={a6.FIELD_GROUP: "series", "value_musd": "value"})[["year", "series", "value"]]
             for _, name, est in rows
         }
         if all((f["value"] <= 1e-9).all() for f in frames.values()):
-            return rc.empty_figure("No pathway goes below the NDC target of any emission group in the target years.", height=360)
+            return rc.empty_figure(_t("empty_zero"), height=360)
+        lang = state.lang()
         order = list(ref["groupings"][a6.FIELD_GROUP])
-        return rc.credit_bars(frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, "million USD")
+        return rc.credit_bars(
+            frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
+            lang=lang, labels={g: group_name(g, lang) for g in order},
+        )
 
     @render.ui
     def price_used():
         edited = edited_prices()
         if not edited:
-            return ui.div(ui.span(_price_text(), class_="mono"), ui.span(" · reference prices", class_="small muted"))
-        ref_txt = " · ".join(f"{y}: ${ref_price[y]:.2f}/t" for y in years)
+            return ui.div(ui.span(_price_text(), class_="mono"), ui.span(" · " + _t("reference_prices"), class_="small muted"))
+        ref_txt = " · ".join(f"{y}: {_price(ref_price[y])}" for y in years)
         return ui.div(
             ui.span(_price_text(), class_="mono"),
-            ui.div(f"Changed in advanced options. Reference prices: {ref_txt}.", class_="small", style="color:var(--rust)"),
+            ui.div(_t("changed", prices=ref_txt), class_="small", style="color:var(--rust)"),
         )
 
     @render.ui
@@ -214,23 +231,16 @@ def page_article_6_server(input, output, session, state: AppState):
         missing = sorted({g for _, _, est in rows for g in a6.not_modelled(est)})
         if not missing:
             return None
-        return ui.div(
-            f"Left out (no emissions in these runs): {', '.join(missing)}. "
-            "Electricity and fugitive emissions need the electricity model: tick “Run electricity dispatch "
-            "(NemoMod)” on the Run page.",
-            class_="info-box small",
-        )
+        lang = state.lang()
+        names = i18n.t("results.list_sep", lang).join(group_name(g, lang) for g in missing)
+        return ui.div(_t("left_out", groups=names), class_="info-box small")
 
     @render.ui
     def excluded_note():
         _, _, left_out = pathway_rows()
         if not left_out:
             return None
-        return ui.div(
-            f"Not shown: {', '.join(left_out)}. The NDC targets are the NDC pathway's own emissions, so only "
-            "pathways with transformations beyond the NDC earn credits.",
-            class_="small muted",
-        )
+        return ui.div(_t("not_shown", names=i18n.t("results.list_sep", state.lang()).join(left_out)), class_="small muted")
 
     @render.download(filename=lambda: "article_6_credits.xlsx")
     def download_xlsx():
@@ -238,5 +248,8 @@ def page_article_6_server(input, output, session, state: AppState):
         baselines = state.baselines.get()
         label = baselines[bid].label if bid in baselines else (bid or "")
         edited = edited_prices()
-        note = f"Carbon prices changed by the user: {_price_text()} (USD/tCO2e)." if edited else None
+        # the workbook is in English, whatever the UI language
+        used = a6.price_by_year(ref_used()["prices"], years)
+        prices = " · ".join(f"{y}: ${used[y]:.2f}/t" for y in years)
+        note = f"Carbon prices changed by the user: {prices} (USD/tCO2e)." if edited else None
         yield download_service.article6_workbook([(name, est) for _, name, est in rows], label, ref_used(), price_note=note)

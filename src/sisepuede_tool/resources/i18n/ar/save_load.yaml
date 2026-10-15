@@ -1,0 +1,15 @@
+# Project files page (ar; hidden in the NDC version). Draft.
+
+save_load:
+  export_title: "تصدير الجلسة"
+  export_text: "نزّل التحوّلات والاستراتيجيات في الجلسة الحالية كمشروع sisepuede بصيغة ‎.zip (config_general.yaml وtransformation_*.yaml وstrategy_definitions.csv)، ويمكن تحميله دون تعديل في واجهة سطر أوامر sisepuede أو في دفاتر الملاحظات."
+  download: "تنزيل ‎.zip"
+  import_title: "استيراد جلسة"
+  import_text: "ارفع ملف مشروع ‎.zip صُدِّر سابقًا (أو أُعدّ عبر واجهة سطر الأوامر). يحلّ محل التحوّلات والاستراتيجيات في الجلسة الحالية، لذا صدّرها أولًا إن أردت الاحتفاظ بها."
+  project_zip: "ملف المشروع ‎.zip"
+  import_button: "استيراد"
+  choose_zip: "اختر ملف مشروع ‎.zip أولًا."
+  add_baseline_first: "أضف خط أساس في صفحة بيانات خط الأساس أولًا."
+  import_failed: "فشل الاستيراد: {error}"
+  imported: "تم الاستيراد. التحوّلات: {transformations}. الاستراتيجيات: {strategies}."
+  session_imported: "تم استيراد الجلسة."

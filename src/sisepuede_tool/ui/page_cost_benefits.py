@@ -23,7 +23,7 @@ from shinywidgets import output_widget, render_plotly
 
 from sisepuede_tool import config
 from sisepuede_tool.services import cb_summary_service as cbs
-from sisepuede_tool.services import download_service
+from sisepuede_tool.services import download_service, i18n
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
@@ -39,19 +39,30 @@ def page_cost_benefits_ui():
         ui.div(
             ui.div(
                 ui.div(
-                    ui.div(ui.span("Costs & benefits by year", class_="section-label"), ui.output_ui("pw_label", inline=True), class_="box-head"),
+                    ui.div(
+                        ui.span(i18n.t("cost_benefits.by_year"), class_="section-label"), ui.output_ui("pw_label", inline=True), class_="box-head"
+                    ),
                     ui.output_ui("pw_tabs"),
                     ui.div(
-                        ui.div(ui.input_radio_buttons("group", None, {"category": "By category", "sector_label": "By sector"}, inline=True), class_="seg"),
-                        ui.div(ui.input_radio_buttons("units", None, {"busd": "Billion USD", "gdp": "% of GDP"}, inline=True), class_="seg"),
+                        ui.div(
+                            ui.input_radio_buttons(
+                                "group",
+                                None,
+                                {"category": i18n.t("cost_benefits.by_category"), "sector_label": i18n.t("cost_benefits.by_sector")},
+                                inline=True,
+                            ),
+                            class_="seg",
+                        ),
+                        ui.div(
+                            ui.input_radio_buttons(
+                                "units", None, {"busd": i18n.t("cost_benefits.billion_usd"), "gdp": i18n.t("results.pct_gdp")}, inline=True
+                            ),
+                            class_="seg",
+                        ),
                         class_="res-controls",
                     ),
                     output_widget("cb_chart"),
-                    ui.div(
-                        "Above zero: benefits (savings, avoided damages). Below zero: costs. "
-                        "All values are relative to business as usual.",
-                        class_="small muted",
-                    ),
+                    ui.div(i18n.t("cost_benefits.chart_note"), class_="small muted"),
                     class_="box",
                 ),
                 ui.div(
@@ -60,19 +71,18 @@ def page_cost_benefits_ui():
                         class_="box-head",
                     ),
                     ui.div(
-                        ui.div(ui.span("Discount rate", class_="section-label"), ui.span("ADVANCED", class_="adv-tag")),
+                        ui.div(
+                            ui.span(i18n.t("cost_benefits.discount_rate"), class_="section-label"),
+                            ui.span(i18n.t("results.advanced"), class_="adv-tag"),
+                        ),
                         ui.div(
                             ui.input_radio_buttons(
-                                "rate", None, {"0": "None", "3": "3%", "5": "5%", "7": "7%"}, selected="0", inline=True
+                                "rate", None, {"0": i18n.t("cost_benefits.rate_none"), "3": "3%", "5": "5%", "7": "7%"}, selected="0", inline=True
                             ),
                             class_="seg",
                         ),
-                        ui.input_numeric("rate_custom", "Other rate (%)", value=None, min=0, max=20, step=0.5),
-                        ui.div(
-                            "By default totals are not discounted. A rate converts each year's value to 2025 money "
-                            "and gives less weight to later years.",
-                            class_="small muted",
-                        ),
+                        ui.input_numeric("rate_custom", i18n.t("cost_benefits.other_rate"), value=None, min=0, max=20, step=0.5),
+                        ui.div(i18n.t("cost_benefits.rate_note"), class_="small muted"),
                         class_="adv-only adv-box",
                     ),
                     ui.output_ui("npv_panel"),
@@ -84,13 +94,10 @@ def page_cost_benefits_ui():
         ui.div(
             ui.div(
                 ui.div(
-                    ui.span("Largest items", class_="section-label"),
-                    info_tip(
-                        "The individual costs and benefits behind the categories, ranked by their total over "
-                        "2025–2050. Pick a category to see everything inside it."
-                    ),
+                    ui.span(i18n.t("cost_benefits.largest_items"), class_="section-label"),
+                    info_tip(i18n.t("cost_benefits.largest_items_tip")),
                 ),
-                ui.input_select("item_category", None, {"": "All categories"}, width="260px"),
+                ui.input_select("item_category", None, {"": i18n.t("cost_benefits.all_categories")}, width="260px"),
                 class_="box-head",
             ),
             output_widget("items_chart"),
@@ -105,6 +112,13 @@ def page_cost_benefits_server(input, output, session, state: AppState):
     ev_id = resolve_id("ui_event")
     results_bar.bar_server(input, state, ev_id)
     selected_pw = reactive.Value(None)  # pathway id shown in the chart
+
+    def _t(key, **fmt):
+        return i18n.t(f"cost_benefits.{key}", state.lang(), **fmt)
+
+    def _rate_label(r: float) -> str:
+        """Translated cbs.rate_label."""
+        return _t("rate_label_none") if r == 0 else _t("rate_label_pct", rate=f"{r:g}", year=cbs.START_YEAR)
 
     @reactive.calc
     def long() -> Optional[pd.DataFrame]:
@@ -183,64 +197,59 @@ def page_cost_benefits_server(input, output, session, state: AppState):
         return cbs.gdp_by_year(rr.df_input if rr is not None else None)
 
     @render_plotly
+
+    @rc.bidi_for(state.lang)
     def cb_chart():
         d = long()
         sid = current_pw()
         if d is None or sid is None:
-            msg = (
-                "Costs & benefits are computed after a run that includes business as usual and a pathway."
-                if d is None
-                else "Select a pathway other than business as usual."
-            )
+            msg = _t("empty_no_cb") if d is None else _t("empty_pick")
             return rc.empty_figure(msg, height=420)
+        lang = state.lang()
         group = input.group()
         wide = cbs.by_group(d, sid, group)
-        unit = "billion USD"
+        unit = i18n.t("results.billion_usd", lang)
         if input.units() == "gdp":
             gdp = _gdp(sid)
             if gdp is None:
-                return rc.empty_figure("GDP is not available in this run's inputs.", height=420)
+                return rc.empty_figure(_t("no_gdp"), height=420)
             wide = wide.div(gdp.reindex(wide.index), axis=0).mul(100)
-            unit = "% of GDP"
+            unit = i18n.t("results.pct_gdp", lang)
         colors = rc.CB_CATEGORY_COLORS if group == "category" else {
             c: rc.SUBSECTOR_COLORS.get(_abv_of(d, c), rc.OTHER_COLOR) for c in wide.columns
         }
-        return rc.cb_bars(wide, colors, unit)
+        return rc.cb_bars(wide, colors, unit, lang=lang)
 
     @reactive.effect
     def _item_categories():
         d = long()
         cats = [c for c in cbs.CATEGORY_ORDER + [cbs.OTHER] if d is not None and (d["category"] == c).any()]
         current = input.item_category() if "item_category" in input else ""
-        ui.update_select("item_category", choices={"": "All categories", **{c: c for c in cats}}, selected=current if current in cats else "")
+        lang = state.lang()
+        choices = {"": _t("all_categories"), **{c: rc.series_label(c, lang) for c in cats}}
+        ui.update_select("item_category", choices=choices, selected=current if current in cats else "")
 
     @render_plotly
+
+    @rc.bidi_for(state.lang)
     def items_chart():
         d = long()
         sid = current_pw()
         if d is None or sid is None:
-            return rc.empty_figure("No costs & benefits yet.", height=200)
+            return rc.empty_figure(_t("none_yet"), height=200)
         cat = input.item_category() or None
         items = cbs.items_npv(d, sid, rate(), cat).head(15)
         if items.empty:
-            return rc.empty_figure("Nothing in this category for this pathway.", height=200)
-        return rc.item_bars(items, rc.CB_CATEGORY_COLORS, f"Total 2025–2050, billion USD ({cbs.rate_label(rate())})")
+            return rc.empty_figure(_t("empty_category"), height=200)
+        return rc.item_bars(items, rc.CB_CATEGORY_COLORS, _t("items_unit", rate=_rate_label(rate())), lang=state.lang())
 
     @render.ui
     def side_title():
         r = rate()
         if r == 0:
-            title = "Net benefits 2025–2050"
-            tip = (
-                "Every year's benefits minus costs from 2025 to 2050, added up (not discounted). "
-                "Positive = the pathway's benefits outweigh its costs compared with business as usual."
-            )
+            title, tip = _t("net_benefits_title"), _t("net_benefits_tip")
         else:
-            title = "Net present value 2025–2050"
-            tip = (
-                f"Every year's benefits minus costs from 2025 to 2050, each converted to 2025 money at {r:g}% "
-                "a year, then added up. A higher rate gives less weight to later years."
-            )
+            title, tip = _t("npv_title"), _t("npv_tip", rate=f"{r:g}")
         return ui.div(ui.span(title, class_="section-label"), info_tip(tip))
 
     @render.ui
@@ -248,29 +257,30 @@ def page_cost_benefits_server(input, output, session, state: AppState):
         d = long()
         sid = current_pw()
         if d is None or sid is None:
-            return ui.div("No costs & benefits yet.", class_="small muted")
+            return ui.div(_t("none_yet"), class_="small muted")
         r = rate()
+        lang = state.lang()
         s = cbs.npv_summary(d, sid, r, group=input.group())
 
         def money(v):
-            return ("+" if v >= 0 else "−") + f"${rc.fmt(abs(v))} B"
+            return i18n.t("results.money_b", lang, sign="+" if v >= 0 else "−", v=rc.fmt(abs(v)))
 
         kpis = ui.div(
             ui.div(
                 ui.div(
-                    "Net benefits" if r == 0 else "Net NPV",
-                    info_tip("Total benefits minus total costs, in billions of USD" + ("." if r == 0 else f", in 2025 money at {r:g}%.")),
+                    _t("kpi_net") if r == 0 else _t("kpi_npv"),
+                    info_tip(_t("kpi_net_tip") if r == 0 else _t("kpi_npv_tip", rate=f"{r:g}")),
                     class_="k",
                 ),
                 ui.div(money(s["net"]), class_="v " + ("pos" if s["net"] >= 0 else "neg")),
             ),
             ui.div(
-                ui.div("Benefit / cost", info_tip("Total benefits divided by total costs. Above 1× the benefits are larger."), class_="k"),
+                ui.div(_t("kpi_bcr"), info_tip(_t("kpi_bcr_tip")), class_="k"),
                 ui.div(f"{s['bcr']:.1f}×" if s["bcr"] else "–", class_="v"),
             ),
             ui.div(
-                ui.div("Net positive from", info_tip("First year in which that year's benefits exceed that year's costs (not discounted)."), class_="k"),
-                ui.div(str(s["net_positive_year"] or "never"), class_="v"),
+                ui.div(_t("kpi_positive"), info_tip(_t("kpi_positive_tip")), class_="k"),
+                ui.div(str(s["net_positive_year"] or _t("never")), class_="v"),
             ),
             class_="kpi-vals cb-kpis",
         )
@@ -282,7 +292,7 @@ def page_cost_benefits_server(input, output, session, state: AppState):
             color = rc.COST if v < 0 else (rc.CB_CATEGORY_COLORS.get(name, "#0F6E6E") if input.group() == "category" else "#0F6E6E")
             rows.append(
                 ui.div(
-                    ui.div(name, class_="npv-name"),
+                    ui.div(rc.series_label(name, lang), class_="npv-name"),
                     ui.div(ui.div(class_="npv-bar", style=f"width:{abs(v) / top * 100:.1f}%;background:{color}"), class_="npv-track"),
                     ui.div(money(v), class_="npv-val mono"),
                     class_="npv-row",
@@ -291,15 +301,12 @@ def page_cost_benefits_server(input, output, session, state: AppState):
         return ui.TagList(
             kpis,
             ui.div(
-                f"Benefits {money(s['benefits'])} · costs {money(-s['costs'])}"
-                + ("." if r == 0 else f" (present values). Not discounted, the net is {money(cum)}."),
+                _t("benefits_costs", benefits=money(s["benefits"]), costs=money(-s["costs"]))
+                + ("." if r == 0 else _t("pv_note", net=money(cum))),
                 class_="small muted",
             ),
             ui.div(*rows, class_="npv-list"),
-            ui.div(
-                f"Billions USD, {cbs.rate_label(r)}, relative to business as usual.",
-                class_="small muted",
-            ),
+            ui.div(_t("footer", rate=_rate_label(r)), class_="small muted"),
         )
 
     @render.download(filename=lambda: "costs_and_benefits.xlsx")

@@ -1,0 +1,23 @@
+# Monitoring page (en; hidden in the NDC version).
+
+monitoring:
+  upload_title: "Upload monitoring data"
+  dataset_csv: "Monitoring dataset CSV"
+  crosswalk_csv: "Crosswalk CSV"
+  validate_load: "Validate & Load"
+  compare_title: "Compare"
+  comparison: "Comparison"
+  runs_to_compare: "Runs to compare"
+  chart_title: "Observed vs. Modeled"
+  choose_both: "Choose both a monitoring dataset CSV and a crosswalk CSV."
+  crosswalk_errors: "Crosswalk errors:"
+  loaded:
+    one: "Loaded. {n} comparison available."
+    other: "Loaded. {n} comparisons available."
+  data_loaded: "Monitoring data loaded."
+  no_data: "No monitoring data loaded yet."
+  chart_empty: "Load validation data, pick a comparison, and select run(s) to compare."
+  axis_year: "Time period"
+  axis_value: "Value"
+  metrics: "{label}: RMSE={rmse:.4g}, MAE={mae:.4g}, bias={bias:.4g}"
+  no_overlap: "No overlapping time periods to score."

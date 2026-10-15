@@ -10,14 +10,20 @@ tray in three columns (Claude Design prototype, "Pathways").
 * Right: the active pathway's contents, grouped by transformer.
 
 "Pathway" is the UI name for a sisepuede Strategy (services/pathway_service).
+UI text is in resources/i18n/<lang>/pathways.yaml; transformer, parameter and
+library text from the resource files goes through `i18n.td` (es/ar in
+data_*.yaml), applied in `card()`, `specs_for()` and `tx_label()`.
 Business as usual (strategy 0) is implicit and not shown as a tab.
 
 Clicks in the hand-built HTML (rows, tabs, footer buttons) all go through
 one namespaced input, `ui_event`, carrying {"type", "value"}; `_on_event`
 dispatches them. The editor form is rendered only when something is opened
 (`editor_nonce`), so status/footers can re-render without resetting inputs.
+On a language switch the form is redrawn in the new language from what the
+user has typed so far (`draft`), so unsaved edits survive.
 """
 
+import dataclasses
 import json
 import logging
 import math
@@ -29,6 +35,7 @@ from shiny.module import resolve_id
 from sisepuede_tool.models.param_spec import WidgetKind
 from sisepuede_tool import config
 from sisepuede_tool.services import (
+    i18n,
     library_service,
     pathway_service,
     projects_service,
@@ -38,23 +45,25 @@ from sisepuede_tool.services import (
     widget_metadata,
 )
 from sisepuede_tool.ui.components import charts, param_widget
+from sisepuede_tool.services.labels import clean_label, strip_subsector_prefix
 from sisepuede_tool.ui.state import AppState
 
 logger = logging.getLogger(__name__)
 
 
-_EMISSION_LABELS = {
-    "decreases": ("↓ Lower", "dir-down"),
-    "increases": ("↑ Higher", "dir-up"),
-    "no_change": ("≈ No clear change", "dir-flat"),
-    "depends_on_grid": ("≈ Depends on the grid", "dir-mixed"),
-    "needs_electricity_model": ("Needs the electricity model", "dir-mixed"),
+# direction -> css class; text is pathways.emission.<direction> / pathways.direction.<direction>
+_EMISSION_CLASSES = {
+    "decreases": "dir-down",
+    "increases": "dir-up",
+    "no_change": "dir-flat",
+    "depends_on_grid": "dir-mixed",
+    "needs_electricity_model": "dir-mixed",
 }
-_DIRECTION_LABELS = {
-    "increases": ("↑ increases", "dir-up"),
-    "decreases": ("↓ decreases", "dir-down"),
-    "shifts": ("↕ shifts", "dir-mixed"),
-    "no_change": ("→ no change", "dir-flat"),
+_DIRECTION_CLASSES = {
+    "increases": "dir-up",
+    "decreases": "dir-down",
+    "shifts": "dir-mixed",
+    "no_change": "dir-flat",
 }
 
 
@@ -64,7 +73,8 @@ def _sector_class(sector: Optional[str]) -> str:
 
 # Policy areas used to group and filter transformers on the left: coarser
 # than sisepuede subsectors, closer to how NDC chapters are organised.
-# (label, sector colour, subsector codes)
+# (label, sector colour, subsector codes); the label is the area's id, shown
+# as pathways.areas.<_AREA_KEYS[label]>
 _AREAS = [
     ("Electricity & fuels", "Energy", ("ENTC", "ENFU", "FGTV", "CCSQ")),
     ("Transport", "Energy", ("TRNS", "TRDE")),
@@ -76,6 +86,16 @@ _AREAS = [
     ("Cross-cutting", "other", ("GNRL",)),
 ]
 # cross-sector (PFLO) transformers go where they act
+_AREA_KEYS = {
+    "Electricity & fuels": "electricity_fuels",
+    "Transport": "transport",
+    "Buildings": "buildings",
+    "Industry": "industry",
+    "Agriculture & food": "agriculture_food",
+    "Land & forests": "land_forests",
+    "Waste": "waste",
+    "Cross-cutting": "cross_cutting",
+}
 _AREA_OVERRIDES = {
     "TFR:PFLO:INC_HEALTHIER_DIETS": "Agriculture & food",
     "TFR:PFLO:INC_IND_CCS": "Industry",
@@ -106,6 +126,38 @@ def _strip_ndc_prefix(name: str) -> str:
     return library_service.strip_set_prefix(name)
 
 
+def _area_label(area: str, lang: str) -> str:
+    return i18n.t(f"pathways.areas.{_AREA_KEYS[area]}", lang, default=area)
+
+
+def _sector_label(sector: Optional[str], lang: str) -> str:
+    if not sector:
+        return ""
+    return i18n.t(f"sectors.{sector.lower().replace(' ', '_')}", lang, default=sector)
+
+
+def _localize_card(cd: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    """Transformer card with its resource text translated (data.transformers.*).
+
+    Translations replace the English text get_card shows (curated or computed)
+    and are cleaned the same way, so a translated name may keep the "AGRC: " prefix.
+    """
+    if lang == i18n.DEFAULT_LANG:
+        return cd
+    code = cd["code"]
+
+    def tr(field, english):
+        return i18n.td("transformers", code, field, english, lang)
+
+    out = dict(cd)
+    out["name"] = strip_subsector_prefix(clean_label(tr("name", cd["name"])))
+    out["description"] = clean_label(tr("short_description", "") or tr("description", cd["description"]))
+    out["magnitude_label"] = tr("magnitude_label", cd["magnitude_label"])
+    help_text = tr("magnitude_help", "") or tr("units_description", cd["magnitude_help"])
+    out["magnitude_help"] = clean_label(help_text) if help_text else help_text
+    return out
+
+
 @module.ui
 def page_pathways_ui():
     return ui.div(
@@ -113,7 +165,7 @@ def page_pathways_ui():
         ui.div(
             ui.div(
                 ui.div(ui.output_ui("sector_chips"), class_="pw-pad", style="padding-bottom:0"),
-                ui.div(ui.input_text("search", None, placeholder="Search transformers…"), class_="pw-pad"),
+                ui.div(ui.input_text("search", None, placeholder=i18n.t("pathways.search_placeholder")), class_="pw-pad"),
                 ui.div(ui.output_ui("transformer_list"), class_="pw-pad", style="padding-top:0"),
                 class_="pw-col pw-left",
             ),
@@ -135,9 +187,11 @@ def page_pathways_server(input, output, session, state: AppState):
 
     open_transformer = reactive.Value(None)  # transformer code
     # editor: None, or {"mode": "new"|"edit", "transformer": code, "code": tx code|None,
-    #                   "params": dict, "name": str, "description": str, "basis": str|None}
+    #                   "params": dict, "name": str, "description": str, "link_project": str|None, "auto_name": bool}
     editor = reactive.Value(None)
     editor_nonce = reactive.Value(0)
+    draft = reactive.Value(None)  # the form's unsaved values, kept across a language switch: {"name", "description", "code", "params"}
+    shown_default_name = {"value": None}  # the generated name last put in the form (not reactive)
     expanded = reactive.Value(set())  # transformer codes expanded in the left list
     chips_open = reactive.Value(True)  # the subsector filter block is expanded
     area_filter = reactive.Value(frozenset())  # policy areas (_AREAS) shown in the left list; empty = all
@@ -145,6 +199,12 @@ def page_pathways_server(input, output, session, state: AppState):
     overrides = widget_metadata.load_overrides(widget_metadata.default_overrides_path())
 
     # ------------------------------------------------------------------ helpers
+
+    def _t(key, **fmt):
+        return i18n.t(f"pathways.{key}", state.lang(), **fmt)
+
+    def _tn(key, n, **fmt):
+        return i18n.tn(f"pathways.{key}", n, state.lang(), **fmt)
 
     def _ev(kind: str, value: Any = "") -> str:
         payload = json.dumps({"type": kind, "value": value})
@@ -179,7 +239,7 @@ def page_pathways_server(input, output, session, state: AppState):
 
     def card(code: str) -> Dict[str, Any]:
         c = ctx()
-        return transformer_metadata_service.get_card(code, catalog_meta(), tk=c["tk"] if c else None)
+        return _localize_card(transformer_metadata_service.get_card(code, catalog_meta(), tk=c["tk"] if c else None), state.lang())
 
     def active_pathway() -> Optional[int]:
         pathways = state.strategies_map.get()
@@ -196,7 +256,22 @@ def page_pathways_server(input, output, session, state: AppState):
 
     def specs_for(transformer_code: str):
         c = ctx()
-        return widget_metadata.build_param_specs(c["tk"].get_tkernel(transformer_code), c["ma"], c["tk"], overrides)
+        specs = widget_metadata.build_param_specs(c["tk"].get_tkernel(transformer_code), c["ma"], c["tk"], overrides)
+        lang = state.lang()
+        if lang == i18n.DEFAULT_LANG:
+            return specs
+        # labels and help from param_schemas.yaml, translated (data.params.*)
+        out = []
+        for spec in specs:
+            key = f"{transformer_code}.{spec.name}"
+            out.append(
+                dataclasses.replace(
+                    spec,
+                    label=i18n.td("params", key, "label", spec.label, lang),
+                    help_text=i18n.td("params", key, "help", spec.help_text, lang),
+                )
+            )
+        return out
 
     def ramp_values(params: Dict[str, Any]) -> List[float]:
         c = ctx()
@@ -208,11 +283,22 @@ def page_pathways_server(input, output, session, state: AppState):
         c = ctx()
         t = c["tx"].dict_transformations[code]
         cd = card(t.transformer_code)
-        return pathway_service.summarize(t, cd["magnitude_param"], c["years"], c["default_ramp"], cd["magnitude_default"])
+        # pathway_service.summarize, with the text translated
+        value = pathway_service.magnitude_of(t, cd["magnitude_param"], cd["magnitude_default"])
+        mag = pathway_service.format_magnitude(value) if value is not None else _t("custom_magnitude")
+        policy = pathway_service.policy_ramp_of(t, c["years"], c["default_ramp"])
+        return f"{mag} · {param_widget.describe_ramp(policy, state.lang())}"
+
+    def tx_name(code: str) -> str:
+        """Transformation name as shown; NDC/LEP library names translated (data.library.*)."""
+        t = ctx()["tx"].dict_transformations[code]
+        name = t.name or code
+        if code in ctx()["library"]:
+            name = i18n.td("library", code, "name", name, state.lang())
+        return name
 
     def tx_label(code: str) -> str:
-        t = ctx()["tx"].dict_transformations[code]
-        return _strip_ndc_prefix(t.name or code)
+        return _strip_ndc_prefix(tx_name(code))
 
     def basis_of(code: Optional[str]) -> Optional[str]:
         if code is None:
@@ -221,12 +307,13 @@ def page_pathways_server(input, output, session, state: AppState):
         if code in ctx()["library"]:
             item = ctx()["library"][code]
             if item.source == library_service.SOURCE_LEP:
-                return "LEP (beyond the NDC)"
-            return "NDC target" + (f" · {len(linked)} linked project{'s' if len(linked) != 1 else ''}" if linked else "")
-        return f"Based on project: {', '.join(linked)}" if linked else None
+                return _t("basis_lep")
+            return _t("basis_ndc") + (f" · {_tn('linked_projects', len(linked))}" if linked else "")
+        return _t("basis_project", names=", ".join(linked)) if linked else None
 
     def open_editor(
-        mode: str, transformer_code: str, code: Optional[str] = None, params=None, name="", description="", link_project=None
+        mode: str, transformer_code: str, code: Optional[str] = None, params=None, name="", description="", link_project=None,
+        auto_name: bool = False,
     ):
         editor.set(
             {
@@ -236,17 +323,21 @@ def page_pathways_server(input, output, session, state: AppState):
                 "params": dict(params or {}),
                 "name": name,
                 "description": description or "",
-                "basis": basis_of(code) if mode == "edit" else (f"For project: {link_project}" if link_project else None),
                 "link_project": link_project,
+                "auto_name": auto_name,  # name is the generated default, which follows the language until edited
             }
         )
         open_transformer.set(transformer_code)
         expanded.set(expanded.get() | {transformer_code})
+        draft.set(None)
         editor_nonce.set(editor_nonce.get() + 1)
 
     def open_existing(code: str):
         t = ctx()["tx"].dict_transformations[code]
-        open_editor("edit", t.transformer_code, code, t.dict_parameters, t.name or code, t.description or "")
+        description = t.description or ""
+        if code in ctx()["library"]:  # library items are read-only, so translated text is never saved back
+            description = i18n.td("library", code, "description", description, state.lang())
+        open_editor("edit", t.transformer_code, code, t.dict_parameters, tx_name(code), description)
 
     def set_pathways(pathways):
         state.strategies_map.set(pathways)
@@ -292,10 +383,10 @@ def page_pathways_server(input, output, session, state: AppState):
                 open_existing(value)
             elif kind == "new_tx":
                 cd = card(value)
-                open_editor("new", value, None, {}, f"{cd['name']} (custom)", "")
+                open_editor("new", value, None, {}, i18n.plain(_t("custom_name", name=cd["name"])), "", auto_name=True)
             elif kind == "duplicate":
                 t = c["tx"].dict_transformations[value]
-                open_editor("new", t.transformer_code, None, t.dict_parameters, f"{tx_label(value)} (copy)", t.description or "")
+                open_editor("new", t.transformer_code, None, t.dict_parameters, _t("copy_name", name=tx_label(value)), t.description or "")
             elif kind == "cancel":
                 ed = editor.get()
                 if ed and ed["mode"] == "edit":
@@ -307,16 +398,16 @@ def page_pathways_server(input, output, session, state: AppState):
             elif kind == "add":
                 _require_pathway()
                 set_pathways(pathway_service.add_to_pathway(state.strategies_map.get(), c["tx"], active_pathway(), value))
-                ui.notification_show(f"Added to {pathway_name(active_pathway())}.", type="message")
+                ui.notification_show(_t("added_to", pathway=pathway_name(active_pathway())), type="message")
             elif kind == "remove":
                 sid = active_pathway()
                 set_pathways(pathway_service.remove_from_pathway(state.strategies_map.get(), c["tx"], sid, value))
-                ui.notification_show(f"Removed from {pathway_name(sid)}.", type="message")
+                ui.notification_show(_t("removed_from", pathway=pathway_name(sid)), type="message")
             elif kind == "delete_tx":
                 set_pathways(pathway_service.delete_transformation(state.strategies_map.get(), c["tx"], value))
                 bump()
                 editor.set(None)
-                ui.notification_show(f"Deleted {value}.", type="message")
+                ui.notification_show(_t("deleted", code=value), type="message")
             elif kind == "dry_run":
                 _dry_run()
             elif kind == "unlink_project":
@@ -340,7 +431,10 @@ def page_pathways_server(input, output, session, state: AppState):
             if kind == "tx" and value in c["tx"].dict_transformations:
                 open_existing(value)
             elif kind == "new_tx" and value in c["tk"].all_tkernels:
-                open_editor("new", value, None, {}, req.get("name") or f"{card(value)['name']} (custom)", "", link_project=req.get("link_project"))
+                open_editor(
+                    "new", value, None, {}, req.get("name") or i18n.plain(_t("custom_name", name=card(value)["name"])), "",
+                    link_project=req.get("link_project"), auto_name=not req.get("name"),
+                )
             elif kind == "transformer" and value in c["tk"].all_tkernels:
                 open_transformer.set(value)
                 expanded.set(expanded.get() | {value})
@@ -348,7 +442,7 @@ def page_pathways_server(input, output, session, state: AppState):
 
     def _require_pathway():
         if active_pathway() is None:
-            raise ValueError("Create a pathway first (+ New pathway).")
+            raise ValueError(_t("need_pathway"))
 
     def _save(kind: str):
         c = ctx()
@@ -357,13 +451,13 @@ def page_pathways_server(input, output, session, state: AppState):
             return
         specs = specs_for(ed["transformer"])
         try:
-            params = param_widget.read_editor_params(input, specs, c["years"])
+            params = param_widget.read_editor_params(input, specs, c["years"], state.lang())
         except param_widget.ParamReadError as e:
-            ui.notification_show(f"Check the values: {e}", type="error", duration=8)
+            ui.notification_show(_t("check_values", error=e), type="error", duration=8)
             return
         name = (input.tx_name() or "").strip()
         if not name:
-            ui.notification_show("Give the transformation a name.", type="error")
+            ui.notification_show(_t("need_name"), type="error")
             return
         description = input.tx_description() or ""
         existing = set(c["tx"].dict_transformations)
@@ -375,10 +469,10 @@ def page_pathways_server(input, output, session, state: AppState):
                 ed["transformer"], existing
             )
             if not code.startswith("TX:"):
-                ui.notification_show("Transformation codes must start with 'TX:'.", type="error")
+                ui.notification_show(_t("code_prefix"), type="error")
                 return
             if code in existing:
-                ui.notification_show(f"{code} already exists; choose another code under Advanced options.", type="error")
+                ui.notification_show(_t("code_exists", code=code), type="error")
                 return
 
         transformation = transformation_service.build_transformation(
@@ -390,27 +484,27 @@ def page_pathways_server(input, output, session, state: AppState):
         except Exception as e:
             logger.warning("transformation %s fails on the baseline: %s", code, e)
             ui.notification_show(
-                f"Saved, but this transformation fails with the installed sisepuede: {type(e).__name__}: {e}",
+                _t("saved_but_fails", error=f"{type(e).__name__}: {e}"),
                 type="warning",
                 duration=10,
             )
 
         pathways = pathway_service.save_transformation(state.strategies_map.get(), c["tx"], transformation)
-        message = f"Saved {code} to the library."
+        message = _t("saved", code=code)
         if kind in ("create_add", "save_new_add"):
             _require_pathway()
             pathways = pathway_service.add_to_pathway(pathways, c["tx"], active_pathway(), code)
-            message = f"Created {code} and added it to {pathway_name(active_pathway())}."
+            message = _t("created_added", code=code, pathway=pathway_name(active_pathway()))
         elif kind == "update":
             n = len(pathway_service.pathways_using(code, pathways))
-            message = f"Updated {code}" + (f" in {n} pathway{'s' if n != 1 else ''}." if n else ".")
+            message = _tn("updated_in", n, code=code) if n else _t("updated", code=code)
         set_pathways(pathways)
         bump()
         if ed.get("link_project"):
             links = dict(state.project_links.get())
             links[ed["link_project"]] = code
             state.project_links.set(links)
-            message += f" Linked to project '{ed['link_project']}'."
+            message += " " + _t("linked_to_project", name=ed["link_project"])
         ui.notification_show(message, type="message")
         open_existing(code)
 
@@ -424,27 +518,27 @@ def page_pathways_server(input, output, session, state: AppState):
         try:
             entry.strategy(df_input=baseline.df)
         except Exception as e:
-            ui.notification_show(f"Dry run failed: {type(e).__name__}: {e}", type="error", duration=10)
+            ui.notification_show(_t("dry_run_failed", error=f"{type(e).__name__}: {e}"), type="error", duration=10)
             return
-        ui.notification_show(f"{entry.strategy.name}: all transformations apply cleanly to {baseline.label}.", type="message")
+        ui.notification_show(_t("dry_run_ok", pathway=entry.strategy.name, baseline=baseline.label), type="message")
 
     # ---- pathway modals
 
     def _show_new_pathway_modal():
         pathways = state.strategies_map.get()
-        choices = {"": "Blank"}
+        choices = {"": _t("blank")}
         for sid in pathway_service.pathway_ids(pathways):
             entry = pathways[sid]
-            choices[str(sid)] = f"Copy of {entry.strategy.name} ({len(entry.transformation_codes)})"
+            choices[str(sid)] = _t("copy_of", name=entry.strategy.name, n=len(entry.transformation_codes))
         n = len(pathway_service.pathway_ids(pathways)) + 1
         ui.modal_show(
             ui.modal(
-                ui.input_text("new_pathway_name", "Name", placeholder=f"Pathway {n}"),
-                ui.input_radio_buttons("new_pathway_from", "Start from", choices=choices, selected=""),
-                title="New pathway",
+                ui.input_text("new_pathway_name", _t("name"), placeholder=_t("pathway_n", n=n)),
+                ui.input_radio_buttons("new_pathway_from", _t("start_from"), choices=choices, selected=""),
+                title=_t("new_pathway_title"),
                 footer=ui.div(
-                    ui.modal_button("Cancel", class_="btn btn-inline"),
-                    ui.input_action_button("new_pathway_create", "Create", class_="btn-primary btn-inline"),
+                    ui.modal_button(_t("cancel"), class_="btn btn-inline"),
+                    ui.input_action_button("new_pathway_create", _t("create"), class_="btn-primary btn-inline"),
                     class_="btn-row",
                 ),
                 easy_close=True,
@@ -455,7 +549,7 @@ def page_pathways_server(input, output, session, state: AppState):
     @reactive.event(input.new_pathway_create)
     def _on_create_pathway():
         c = ctx()
-        name = (input.new_pathway_name() or "").strip() or f"Pathway {len(pathway_service.pathway_ids(state.strategies_map.get())) + 1}"
+        name = (input.new_pathway_name() or "").strip() or _t("pathway_n", n=len(pathway_service.pathway_ids(state.strategies_map.get())) + 1)
         copy_from = input.new_pathway_from()
         try:
             pathways, sid = pathway_service.create_pathway(
@@ -467,8 +561,11 @@ def page_pathways_server(input, output, session, state: AppState):
         set_pathways(pathways)
         state.active_pathway_id.set(sid)
         ui.modal_remove()
-        src = f" from {pathways[int(copy_from)].strategy.name}" if copy_from else ""
-        ui.notification_show(f"Created {name}{src}.", type="message")
+        if copy_from:
+            message = _t("created_pathway_from", name=name, source=pathways[int(copy_from)].strategy.name)
+        else:
+            message = _t("created_pathway", name=name)
+        ui.notification_show(message, type="message")
 
     def _show_rename_modal():
         sid = active_pathway()
@@ -476,11 +573,11 @@ def page_pathways_server(input, output, session, state: AppState):
             return
         ui.modal_show(
             ui.modal(
-                ui.input_text("rename_pathway_name", "Name", value=pathway_name(sid)),
-                title="Rename pathway",
+                ui.input_text("rename_pathway_name", _t("name"), value=pathway_name(sid)),
+                title=_t("rename_title"),
                 footer=ui.div(
-                    ui.modal_button("Cancel", class_="btn btn-inline"),
-                    ui.input_action_button("rename_pathway_ok", "Rename", class_="btn-primary btn-inline"),
+                    ui.modal_button(_t("cancel"), class_="btn btn-inline"),
+                    ui.input_action_button("rename_pathway_ok", _t("rename"), class_="btn-primary btn-inline"),
                     class_="btn-row",
                 ),
                 easy_close=True,
@@ -505,11 +602,11 @@ def page_pathways_server(input, output, session, state: AppState):
             return
         ui.modal_show(
             ui.modal(
-                ui.p(f"Delete the pathway '{pathway_name(sid)}'? Its transformations stay in the library."),
-                title="Delete pathway",
+                ui.p(_t("delete_confirm", name=pathway_name(sid))),
+                title=_t("delete_title"),
                 footer=ui.div(
-                    ui.modal_button("Cancel", class_="btn btn-inline"),
-                    ui.input_action_button("delete_pathway_ok", "Delete", class_="btn-rust btn-inline"),
+                    ui.modal_button(_t("cancel"), class_="btn btn-inline"),
+                    ui.input_action_button("delete_pathway_ok", _t("delete"), class_="btn-rust btn-inline"),
                     class_="btn-row",
                 ),
                 easy_close=True,
@@ -530,7 +627,7 @@ def page_pathways_server(input, output, session, state: AppState):
     def strip():
         pathways = state.strategies_map.get()
         if ctx() is None:
-            return ui.span("Load a baseline to start building pathways.", class_="muted")
+            return ui.span(_t("load_baseline"), class_="muted")
         sid_active = active_pathway()
         tabs = []
         for sid in pathway_service.pathway_ids(pathways):
@@ -544,13 +641,13 @@ def page_pathways_server(input, output, session, state: AppState):
                     type="button",
                 )
             )
-        tabs.append(ui.tags.button("+ New pathway", class_="pw-tab new", onclick=_ev("new_pathway"), type="button"))
+        tabs.append(ui.tags.button(_t("new_pathway"), class_="pw-tab new", onclick=_ev("new_pathway"), type="button"))
         baselines = state.baselines.get()
         note = None
         if baselines:
             first = next(iter(baselines.values()))
             note = ui.span(
-                ui.span("Catalog from ", class_="muted"),
+                ui.span(_t("catalog_from") + " ", class_="muted"),
                 ui.span(first.label, class_="mono"),
                 class_="small",
                 style="white-space:nowrap",
@@ -564,8 +661,8 @@ def page_pathways_server(input, output, session, state: AppState):
         c = ctx()
         if c is None:
             return ui.div(
-                "No baseline loaded yet.",
-                ui.tags.button("Go to Baseline data →", class_="link-btn d-block mt-2", onclick="mrvGoTo('data_input')"),
+                _t("no_baseline"),
+                ui.tags.button(_t("go_baseline"), class_="link-btn d-block mt-2", onclick="mrvGoTo('data_input')"),
                 class_="info-box",
             )
         query = (input.search() or "").strip().lower()
@@ -592,11 +689,11 @@ def page_pathways_server(input, output, session, state: AppState):
                 txs = c["by_transformer"].get(code, [])
                 n_in = sum(1 for t in txs if t in in_pathway)
                 if cd.get("status") == "error":
-                    meta = "Fails in installed sisepuede"
+                    meta = _t("fails_installed")
                 elif txs:
-                    meta = f"{len(txs)} transformation{'s' if len(txs) != 1 else ''}" + (f" · {n_in} in pathway" if n_in else "")
+                    meta = _tn("n_transformations", len(txs)) + (f" · {_t('n_in_pathway', n=n_in)}" if n_in else "")
                 else:
-                    meta = "No transformations yet"
+                    meta = _t("no_transformations")
                 is_exp = code in exp or bool(query and txs)
                 row = ui.div(
                     ui.span("▾" if is_exp else "▸", class_="chev"),
@@ -623,21 +720,21 @@ def page_pathways_server(input, output, session, state: AppState):
                                 onclick=_ev("tx", t_code),
                             )
                         )
-                    items.append(ui.div("+ New transformation", class_="tx-item add", onclick=_ev("new_tx", code)))
+                    items.append(ui.div(_t("new_transformation"), class_="tx-item add", onclick=_ev("new_tx", code)))
                     rows.append(ui.div(*items, class_="tx-list"))
             if rows:
                 blocks.append(
                     ui.div(
-                        ui.div(ui.span(class_=f"swatch {_sector_class(_AREA_SECTOR[area])}"), area.upper(), class_="section-label"),
+                        ui.div(ui.span(class_=f"swatch {_sector_class(_AREA_SECTOR[area])}"), _area_label(area, state.lang()).upper(), class_="section-label"),
                         *rows,
                         class_="tf-sector",
                     )
                 )
         if not blocks:
-            return ui.div("No transformer matches.", class_="muted small")
+            return ui.div(_t("no_match"), class_="muted small")
         return ui.TagList(
             *blocks,
-            ui.div(ui.span(class_="dot"), " In the current pathway", class_="small muted mt-3"),
+            ui.div(ui.span(class_="dot"), " " + _t("in_current_pathway"), class_="small muted mt-3"),
         )
 
     @reactive.effect
@@ -655,7 +752,7 @@ def page_pathways_server(input, output, session, state: AppState):
         shown = area_filter.get()
         chips = [
             ui.tags.button(
-                "All",
+                _t("all"),
                 type="button",
                 class_="sector-chip all" + ("" if shown else " on"),
                 onclick=_ev("area", ""),
@@ -666,7 +763,7 @@ def page_pathways_server(input, output, session, state: AppState):
             chips.append(
                 ui.tags.button(
                     ui.span(class_=f"swatch {_sector_class(_AREA_SECTOR[area])}"),
-                    area,
+                    _area_label(area, state.lang()),
                     ui.span(str(len(codes)), class_="n"),
                     type="button",
                     title="sisepuede: " + ", ".join(subsectors),
@@ -676,9 +773,9 @@ def page_pathways_server(input, output, session, state: AppState):
                 )
             )
         rows = [ui.div(*chips, class_="chip-row")]
-        picked = ", ".join(a for a in _AREA_ORDER if a in shown) if shown else "All"
+        picked = ", ".join(_area_label(a, state.lang()) for a in _AREA_ORDER if a in shown) if shown else _t("all")
         return ui.tags.details(
-            ui.tags.summary(ui.span("Policy areas", class_="section-label"), ui.span(f" · {picked}", class_="small muted")),
+            ui.tags.summary(ui.span(_t("policy_areas"), class_="section-label"), ui.span(f" · {picked}", class_="small muted")),
             ui.div(*rows, class_="sector-chips"),
             class_="chip-filter",
             open=chips_open.get(),
@@ -687,15 +784,21 @@ def page_pathways_server(input, output, session, state: AppState):
 
     # ------------------------------------------------------------------ centre: shared pieces
 
+    def _emission_label(direction):
+        """(text, css class) for an emissions direction."""
+        if direction in _EMISSION_CLASSES:
+            return _t(f"emission.{direction}"), _EMISSION_CLASSES[direction]
+        return _t("not_available"), "dir-flat"
+
     def _emissions_badge(cd):
-        label, cls = _EMISSION_LABELS.get(cd.get("emissions_direction"), ("Not available", "dir-flat"))
+        label, cls = _emission_label(cd.get("emissions_direction"))
         emis = cd.get("emissions") or {}
         pct = emis.get("total_delta_pct")
-        detail = "Default settings, 2050, without the electricity model."
+        detail = _t("emissions_detail")
         if pct is not None and cd.get("emissions_direction") not in ("needs_electricity_model",):
-            detail = f"{pct:+.2f}% of 2050 total · " + detail
+            detail = _t("emissions_pct", pct=f"{pct:+.2f}%") + " · " + detail
         return ui.div(
-            ui.div("Emissions if used alone", class_="section-label"),
+            ui.div(_t("emissions_alone"), class_="section-label"),
             ui.div(label, class_=f"v {cls}"),
             ui.div(detail, class_="small muted", style="max-width:220px"),
             class_="emis-badge",
@@ -704,17 +807,13 @@ def page_pathways_server(input, output, session, state: AppState):
     def _status_notes(cd):
         if cd.get("status") == "error":
             return ui.div(
-                ui.tags.b("This transformer fails in the installed sisepuede. "),
-                "Transformations that use it will fail when run. ",
+                ui.tags.b(_t("fails_title") + " "),
+                _t("fails_text") + " ",
                 ui.span(cd.get("error") or "", class_="code"),
                 class_="warn-box",
             )
         if cd.get("status") == "no_effect_on_baseline":
-            return ui.div(
-                "With its default settings this transformer does not change the Egypt baseline "
-                "(the variables it targets are zero there). Check its parameters under Advanced options.",
-                class_="info-box",
-            )
+            return ui.div(_t("no_effect"), class_="info-box")
         return None
 
     def _electricity_note(cd):
@@ -722,12 +821,13 @@ def page_pathways_server(input, output, session, state: AppState):
         need = cd.get("electricity_need")
         if need not in ("needed", "optional"):
             return None
-        label, text = transformer_metadata_service.ELECTRICITY_NEEDS[need]
+        label = _t(f"electricity.{need}.label")
+        text = _t(f"electricity.{need}.text")
         note = cd.get("electricity_model_note")
-        more = ui.tags.details(ui.tags.summary("Why", class_="small muted"), ui.div(note, class_="small muted")) if note else None
+        more = ui.tags.details(ui.tags.summary(_t("why"), class_="small muted"), ui.div(note, class_="small muted")) if note else None
         if need == "needed":
             return ui.div(
-                ui.div(ui.tags.b(f"{label}. "), text, " Switch on “Run electricity dispatch (NemoMod)” on the Run page."),
+                ui.div(ui.tags.b(f"{label}. "), text, " " + _t("switch_dispatch")),
                 more,
                 class_="info-box",
             )
@@ -736,12 +836,14 @@ def page_pathways_server(input, output, session, state: AppState):
     def _moves_panel(cd, ramp):
         rows = []
         for v in cd.get("top_variables") or []:
-            label, cls = _DIRECTION_LABELS.get(v.get("direction"), ("", "dir-flat"))
+            direction = v.get("direction")
+            label = _t(f"direction.{direction}") if direction in _DIRECTION_CLASSES else ""
+            cls = _DIRECTION_CLASSES.get(direction, "dir-flat")
             code = (v.get("example_fields") or [""])[0]
             rows.append(
                 ui.div(
                     ui.div(
-                        ui.div(ui.span("input" if v.get("kind") == "input" else "result", class_="kind-tag"), v.get("label"), class_="vname"),
+                        ui.div(ui.span(_t("kind_input") if v.get("kind") == "input" else _t("kind_result"), class_="kind-tag"), v.get("label"), class_="vname"),
                         ui.div(code, class_="vcode", title=v.get("variable")),
                     ),
                     charts.direction_band(v.get("direction"), ramp),
@@ -750,33 +852,31 @@ def page_pathways_server(input, output, session, state: AppState):
                 )
             )
         e_dir = cd.get("emissions_direction")
-        e_label, e_cls = _EMISSION_LABELS.get(e_dir, ("Not available", "dir-flat"))
+        e_label, e_cls = _emission_label(e_dir)
         band_dir = {"decreases": "decreases", "increases": "increases"}.get(e_dir, "no_change")
         sector = cd.get("sector") or ""
         rows.append(
             ui.div(
-                ui.div(ui.div("Total emissions", class_="vname"), ui.div(f"main effect in {sector}" if sector else "", class_="vcode")),
+                ui.div(ui.div(_t("total_emissions"), class_="vname"), ui.div(_t("main_effect", sector=_sector_label(sector, state.lang())) if sector else "", class_="vcode")),
                 charts.direction_band(band_dir, ramp),
                 ui.div(e_label, class_=f"vdir {e_cls}"),
                 class_="moves-row emissions",
             )
         )
         if not cd.get("top_variables"):
-            rows.insert(0, ui.div("No variable changes found with default settings.", class_="small muted"))
+            rows.insert(0, ui.div(_t("no_variable_changes"), class_="small muted"))
         return ui.div(
             ui.div(
-                ui.span("What this moves in the model", class_="section-label"),
-                ui.span("Direction and timing only · sizes come from the run", class_="hint"),
+                ui.span(_t("moves_title"), class_="section-label"),
+                ui.span(_t("moves_hint"), class_="hint"),
                 class_="panel-head",
             ),
             *rows,
             ui.div(
                 ui.tags.details(
-                    ui.tags.summary("Where this comes from", class_="small muted"),
+                    ui.tags.summary(_t("where_from"), class_="small muted"),
                     ui.div(
-                        "Computed by scripts/build_transformer_metadata.py with default parameters on the Egypt "
-                        "baseline. 'input' rows are levers the transformer sets; 'result' rows are model outputs "
-                        "that move most. Emissions are from a run without the electricity model (NemoMod).",
+                        _t("where_from_text"),
                         ui.div(cd.get("electricity_model_note") or "", class_="mt-1"),
                         class_="small muted",
                     ),
@@ -798,15 +898,15 @@ def page_pathways_server(input, output, session, state: AppState):
             pair_card = card(pair)
             has = any(t in in_pathway for t in c["by_transformer"].get(pair, []))
             if has:
-                notes.append(ui.div(f"✓ {pair_card['name']} is in {pathway_name(sid)}.", class_="ok-box small"))
+                notes.append(ui.div(_t("pair_ok", name=pair_card["name"], pathway=pathway_name(sid)), class_="ok-box small"))
             else:
                 notes.append(
                     ui.div(
                         ui.div(
-                            "Moves emissions from the point of use to power plants: the net effect depends on how clean the grid is. ",
-                            ui.tags.b(f"{pair_card['name']} is not in {pathway_name(sid)}."),
+                            _t("pair_moves") + " ",
+                            ui.tags.b(_t("pair_missing", name=pair_card["name"], pathway=pathway_name(sid))),
                         ),
-                        ui.tags.button(f"Open {pair_card['name']} →", class_="link-btn mt-1", onclick=_ev("transformer", pair)),
+                        ui.tags.button(_t("open_pair", name=pair_card["name"]), class_="link-btn mt-1", onclick=_ev("transformer", pair)),
                         class_="warn-box",
                     )
                 )
@@ -820,11 +920,11 @@ def page_pathways_server(input, output, session, state: AppState):
         groups = pathway_service.grouped_pathway(state.strategies_map.get()[sid], c["tx"])
         codes = groups.get(transformer_code, [])
         head = ui.div(
-            ui.span(f"How this transformer adds up in {pathway_name(sid)}", class_="section-label"),
+            ui.span(_t("adds_up", pathway=pathway_name(sid)), class_="section-label"),
             class_="panel-head",
         )
         if not codes:
-            return ui.div(head, ui.div(f"No transformations from this transformer in {pathway_name(sid)} yet.", class_="small muted"), class_="panel")
+            return ui.div(head, ui.div(_t("adds_up_none", pathway=pathway_name(sid)), class_="small muted"), class_="panel")
         curves = []
         rows = []
         for i, code in enumerate(codes, 1):
@@ -842,17 +942,15 @@ def page_pathways_server(input, output, session, state: AppState):
         warning = None
         if len(codes) > 1:
             warning = ui.div(
-                ui.tags.b("Applied one after another, in this order. "),
-                "sisepuede runs each transformation on the result of the previous one, so a later one can "
-                "overwrite or compound an earlier one depending on the parameter type. How several "
-                "transformations of one transformer should combine is not defined yet.",
+                ui.tags.b(_t("sequence_title") + " "),
+                _t("sequence_text"),
                 class_="warn-box",
             )
         return ui.div(
             head,
             *rows,
             warning,
-            ui.div(charts.ramp_chart(curves, c["years"], width=600, height=130, fill_main=len(codes) == 1), class_="ramp-chart mt-2"),
+            ui.div(charts.ramp_chart(curves, c["years"], width=600, height=130, fill_main=len(codes) == 1, lang=state.lang()), class_="ramp-chart mt-2"),
             class_="panel",
         )
 
@@ -867,7 +965,7 @@ def page_pathways_server(input, output, session, state: AppState):
             rows.append(
                 ui.div(
                     ui.div(ui.div(name, style="font-weight:500"), ui.div(facts, class_="small muted")),
-                    ui.tags.button("Unlink", class_="link-btn danger", onclick=_ev("unlink_project", name)),
+                    ui.tags.button(_t("unlink"), class_="link-btn danger", onclick=_ev("unlink_project", name)),
                     class_="btn-row",
                     style="justify-content:space-between;flex-wrap:nowrap;padding:6px 0;border-top:1px solid var(--border-soft)",
                 )
@@ -877,30 +975,31 @@ def page_pathways_server(input, output, session, state: AppState):
         if item is not None and item.citations:
             sources = [
                 ui.tags.details(
-                    ui.tags.summary("Sources", class_="small muted mt-1"),
+                    ui.tags.summary(_t("sources"), class_="small muted mt-1"),
                     *[ui.tags.a(u, href=u, target="_blank", class_="small d-block", style="color:var(--accent);word-break:break-all") for u in item.citations],
                 )
             ]
         transformer_code = ctx()["tx"].dict_transformations[code].transformer_code
         candidates = {}
+        same_group = _t("same_transformer")
         for name, r in records.items():
             if name in linked:
                 continue
-            group = "Same transformer" if r.get("transformer_code") == transformer_code else "Other projects"
-            candidates.setdefault(group, {})[name] = name + (f" (now: {links[name]})" if links.get(name) else "")
+            group = same_group if r.get("transformer_code") == transformer_code else _t("other_projects")
+            candidates.setdefault(group, {})[name] = _t("now_linked", name=name, code=links[name]) if links.get(name) else name
         link_ui = None
         if candidates:
             link_ui = ui.tags.details(
-                ui.tags.summary("+ Link project", class_="link-btn mt-1", style="list-style:none;cursor:pointer"),
+                ui.tags.summary(_t("link_project"), class_="link-btn mt-1", style="list-style:none;cursor:pointer"),
                 ui.div(
-                    ui.input_select("link_project_select", None, choices=dict(sorted(candidates.items(), key=lambda kv: kv[0] != "Same transformer"))),
-                    ui.input_action_button("link_project_btn", "Link", class_="btn-inline"),
+                    ui.input_select("link_project_select", None, choices=dict(sorted(candidates.items(), key=lambda kv: kv[0] != same_group))),
+                    ui.input_action_button("link_project_btn", _t("link"), class_="btn-inline"),
                     class_="btn-row mt-1",
                 ),
             )
         return ui.div(
-            ui.div(ui.span(f"Linked projects · {len(linked)}", class_="section-label"), class_="panel-head"),
-            *(rows or [ui.div("No projects linked. Modelled as a policy measure without an identified funding source.", class_="small muted")]),
+            ui.div(ui.span(_t("linked_projects_title", n=len(linked)), class_="section-label"), class_="panel-head"),
+            *(rows or [ui.div(_t("no_projects"), class_="small muted")]),
             *sources,
             link_ui,
             class_="panel",
@@ -922,67 +1021,94 @@ def page_pathways_server(input, output, session, state: AppState):
         links = dict(state.project_links.get())
         links[name] = ed["code"]
         state.project_links.set(links)
-        ui.notification_show(f"Linked '{name}' to {ed['code']}.", type="message")
+        ui.notification_show(_t("linked_notice", name=name, code=ed["code"]), type="message")
 
     # ------------------------------------------------------------------ centre: editor form
 
+    @reactive.effect
+    @reactive.event(state.lang, ignore_init=True)
+    def _keep_form_on_language_switch():
+        # the form is redrawn in the new language from what's typed, not from the saved values
+        ed, c = editor.get(), ctx()
+        if ed is None or c is None or "tx_name" not in input:
+            return
+        try:
+            params = param_widget.read_editor_params(input, specs_for(ed["transformer"]), c["years"], state.lang())
+        except param_widget.ParamReadError:
+            params = (draft.get() or {}).get("params", ed["params"])  # an invalid value isn't carried over
+        name = input.tx_name()
+        draft.set({
+            "name": name,
+            "name_untouched": name == shown_default_name["value"],
+            "description": input.tx_description(),
+            "code": input.tx_code(),
+            "params": params,
+        })
+
     @render.ui
+    @i18n.keep_inputs(state.lang)
     def center_form():
         editor_nonce.get()
         ed = editor.get()
         c = ctx()
         if ed is None or c is None:
             return None
+        typed = draft.get() or {}
         with reactive.isolate():
             cd = card(ed["transformer"])
+            # text worked out now, in the current language, rather than stored when the editor opened
+            basis = basis_of(ed["code"]) if ed["mode"] == "edit" else (
+                _t("for_project", name=ed["link_project"]) if ed.get("link_project") else None
+            )
+            name = typed.get("name", ed["name"])
+            shown_default_name["value"] = None
+            if ed.get("auto_name"):
+                default_name = i18n.plain(_t("custom_name", name=cd["name"]))
+                if not typed or typed.get("name_untouched"):
+                    name = shown_default_name["value"] = default_name
+                ed = {**ed, "name": default_name}
             specs = specs_for(ed["transformer"])
             blocks = param_widget.render_editor_params(
                 specs,
-                ed["params"],
+                typed.get("params", ed["params"]),
                 c["years"],
                 c["default_ramp"],
                 magnitude_name=cd["magnitude_param"],
                 magnitude_label=cd["magnitude_label"],
                 magnitude_help=cd.get("magnitude_help"),
+                lang=state.lang(),
             )
             existing = set(c["tx"].dict_transformations)
-        suggested = ed["code"] or transformation_service.suggest_transformation_code(ed["transformer"], existing)
+        suggested = typed.get("code") or ed["code"] or transformation_service.suggest_transformation_code(ed["transformer"], existing)
         is_library = ed["mode"] == "edit" and ed["code"] in c["library"]
         no_magnitude = blocks["magnitude"] is None
         no_basic = no_magnitude and not len(blocks["basic"])
         header = ui.div(
             ui.div(
-                ui.tags.button(f"← {cd['name']}", class_="link-btn", onclick=_ev("transformer", ed["transformer"])),
-                ui.span(f" / {ed['code'] or 'new transformation'}", class_="code"),
+                ui.tags.button(_t("back", name=cd["name"]), class_="link-btn", onclick=_ev("transformer", ed["transformer"])),
+                ui.span(f" / {ed['code'] or _t('new_transformation_code')}", class_="code"),
                 ui.output_ui("edit_status", inline=True),
             ),
             ui.h2(ed["name"] or cd["name"], style="font-size:23px;font-weight:600;margin:6px 0 2px"),
-            ui.div(ed["basis"] or "Policy measure · no linked project", class_="small muted"),
+            ui.div(basis or _t("policy_measure"), class_="small muted"),
             class_="tf-head",
         )
         spec_panel = ui.div(
-            ui.div(ui.span("Specification", class_="section-label"), class_="panel-head"),
+            ui.div(ui.span(_t("specification"), class_="section-label"), class_="panel-head"),
             ui.div(
                 ui.div(
-                    ui.input_text("tx_name", "Name", value=ed["name"]),
-                    ui.input_text_area("tx_description", "Notes", value=ed["description"], rows=2),
+                    ui.input_text("tx_name", _t("name"), value=name),
+                    ui.input_text_area("tx_description", _t("notes"), value=typed.get("description", ed["description"]), rows=2),
                     ui.div(
-                        ui.input_text("tx_code", "Transformation code", value=suggested),
-                        ui.tags.small(
-                            "Used in sisepuede files. Changing it on an existing transformation saves a new one.",
-                            class_="muted d-block",
-                        ),
+                        ui.input_text("tx_code", _t("tx_code"), value=suggested),
+                        ui.tags.small(_t("tx_code_help"), class_="muted d-block"),
                         class_="adv-only",
                     ),
                     blocks["magnitude"],
-                    ui.div(
-                        "This transformer has no single magnitude. It uses its default settings unless you change "
-                        "them under Advanced options.",
-                        class_="info-box mb-3",
-                    )
+                    ui.div(_t("no_magnitude"), class_="info-box mb-3")
                     if no_basic
                     else None,
-                    # trajectory sits under the magnitude, left of the timing controls it previews
+                    # trajectory sits under the magnitude, beside the timing controls it previews
                     ui.div(ui.output_ui("ramp_preview"), class_="ramp-chart mb-3") if blocks["ramp"] is not None else None,
                     blocks["basic"],
                 ),
@@ -991,20 +1117,15 @@ def page_pathways_server(input, output, session, state: AppState):
             ),
             ui.div(
                 ui.div(
-                    ui.span("Advanced parameters ", param_widget.code_tip(ed["transformer"]), class_="section-label"),
-                    ui.span("ADVANCED", class_="adv-tag"),
+                    ui.span(_t("advanced_params") + " ", param_widget.code_tip(ed["transformer"]), class_="section-label"),
+                    ui.span(_t("advanced_tag"), class_="adv-tag"),
                     class_="panel-head",
                 ),
-                blocks["advanced"] if len(blocks["advanced"]) else ui.div("No other parameters.", class_="small muted"),
+                blocks["advanced"] if len(blocks["advanced"]) else ui.div(_t("no_other_params"), class_="small muted"),
                 class_="adv-only adv-box mt-2",
             ),
-            ui.div(
-                "Library transformations are kept as published; use Duplicate & adjust to change one.",
-                class_="info-box mt-2",
-            )
-            if is_library
-            else None,
-            ui.div("Tip: switch on Advanced options in the sidebar to see every parameter.", class_="small muted mt-2")
+            ui.div(_t("library_kept"), class_="info-box mt-2") if is_library else None,
+            ui.div(_t("tip_advanced"), class_="small muted mt-2")
             if no_basic
             else None,
             class_="panel",
@@ -1018,7 +1139,7 @@ def page_pathways_server(input, output, session, state: AppState):
         if not ramp_specs:
             return None
         try:
-            return param_widget.read_editor_params(input, ramp_specs, c["years"])[ramp_specs[0].name]
+            return param_widget.read_editor_params(input, ramp_specs, c["years"], state.lang())[ramp_specs[0].name]
         except Exception:
             return None
 
@@ -1035,14 +1156,14 @@ def page_pathways_server(input, output, session, state: AppState):
             curves.append((ramp_values({"vec_implementation_ramp": saved}), "ghost"))
         if current is not None:
             curves.append((list(ramp_service.ramp_curve(current, len(c["years"]), c["default_ramp"])), "main"))
-        return charts.ramp_chart(curves, c["years"], width=340, height=150)
+        return charts.ramp_chart(curves, c["years"], width=340, height=150, lang=state.lang())
 
     def _is_dirty(ed) -> bool:
         if ed is None or ed["mode"] != "edit":
             return False
         c = ctx()
         try:
-            params = param_widget.read_editor_params(input, specs_for(ed["transformer"]), c["years"])
+            params = param_widget.read_editor_params(input, specs_for(ed["transformer"]), c["years"], state.lang())
             name = input.tx_name()
             description = input.tx_description()
         except Exception:
@@ -1082,9 +1203,9 @@ def page_pathways_server(input, output, session, state: AppState):
         if ed is None:
             return None
         if ed["mode"] == "new":
-            return ui.span("  ● unsaved", style="color:var(--amber);font-size:13px")
+            return ui.span("  " + _t("unsaved"), style="color:var(--amber);font-size:13px")
         if _is_dirty(ed):
-            return ui.span("  ● edited", style="color:var(--amber);font-size:13px")
+            return ui.span("  " + _t("edited"), style="color:var(--amber);font-size:13px")
         return None
 
     # ------------------------------------------------------------------ centre: dynamic
@@ -1094,27 +1215,22 @@ def page_pathways_server(input, output, session, state: AppState):
         c = ctx()
         if c is None:
             return ui.div(
-                ui.h2("Pathways", style="font-size:23px"),
-                ui.p("Load a baseline first: the transformer catalog is built from it.", class_="muted"),
-                ui.tags.button("Go to Baseline data →", class_="btn btn-primary btn-inline", onclick="mrvGoTo('data_input')"),
+                ui.h2(_t("title"), style="font-size:23px"),
+                ui.p(_t("load_first"), class_="muted"),
+                ui.tags.button(_t("go_baseline"), class_="btn btn-primary btn-inline", onclick="mrvGoTo('data_input')"),
             )
         ed = editor.get()
         code = ed["transformer"] if ed else open_transformer.get()
         if code is None:
             return ui.div(
-                ui.div(ui.span("Start here", class_="section-label")),
-                ui.h2("Build a pathway from transformers", style="font-size:23px;margin:6px 0"),
-                ui.p(
-                    "A transformer is a policy lever in SISEPUEDE (e.g. raise the renewable electricity share). "
-                    "A transformation sets its size and timing. A pathway is a set of transformations that "
-                    "runs against a baseline and is compared with business as usual.",
-                    style="max-width:70ch",
-                ),
+                ui.div(ui.span(_t("start_here"), class_="section-label")),
+                ui.h2(_t("build_title"), style="font-size:23px;margin:6px 0"),
+                ui.p(_t("intro"), style="max-width:70ch"),
                 ui.tags.ol(
-                    ui.tags.li("Create a pathway with + New pathway (top)."),
-                    ui.tags.li("Open a transformer on the left."),
-                    ui.tags.li("Add one of its transformations, or create one from the default."),
-                    ui.tags.li("Continue to Run."),
+                    ui.tags.li(_t("step_create")),
+                    ui.tags.li(_t("step_open")),
+                    ui.tags.li(_t("step_add")),
+                    ui.tags.li(_t("step_run")),
                     class_="small",
                 ),
                 class_="panel",
@@ -1134,14 +1250,14 @@ def page_pathways_server(input, output, session, state: AppState):
         # transformer view
         policy = ramp_service.policy_from_ramp(None, c["years"], c["default_ramp"])
         n_tx = len(c["by_transformer"].get(code, []))
-        mag = pathway_service.format_magnitude(cd["magnitude_default"]) if cd["magnitude_default"] is not None else "per category"
+        mag = pathway_service.format_magnitude(cd["magnitude_default"]) if cd["magnitude_default"] is not None else _t("per_category")
         header = ui.div(
             ui.div(
-                ui.div(f"{(cd.get('sector') or '').upper()} · TRANSFORMER · {code.split(':')[1]}", class_="crumb"),
+                ui.div(_t("crumb", sector=_sector_label(cd.get("sector"), state.lang()).upper(), abv=code.split(":")[1]), class_="crumb"),
                 ui.h2(cd["name"]),
                 ui.p(cd.get("description") or ""),
                 ui.tags.details(
-                    ui.tags.summary("More about this transformer", class_="small muted mt-1"),
+                    ui.tags.summary(_t("more_about"), class_="small muted mt-1"),
                     ui.p(cd.get("description_long") or "", class_="small"),
                     ui.div(cd.get("magnitude_help") or "", class_="small muted"),
                     ui.div(code, class_="code mt-1"),
@@ -1155,22 +1271,25 @@ def page_pathways_server(input, output, session, state: AppState):
             style="display:flex;gap:20px;align-items:flex-start",
         )
         default_block = ui.div(
-            ui.div(ui.span("Library default", class_="section-label"), class_="panel-head"),
+            ui.div(ui.span(_t("library_default"), class_="section-label"), class_="panel-head"),
             ui.div(
                 ui.div(
-                    ui.div(cd["magnitude_label"] or "Magnitude", class_="k"),
+                    ui.div(cd["magnitude_label"] or _t("magnitude"), class_="k"),
                     ui.div(mag, class_="v"),
-                    ui.div("Starts in", class_="k"),
+                    ui.div(_t("starts_in"), class_="k"),
                     ui.div(str(policy.start_year), class_="v"),
-                    ui.div("Full effect by", class_="k"),
+                    ui.div(_t("full_effect_by"), class_="k"),
                     ui.div(str(policy.full_year), class_="v"),
-                    ui.div("Ramp", class_="k"),
-                    ui.div(ramp_service.SHAPES.get(policy.shape, {"label": "Custom"})["label"], class_="v"),
-                    ui.div("Transformations", class_="k"),
+                    ui.div(_t("ramp"), class_="k"),
+                    ui.div(param_widget.shape_label(policy.shape, state.lang()), class_="v"),
+                    ui.div(_t("transformations"), class_="k"),
                     ui.div(str(n_tx), class_="v"),
                     class_="kv",
                 ),
-                ui.div(charts.ramp_chart([(default_ramp_vals, "muted")], c["years"], width=340, height=140, fill_main=False), class_="ramp-chart"),
+                ui.div(
+                    charts.ramp_chart([(default_ramp_vals, "muted")], c["years"], width=340, height=140, fill_main=False, lang=state.lang()),
+                    class_="ramp-chart",
+                ),
                 class_="editor-grid",
             ),
             class_="panel",
@@ -1202,16 +1321,16 @@ def page_pathways_server(input, output, session, state: AppState):
             if code is None:
                 return None
             return ui.div(
-                ui.span("Open an existing transformation on the left to reuse or duplicate it, or start from the default.", class_="note"),
-                ui.div(_btn("+ New transformation from default", "new_tx", code, "btn btn-primary btn-inline"), class_="btn-row"),
+                ui.span(_t("footer_open"), class_="note"),
+                ui.div(_btn(_t("new_from_default"), "new_tx", code, "btn btn-primary btn-inline"), class_="btn-row"),
                 class_="pw-footer",
             )
 
         if ed["mode"] == "new":
-            buttons = [_btn("Cancel", "cancel"), _btn("Save to library only", "save_library")]
+            buttons = [_btn(_t("cancel"), "cancel"), _btn(_t("save_library"), "save_library")]
             if sid is not None:
-                buttons.append(_btn(f"Create & add to {pw}", "create_add", cls="btn btn-primary btn-inline"))
-            return ui.div(ui.span("Not saved yet", class_="note"), ui.div(*buttons, class_="btn-row"), class_="pw-footer")
+                buttons.append(_btn(_t("create_add", pathway=pw), "create_add", cls="btn btn-primary btn-inline"))
+            return ui.div(ui.span(_t("not_saved"), class_="note"), ui.div(*buttons, class_="btn-row"), class_="pw-footer")
 
         code = ed["code"]
         used = pathway_service.pathways_using(code, pathways)
@@ -1222,26 +1341,26 @@ def page_pathways_server(input, output, session, state: AppState):
         if _is_dirty(ed) and not is_library:
             n = len(used)
             buttons = [
-                _btn("Discard", "cancel"),
-                _btn(f"Update {code}" + (f" ({n} pathway{'s' if n != 1 else ''})" if n else ""), "update", cls="btn btn-primary btn-inline"),
+                _btn(_t("discard"), "cancel"),
+                _btn(_tn("update_n", n, code=code) if n else _t("update", code=code), "update", cls="btn btn-primary btn-inline"),
             ]
             if sid is not None:
-                buttons.insert(1, _btn(f"Save as new & add to {pw}", "save_new_add"))
-            note = f"Edited · {code} is used in {n} pathway{'s' if n != 1 else ''}" if n else f"Edited · {code}"
+                buttons.insert(1, _btn(_t("save_new_add", pathway=pw), "save_new_add"))
+            note = _tn("edited_used", n, code=code) if n else _t("edited_code", code=code)
             return ui.div(ui.span(note, class_="note"), ui.div(*buttons, class_="btn-row"), class_="pw-footer")
 
-        buttons = [_btn("Duplicate & adjust", "duplicate", code)]
+        buttons = [_btn(_t("duplicate"), "duplicate", code)]
         if in_active:
-            buttons.insert(0, _btn(f"Remove from {pw}", "remove", code))
-            buttons.append(ui.span(f"✓ In {pw}", class_="pill pill-ok"))
+            buttons.insert(0, _btn(_t("remove_from", pathway=pw), "remove", code))
+            buttons.append(ui.span(_t("in_pathway_pill", pathway=pw), class_="pill pill-ok"))
             others = [pathways[s].strategy.name for s in used if s != sid]
-            note = f"Also in {', '.join(others)}" if others else ""
+            note = _t("also_in", names=", ".join(others)) if others else ""
         else:
             if sid is not None:
-                buttons.append(_btn(f"Add to {pw}", "add", code, "btn btn-primary btn-inline"))
-            note = f"Used in {used_names}" if used else "Not in any pathway yet"
+                buttons.append(_btn(_t("add_to", pathway=pw), "add", code, "btn btn-primary btn-inline"))
+            note = _t("used_in", names=used_names) if used else _t("not_in_any")
             if not used and not is_library:
-                buttons.insert(0, _btn("Delete", "delete_tx", code, "btn btn-inline adv-only"))
+                buttons.insert(0, _btn(_t("delete"), "delete_tx", code, "btn btn-inline adv-only"))
         return ui.div(ui.span(note, class_="note"), ui.div(*buttons, class_="btn-row"), class_="pw-footer")
 
     # ------------------------------------------------------------------ right tray
@@ -1254,9 +1373,9 @@ def page_pathways_server(input, output, session, state: AppState):
         sid = active_pathway()
         if sid is None:
             return ui.div(
-                ui.div("In this pathway", class_="section-label"),
-                ui.p("No pathways yet.", class_="small muted mt-2"),
-                ui.tags.button("+ New pathway", class_="btn btn-primary btn-inline", onclick=_ev("new_pathway")),
+                ui.div(_t("in_this_pathway"), class_="section-label"),
+                ui.p(_t("no_pathways"), class_="small muted mt-2"),
+                ui.tags.button(_t("new_pathway"), class_="btn btn-primary btn-inline", onclick=_ev("new_pathway")),
                 class_="pw-pad",
             )
         entry = state.strategies_map.get()[sid]
@@ -1286,28 +1405,22 @@ def page_pathways_server(input, output, session, state: AppState):
 
         warnings = []
         if raising:
-            warnings.append(
-                ui.div(
-                    f"{len(raising)} transformer{'s' if len(raising) != 1 else ''} may raise emissions"
-                    + (". Add a grid transformation or check the run." if "grid" in raising.values() else " on their own. Check the run."),
-                    class_="warn-box small",
-                )
-            )
+            key = "may_raise_grid" if "grid" in raising.values() else "may_raise_alone"
+            warnings.append(ui.div(_tn(key, len(raising)), class_="warn-box small"))
         if broken:
-            warnings.append(ui.div(f"{len(broken)} transformer(s) fail in the installed sisepuede; this pathway will fail to run.", class_="warn-box small"))
+            warnings.append(ui.div(_tn("broken", len(broken)), class_="warn-box small"))
         needs_dispatch = [tfr for tfr, cd in cards.items() if cd.get("electricity_need") == "needed"]
         if needs_dispatch:
             n = len(needs_dispatch)
             warnings.append(
                 ui.div(
-                    f"{n} transformer{'s' if n != 1 else ''} need{'s' if n == 1 else ''} the electricity dispatch: "
-                    "switch it on in Run.",
+                    _tn("needs_dispatch", n),
                     class_="info-box small",
                     title=", ".join(cards[t]["name"] for t in needs_dispatch),
                 )
             )
         if stacked:
-            warnings.append(ui.div(f"{len(stacked)} transformer(s) have several transformations, applied one after another.", class_="info-box small"))
+            warnings.append(ui.div(_tn("stacked", len(stacked)), class_="info-box small"))
 
         rows = []
         for tfr, codes in groups.items():
@@ -1318,16 +1431,16 @@ def page_pathways_server(input, output, session, state: AppState):
                     ui.div(
                         ui.span(tx_label(code), class_="label", title=code, onclick=_ev("tx", code), style="cursor:pointer"),
                         ui.span(tx_summary(code).split(" · ")[0], class_="mono"),
-                        ui.tags.button("×", class_="x-btn", onclick=_ev("remove", code), title=f"Remove from {entry.strategy.name}"),
+                        ui.tags.button("×", class_="x-btn", onclick=_ev("remove", code), title=_t("remove_from", pathway=entry.strategy.name)),
                         class_="tray-tx",
                     )
                 )
             flag = None
             if tfr in raising:
                 flag = ui.div(
-                    "May raise emissions without a cleaner grid" if raising[tfr] == "grid" else "Raises emissions on its own in the model",
+                    _t("raise_grid") if raising[tfr] == "grid" else _t("raise_alone"),
                     class_="small",
-                    style="color:var(--rust);padding-left:16px",
+                    style="color:var(--rust);padding-inline-start:16px",
                 )
             rows.append(
                 ui.div(
@@ -1343,7 +1456,7 @@ def page_pathways_server(input, output, session, state: AppState):
                 )
             )
         if not rows:
-            rows = [ui.div("Empty pathway. Open a transformer on the left and add one of its transformations.", class_="small muted pw-pad")]
+            rows = [ui.div(_t("empty_pathway"), class_="small muted pw-pad")]
 
         sectors: Dict[str, int] = {}
         for tfr in groups:
@@ -1352,12 +1465,12 @@ def page_pathways_server(input, output, session, state: AppState):
 
         return ui.TagList(
             ui.div(
-                ui.div("In this pathway", class_="section-label"),
+                ui.div(_t("in_this_pathway"), class_="section-label"),
                 ui.div(entry.strategy.name, style="font-weight:600;font-size:15.5px;margin-top:4px"),
-                ui.div(f"{n_codes} transformation{'s' if n_codes != 1 else ''} · {len(groups)} transformer{'s' if len(groups) != 1 else ''}", class_="small muted"),
+                ui.div(f"{_tn('n_transformations', n_codes)} · {_tn('n_transformers', len(groups))}", class_="small muted"),
                 ui.div(
-                    ui.tags.button("Rename", class_="link-btn", onclick=_ev("rename_pathway")),
-                    ui.tags.button("Delete", class_="link-btn danger", onclick=_ev("delete_pathway")),
+                    ui.tags.button(_t("rename"), class_="link-btn", onclick=_ev("rename_pathway")),
+                    ui.tags.button(_t("delete"), class_="link-btn danger", onclick=_ev("delete_pathway")),
                     class_="btn-row mt-1",
                 ),
                 *warnings,
@@ -1366,11 +1479,9 @@ def page_pathways_server(input, output, session, state: AppState):
             ),
             *rows,
             ui.div(
-                ui.div(" · ".join(f"{s} {n}" for s, n in sectors.items()), class_="small muted") if sectors else None,
-                ui.tags.button(
-                    "Validate on baseline (dry run)", class_="btn btn-inline adv-only", onclick=_ev("dry_run"), type="button"
-                ),
-                ui.tags.button("Continue to Run →", class_="btn btn-inline", style="border-color:var(--accent);color:var(--accent)", onclick="mrvGoTo('run')", type="button"),
+                ui.div(" · ".join(f"{_sector_label(s, state.lang())} {n}" for s, n in sectors.items()), class_="small muted") if sectors else None,
+                ui.tags.button(_t("dry_run"), class_="btn btn-inline adv-only", onclick=_ev("dry_run"), type="button"),
+                ui.tags.button(_t("continue_run"), class_="btn btn-inline", style="border-color:var(--accent);color:var(--accent)", onclick="mrvGoTo('run')", type="button"),
                 class_="tray-foot",
             ),
         )

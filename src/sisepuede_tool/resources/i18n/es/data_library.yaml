@@ -1,0 +1,86 @@
+# NDC/LEP library transformations from resources/library/egypt_ndc and egypt_lep (es). Draft: review before release.
+# data.library.<transformation code>.{name,description}; names keep the "NDC · " / "LEP · " set prefix.
+
+data:
+  library:
+    "TX:AGRC:DEC_CH4_RICE_STRATEGY_NDC":
+      name: "NDC · AGRC: Mejorar el manejo del arroz"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nReducir en 45% las emisiones de CH₄ de la producción de arroz gracias a un mejor manejo y a una menor inundación."
+    "TX:AGRC:DEC_LOSSES_SUPPLY_CHAIN_STRATEGY_NDC":
+      name: "NDC · AGRC: Reducir las pérdidas en la cadena de suministro"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nReducir el desperdicio de alimentos en la cadena de suministro agrícola (cultivos), antes del consumidor"
+    "TX:ENTC:DEC_LOSSES_STRATEGY_NDC":
+      name: "NDC · ENTC: Reducir las pérdidas de transmisión"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nReducir las pérdidas de transmisión modernizando la infraestructura de transmisión eléctrica."
+    "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_NDC":
+      name: "NDC · ENTC: Hidrógeno limpio"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nFijar una meta de producción de hidrógeno limpio."
+    "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC":
+      name: "NDC · ENTC: Meta de electricidad renovable"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent. Mezcla renovable actualizada por jcsyme en el commit 802be90 (2026-10-06), usada para las metas de demostración del Artículo 6.\nFijar una meta de electricidad renovable. Incluye metas mínimas para tecnologías renovables específicas."
+    "TX:FGTV:DEC_LEAKS_STRATEGY_NDC":
+      name: "NDC · FGTV: Reducir las fugas"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:IPPU:DEC_CLINKER_STRATEGY_NDC":
+      name: "NDC · IPPU: Reducir el clínker del cemento"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nReduce el uso de clínker en la producción de cemento"
+    "TX:IPPU:DEC_HFCS_STRATEGY_NDC":
+      name: "NDC · IPPU: Reducir el uso de HFC"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:LNDU:DEC_SOC_LOSS_PASTURES_STRATEGY_NDC":
+      name: "NDC · LNDU: Ampliar las prácticas de pastoreo sostenible"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nReducir la pérdida de carbono orgánico del suelo en pastizales mediante prácticas de pastoreo sostenible.\nPastizales: aumentar F_MG de «grasslands» a 1.157 (ver IPCC V4, capítulo 6, cuadro 6.2 [2019R], factores de manejo de pastizales F_MG bajo distintos regímenes de manejo; media de «Improved Grassland»)"
+    "TX:LNDU:INC_REFORESTATION_STRATEGY_NDC":
+      name: "NDC · LNDU: Aumentar la reforestación"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nAumenta la probabilidad de que las clases de uso del suelo de origen se conviertan en bosques secundarios. Esta transformación puede definirse para clases de uso del suelo específicas; p. ej., convertir solo matorrales y tierras de cultivo en"
+    "TX:LSMM:INC_CAPTURE_BIOGAS_STRATEGY_NDC":
+      name: "NDC · LSMM: Aumentar la captura de biogás en instalaciones de descomposición anaeróbica"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nAumentar la fracción de biogás que se captura del estiércol tratado en instalaciones anaeróbicas de tratamiento de estiércol del ganado"
+    "TX:PFLO:INC_IND_CCS_STRATEGY_NDC":
+      name: "NDC · PFLO: Captura y almacenamiento de carbono industrial"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent.\nAplica captura de carbono en instalaciones industriales, lo que afecta las emisiones de INEN e IPPU. Especifique una fracción mínima objetivo de instalaciones industriales con captura de carbono (prevalencia) y la eficacia objetivo de la captura en esas instalaciones."
+    "TX:SCOE:SHIFT_FUEL_HEAT_STRATEGY_NDC":
+      name: "NDC · SCOE: Electrificar el calor con bombas de calor, cocinas eléctricas, etc."
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_NDC":
+      name: "NDC · TRNS: Electrificar el transporte vial ligero"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_NDC":
+      name: "NDC · TRNS: Electrificar el ferrocarril"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:WALI:INC_TREATMENT_RURAL_STRATEGY_NDC":
+      name: "NDC · WALI: Mejorar el tratamiento de aguas residuales rurales"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:WALI:INC_TREATMENT_URBAN_STRATEGY_NDC":
+      name: "NDC · WALI: Mejorar el tratamiento de aguas residuales urbanas"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:WASO:INC_RECYCLING_STRATEGY_NDC":
+      name: "NDC · WASO: Aumentar el reciclaje"
+      description: "Estrategia NDC de Egipto (6003 PFLO:NDC), ssp_egypt btr_invent."
+    "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_LEP":
+      name: "LEP · ENTC: Hidrógeno limpio"
+      description: "Fijar una meta de producción de hidrógeno limpio."
+    "TX:ENTC:TARGET_RENEWABLE_ELEC_LEP":
+      name: "LEP · ENTC: Meta de electricidad renovable"
+      description: "Fijar una meta de electricidad renovable. Incluye metas mínimas para tecnologías renovables específicas."
+    "TX:FGTV:DEC_LEAKS_STRATEGY_LEP":
+      name: "LEP · FGTV: Reducir las fugas"
+      description: "Sin descripción"
+    "TX:INEN:SHIFT_FUEL_HEAT_LEP":
+      name: "LEP · INEN: Cambio de combustible en procesos térmicos de alta y baja temperatura"
+      description: "Las transformaciones de calor de baja y/o alta temperatura deben implementarse con este transformador."
+    "TX:SCOE:DEC_DEMAND_HEAT_LEP":
+      name: "LEP · SCOE: Reducir la demanda final de calor mejorando la envolvente de los edificios"
+      description: "Sin descripción"
+    "TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_LEP":
+      name: "LEP · TRNS: Electrificar el transporte vial ligero"
+      description: "Sin descripción"
+    "TX:TRNS:SHIFT_FUEL_MEDIUM_DUTY_LEP":
+      name: "LEP · TRNS: Cambio de combustible en el transporte vial mediano"
+      description: "Sin descripción"
+    "TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_LEP":
+      name: "LEP · TRNS: Electrificar el ferrocarril"
+      description: "Sin descripción"
+    "TX:TRNS:SHIFT_MODE_PASSENGER_LEP":
+      name: "LEP · TRNS: Cambio modal de pasajeros desde vehículos ligeros"
+      description: "Sin descripción"

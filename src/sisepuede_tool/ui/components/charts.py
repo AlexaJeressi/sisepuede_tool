@@ -9,6 +9,8 @@ from typing import List, Optional, Sequence, Tuple
 import numpy as np
 from shiny import ui
 
+from sisepuede_tool.services import i18n
+
 Curve = Tuple[Sequence[float], str]  # (values in 0..1, style: "main" | "ghost" | "muted" | css color)
 
 _STYLES = {
@@ -16,6 +18,10 @@ _STYLES = {
     "ghost": 'stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"',
     "muted": 'stroke="var(--text-label)" stroke-width="2" fill="none"',
 }
+
+
+def _t(key: str, lang: Optional[str] = None, **fmt) -> str:
+    return i18n.t(f"charts.{key}", lang, **fmt)
 
 
 def _path(values: Sequence[float], x0: float, x1: float, y0: float, y1: float) -> str:
@@ -34,18 +40,20 @@ def ramp_chart(
     height: int = 150,
     fill_main: bool = True,
     max_value: float = 1.0,
-    y_label: str = "Implementation",
+    y_label: Optional[str] = None,
+    lang: Optional[str] = None,
 ) -> ui.HTML:
     """Line chart of implementation ramps (0..max_value) over model years,
     with a dashed 'today' marker."""
     pad_l, pad_r, pad_t, pad_b = 34, 10, 10, 22
     x0, x1, y0, y1 = pad_l, width - pad_r, pad_t, height - pad_b
     first, last = years[0], years[-1]
+    y_label = y_label or _t("implementation", lang)
 
     def xpos(year: float) -> float:
         return x0 + (x1 - x0) * (year - first) / (last - first)
 
-    parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="{y_label} over time">']
+    parts = [f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="{_t("over_time", lang, label=y_label)}">']
     # grid + axes
     for frac, lbl in ((0.0, "0%"), (0.5, f"{max_value * 50:.0f}%"), (1.0, f"{max_value * 100:.0f}%")):
         y = y1 - (y1 - y0) * frac
@@ -65,7 +73,7 @@ def ramp_chart(
         xt = xpos(this_year)
         parts.append(f'<line x1="{xt:.1f}" x2="{xt:.1f}" y1="{y0}" y2="{y1}" stroke="var(--text-muted)" stroke-dasharray="2 3" />')
         parts.append(
-            f'<text x="{xt + 3:.1f}" y="{y0 + 8}" font-size="9" font-family="IBM Plex Mono" fill="var(--text-muted)">today</text>'
+            f'<text x="{xt + 3:.1f}" y="{y0 + 8}" font-size="9" font-family="IBM Plex Mono" fill="var(--text-muted)">{_t("today", lang)}</text>'
         )
 
     for values, style in curves:
@@ -116,6 +124,6 @@ def mini_ramp(values: Sequence[float], width: int = 64, height: int = 16, color:
     d = _path(values, 1, width - 1, 1, height - 1)
     stroke = color or "var(--accent)"
     return ui.HTML(
-        f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" aria-hidden="true">'
+        f'<svg class="mini-ramp" viewBox="0 0 {width} {height}" width="{width}" height="{height}" aria-hidden="true">'
         f'<path d="{d}" stroke="{stroke}" stroke-width="1.5" fill="none" /></svg>'
     )

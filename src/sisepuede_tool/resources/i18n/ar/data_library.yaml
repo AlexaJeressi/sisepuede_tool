@@ -1,0 +1,86 @@
+# NDC/LEP library transformations from resources/library/egypt_ndc and egypt_lep (ar). Draft: needs review by an Egyptian reviewer.
+# data.library.<transformation code>.{name,description}; names keep the "NDC · " / "LEP · " set prefix.
+
+data:
+  library:
+    "TX:AGRC:DEC_CH4_RICE_STRATEGY_NDC":
+      name: "NDC · AGRC: تحسين إدارة زراعة الأرز"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nخفض انبعاثات CH₄ من زراعة الأرز بنسبة 45% بفضل تحسين الإدارة وتقليل الغمر بالمياه."
+    "TX:AGRC:DEC_LOSSES_SUPPLY_CHAIN_STRATEGY_NDC":
+      name: "NDC · AGRC: خفض الفاقد في سلسلة الإمداد"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nخفض هدر الغذاء في سلسلة الإمداد الزراعية (المحاصيل) قبل وصوله إلى المستهلك"
+    "TX:ENTC:DEC_LOSSES_STRATEGY_NDC":
+      name: "NDC · ENTC: خفض فواقد النقل"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nخفض فواقد نقل الكهرباء من خلال تطوير البنية التحتية لشبكات النقل."
+    "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_NDC":
+      name: "NDC · ENTC: الهيدروجين النظيف"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nتحديد هدف لإنتاج الهيدروجين النظيف."
+    "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC":
+      name: "NDC · ENTC: هدف الكهرباء المتجددة"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent. حدّث jcsyme مزيج الطاقة المتجددة في الإيداع 802be90 (2026-10-06)، كما استُخدم لأهداف العرض التوضيحي للمادة 6.\nتحديد هدف للكهرباء المتجددة، يشمل أهدافًا دنيا لتقنيات طاقة متجددة بعينها."
+    "TX:FGTV:DEC_LEAKS_STRATEGY_NDC":
+      name: "NDC · FGTV: خفض التسربات"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:IPPU:DEC_CLINKER_STRATEGY_NDC":
+      name: "NDC · IPPU: خفض الكلنكر في الأسمنت"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nخفض استخدام الكلنكر في إنتاج الأسمنت"
+    "TX:IPPU:DEC_HFCS_STRATEGY_NDC":
+      name: "NDC · IPPU: خفض استخدام مركبات HFC"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:LNDU:DEC_SOC_LOSS_PASTURES_STRATEGY_NDC":
+      name: "NDC · LNDU: التوسع في ممارسات الرعي المستدام"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nخفض فقدان الكربون العضوي في تربة المراعي من خلال ممارسات الرعي المستدام.\nالمراعي: رفع المعامل F_MG لـ «grasslands» إلى 1.157 (انظر الهيئة الحكومية الدولية المعنية بتغير المناخ، المجلد 4، الفصل 6، الجدول 6.2 [2019R] لمعاملات إدارة المراعي F_MG في نظم الإدارة المختلفة؛ متوسط «Improved Grassland»)"
+    "TX:LNDU:INC_REFORESTATION_STRATEGY_NDC":
+      name: "NDC · LNDU: زيادة إعادة التشجير"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nزيادة احتمال تحوّل فئات استخدام الأراضي المحددة إلى غابات ثانوية. يمكن تحديد هذا التحوّل لفئات بعينها، مثل تحويل الأراضي الشجيرية والزراعية فقط إلى"
+    "TX:LSMM:INC_CAPTURE_BIOGAS_STRATEGY_NDC":
+      name: "NDC · LSMM: زيادة التقاط الغاز الحيوي في منشآت التحلل اللاهوائي"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nزيادة نسبة الغاز الحيوي الملتقط من الروث المعالج في منشآت المعالجة اللاهوائية لروث الماشية"
+    "TX:PFLO:INC_IND_CCS_STRATEGY_NDC":
+      name: "NDC · PFLO: احتجاز الكربون وتخزينه في الصناعة"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent.\nتطبيق احتجاز الكربون في المنشآت الصناعية، بما يؤثر في انبعاثات INEN وIPPU. حدد الحد الأدنى المستهدف لنسبة المنشآت الصناعية التي تستخدم احتجاز الكربون (مدى الانتشار) والفعالية المستهدفة للاحتجاز في تلك المنشآت."
+    "TX:SCOE:SHIFT_FUEL_HEAT_STRATEGY_NDC":
+      name: "NDC · SCOE: التحول إلى الكهرباء للحرارة باستخدام المضخات الحرارية والمواقد الكهربائية وغيرها"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_NDC":
+      name: "NDC · TRNS: كهربة النقل البري الخفيف"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_NDC":
+      name: "NDC · TRNS: كهربة السكك الحديدية"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:WALI:INC_TREATMENT_RURAL_STRATEGY_NDC":
+      name: "NDC · WALI: تحسين معالجة مياه الصرف في الريف"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:WALI:INC_TREATMENT_URBAN_STRATEGY_NDC":
+      name: "NDC · WALI: تحسين معالجة مياه الصرف في الحضر"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:WASO:INC_RECYCLING_STRATEGY_NDC":
+      name: "NDC · WASO: زيادة إعادة التدوير"
+      description: "استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، ssp_egypt btr_invent."
+    "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_LEP":
+      name: "LEP · ENTC: الهيدروجين النظيف"
+      description: "تحديد هدف لإنتاج الهيدروجين النظيف."
+    "TX:ENTC:TARGET_RENEWABLE_ELEC_LEP":
+      name: "LEP · ENTC: هدف الكهرباء المتجددة"
+      description: "تحديد هدف للكهرباء المتجددة، يشمل أهدافًا دنيا لتقنيات طاقة متجددة بعينها."
+    "TX:FGTV:DEC_LEAKS_STRATEGY_LEP":
+      name: "LEP · FGTV: خفض التسربات"
+      description: "لا يوجد وصف"
+    "TX:INEN:SHIFT_FUEL_HEAT_LEP":
+      name: "LEP · INEN: تحويل الوقود في العمليات الحرارية عالية ومنخفضة الحرارة"
+      description: "يجب تنفيذ تحوّلات الحرارة المنخفضة و/أو العالية باستخدام هذا المُحوِّل."
+    "TX:SCOE:DEC_DEMAND_HEAT_LEP":
+      name: "LEP · SCOE: خفض الطلب النهائي على الطاقة الحرارية بتحسين غلاف المباني"
+      description: "لا يوجد وصف"
+    "TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_LEP":
+      name: "LEP · TRNS: كهربة النقل البري الخفيف"
+      description: "لا يوجد وصف"
+    "TX:TRNS:SHIFT_FUEL_MEDIUM_DUTY_LEP":
+      name: "LEP · TRNS: تحويل الوقود في النقل البري المتوسط"
+      description: "لا يوجد وصف"
+    "TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_LEP":
+      name: "LEP · TRNS: كهربة السكك الحديدية"
+      description: "لا يوجد وصف"
+    "TX:TRNS:SHIFT_MODE_PASSENGER_LEP":
+      name: "LEP · TRNS: تحويل الركاب من المركبات الخفيفة إلى أنماط أخرى"
+      description: "لا يوجد وصف"

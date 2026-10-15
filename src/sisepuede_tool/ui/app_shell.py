@@ -11,6 +11,14 @@ The "Advanced options" switch in the sidebar footer toggles the
 `advanced-on` class on <body> client-side (everything marked `.adv-only` is
 then shown, see theme.css) and mirrors its value into `state.advanced_mode`
 for server-side logic.
+
+UI language (services/i18n.py): `app_ui` is built in the language of `?lang=`
+(remembered per browser). The topbar selector switches in place, without a
+reload: it sets the `ui_lang` input, the server re-renders its outputs and
+sends the page's text in the new language, and `mrvApplyLang` swaps the text
+marked by i18n.mark() and sets `<html lang dir>`. theme.css uses logical
+properties and theme-rtl.css only applies under dir="rtl", so flipping `dir`
+mirrors the layout.
 """
 
 import logging
@@ -23,6 +31,7 @@ from sisepuede_tool import config
 from sisepuede_tool.services import (
     catalog_service,
     cost_benefit_service,
+    i18n,
     library_service,
     pathway_service,
     projects_service,
@@ -54,6 +63,7 @@ logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("sisepuede_tool").setLevel(os.environ.get("SISEPUEDE_TOOL_LOG_LEVEL", "INFO").upper())
 
 _THEME_CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "resources" / "theme.css"
+_THEME_RTL_CSS_PATH = _THEME_CSS_PATH.with_name("theme-rtl.css")
 
 _PAGE_UI_FNS = {
     "data_input": page_data_input_ui,
@@ -67,6 +77,24 @@ _PAGE_UI_FNS = {
     "article_6": page_article_6_ui,
     "persistence": page_save_load_ui,
 }
+
+# Runs first in <head>: back to the language this browser picked last (when the
+# URL has none), and the text direction before the body renders.
+_EARLY_JS = """
+(function() {
+  var url = new URL(window.location.href);
+  if (!url.searchParams.has('lang')) {
+    var saved = null;
+    try { saved = localStorage.getItem('mrv.lang'); } catch (err) {}
+    if (saved && saved !== '%(default)s') {
+      url.searchParams.set('lang', saved);
+      window.location.replace(url.toString());
+      return;
+    }
+  }
+  document.documentElement.dir = '%(dir)s';
+})();
+"""
 
 _SHELL_JS = """
 window.mrvGoTo = function(id) {
@@ -94,6 +122,8 @@ $(document).on('click', '.info-tip', function(e) {
     this.classList.add('open');
     var r = this.getBoundingClientRect();
     this.classList.toggle('tip-left', r.left > window.innerWidth - 300);
+    // near the left edge (e.g. the main column under RTL) the bubble opens rightward
+    if (r.right < 300) { this.classList.add('tip-right'); }
   }
 });
 $(document).on('click keydown', function(e) {
@@ -101,6 +131,76 @@ $(document).on('click keydown', function(e) {
   if (!$(e.target).closest('.info-tip').length) {
     document.querySelectorAll('.info-tip.open').forEach(function(el) { el.classList.remove('open'); });
   }
+});
+// Language selector (topbar): switch in place; the server answers with
+// mrv-i18n (the page text in that language). The URL keeps the choice for a reload.
+window.mrvSetLang = function(sel) {
+  try { localStorage.setItem('mrv.lang', sel.value); } catch (err) {}
+  var url = new URL(window.location.href);
+  url.searchParams.set('lang', sel.value);
+  window.history.replaceState(null, '', url.toString());
+  Shiny.setInputValue('ui_lang', sel.value, {priority: 'event'});
+};
+// CLDR plural categories, as services/i18n.plural_category
+function mrvPlural(lang, n) {
+  if (lang === 'ar') {
+    var m = n % 100;
+    if (n === 0) return 'zero';
+    if (n === 1) return 'one';
+    if (n === 2) return 'two';
+    if (m >= 3 && m <= 10) return 'few';
+    if (m >= 11 && m <= 99) return 'many';
+    return 'other';
+  }
+  return n === 1 ? 'one' : 'other';
+}
+window.mrvApplyLang = function(msg) {
+  var S = msg.strings, rtl = msg.dir === 'rtl';
+  function text(key, n, args) {
+    var t = S[key];
+    if (n !== undefined && n !== null && n !== '') {
+      n = Number(n);
+      t = S[key + '.' + mrvPlural(msg.lang, n)] || S[key + '.other'] || S[key + '.one'];
+      args = Object.assign({n: n}, args || {});
+    }
+    if (t === undefined) return null;
+    return t.replace(/\\{(\\w+)(:[^}]*)?\\}/g, function(all, name, spec) {
+      if (!args || !(name in args)) return all;
+      var v = args[name];
+      if (spec === ':,' && typeof v === 'number') v = v.toLocaleString('en-US');
+      return rtl ? '\\u2068' + v + '\\u2069' : String(v);
+    });
+  }
+  function args(el, attr) {
+    var raw = el.getAttribute(attr + '-args');
+    try { return raw ? JSON.parse(raw) : null; } catch (err) { return null; }
+  }
+  document.documentElement.lang = msg.lang;
+  document.documentElement.dir = msg.dir;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var t = text(el.getAttribute('data-i18n'), el.getAttribute('data-i18n-n'), args(el, 'data-i18n'));
+    if (t !== null) el.textContent = t;
+  });
+  document.querySelectorAll('[data-i18n-attrs]').forEach(function(el) {
+    el.getAttribute('data-i18n-attrs').split(' ').forEach(function(attr) {
+      var p = 'data-i18n-' + attr;
+      var t = text(el.getAttribute(p), el.getAttribute(p + '-n'), args(el, p));
+      if (t !== null) el.setAttribute(attr, t);
+    });
+  });
+  // selectize keeps its own copy of the option labels
+  document.querySelectorAll('select[data-i18n-options]').forEach(function(sel) {
+    var keys = JSON.parse(sel.getAttribute('data-i18n-options'));
+    var sz = sel.selectize;
+    Object.keys(keys).forEach(function(value) {
+      var t = text(keys[value]);
+      if (t === null) return;
+      if (sz && sz.options[value]) { sz.updateOption(value, Object.assign({}, sz.options[value], {label: t, text: t})); }
+    });
+  });
+};
+$(document).on('shiny:connected', function() {
+  Shiny.addCustomMessageHandler('mrv-i18n', window.mrvApplyLang);
 });
 // The sidebar is an icon rail that opens on hover; the pin keeps it open
 // (remembered per browser).
@@ -145,13 +245,13 @@ def _nav_link(item, active: bool) -> ui.Tag:
     if item.step is not None:
         lead = ui.output_ui(f"navstep_{item.id}", inline=True)
         text = ui.span(
-            ui.span(item.label),
+            ui.span(i18n.t(f"nav.{item.id}.label")),
             ui.output_text(f"navmeta_{item.id}", inline=True),
             class_="nav-text",
         )
     else:
         lead = ui.HTML(item.icon_svg)
-        text = ui.span(item.label, class_="nav-text")
+        text = ui.span(i18n.t(f"nav.{item.id}.label"), class_="nav-text")
     return ui.tags.a(
         lead,
         text,
@@ -168,90 +268,135 @@ def _build_sidebar() -> ui.Tag:
         items = [item for item in NAV_ITEMS if item.group == group and not item.hidden]
         groups.append(
             ui.div(
-                ui.div(group, class_="nav-group-label"),
+                ui.div(i18n.t(f"nav.groups.{group}"), class_="nav-group-label"),
                 *[_nav_link(item, item.id == DEFAULT_NAV_ID) for item in items],
                 class_="nav-group",
             )
         )
 
     return ui.tags.aside(
-        ui.div(ui.span(ui.HTML(_EGYPT_FLAG_SVG), class_="flag-icon"), class_="rail-mark", title="Egypt"),
+        ui.div(ui.span(ui.HTML(_EGYPT_FLAG_SVG), class_="flag-icon"), class_="rail-mark", title=i18n.t("shell.country")),
         ui.div(
             ui.div(
-                ui.div("MRV Console", class_="brand-eyebrow"),
+                ui.div(i18n.t("shell.console"), class_="brand-eyebrow"),
                 ui.tags.button(
                     ui.HTML(_PIN_SVG),
                     type="button",
                     class_="pin-btn",
-                    title="Keep the menu open",
+                    title=i18n.t("shell.pin"),
                     onclick="mrvTogglePin()",
-                    **{"aria-pressed": "false", "aria-label": "Keep the menu open"},
+                    **{"aria-pressed": "false", "aria-label": i18n.t("shell.pin")},
                 ),
                 class_="brand-row",
             ),
             ui.div(
-                ui.span(ui.span(ui.HTML(_EGYPT_FLAG_SVG), class_="flag-icon"), "Egypt", class_="region-name"),
+                ui.span(ui.span(ui.HTML(_EGYPT_FLAG_SVG), class_="flag-icon"), i18n.t("shell.country"), class_="region-name"),
                 ui.span("EGY", class_="mono"),
                 class_="region-box",
             ),
             class_="brand",
         ),
         ui.tags.nav(*groups),
-        ui.div("ADV", class_="rail-adv", title="Advanced options are on"),
+        ui.div("ADV", class_="rail-adv", title=i18n.t("shell.advanced_on")),
         ui.div(
-            ui.input_switch("advanced_mode", "Advanced options", value=False),
-            ui.div("Shows every sisepuede parameter and setting.", class_="foot-note"),
-            ui.div("SISEPUEDE engine · CB module", class_="foot-note"),
+            ui.input_switch("advanced_mode", i18n.t("shell.advanced"), value=False),
+            ui.div(i18n.t("shell.advanced_note"), class_="foot-note"),
+            ui.div(i18n.t("shell.engine_note"), class_="foot-note"),
             class_="sidebar-foot",
         ),
         class_="sidebar",
     )
 
 
-def _head() -> ui.Tag:
+def _head(lang: str) -> ui.Tag:
+    early_js = _EARLY_JS % {"default": i18n.DEFAULT_LANG, "dir": i18n.LANGUAGES[lang].dir}
     return ui.head_content(
+        ui.tags.script(ui.HTML(early_js)),
         ui.tags.link(rel="preconnect", href="https://fonts.googleapis.com"),
         ui.tags.link(rel="preconnect", href="https://fonts.gstatic.com", crossorigin=""),
         ui.tags.link(
             href=(
                 "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700"
-                "&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+                "&family=IBM+Plex+Mono:wght@400;500;600"
+                # Arabic glyphs; theme.css lists it as a fallback, so it only downloads where Arabic text shows
+                "&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
             ),
             rel="stylesheet",
         ),
         ui.include_css(_THEME_CSS_PATH),
+        ui.include_css(_THEME_RTL_CSS_PATH),  # every rule is scoped to dir="rtl"
         ui.tags.script(ui.HTML(_SHELL_JS)),
     )
 
 
-app_ui = ui.page_fluid(
-    _head(),
-    ui.div(
-        _build_sidebar(),
+def app_ui(request):
+    lang = i18n.from_query(request.url.query)
+    with i18n.use(lang, static=True):
+        return i18n.mark(_page(lang))
+
+
+def _page(lang: str) -> ui.Tag:
+    return ui.page_fluid(
+        _head(lang),
         ui.div(
-            ui.output_ui("topbar"),
-            ui.navset_hidden(
-                *[
-                    ui.nav_panel(
-                        item.label,
-                        ui.div(_PAGE_UI_FNS[item.id](item.id), class_="page-wrap flush" if item.flush else "page-wrap"),
-                        value=item.id,
-                    )
-                    for item in NAV_ITEMS
-                ],
-                id="main_nav",
-                selected=DEFAULT_NAV_ID,
+            _build_sidebar(),
+            ui.div(
+                ui.output_ui("topbar"),
+                ui.navset_hidden(
+                    *[
+                        ui.nav_panel(
+                            i18n.t(f"nav.{item.id}.label"),
+                            ui.div(_PAGE_UI_FNS[item.id](item.id), class_="page-wrap flush" if item.flush else "page-wrap"),
+                            value=item.id,
+                        )
+                        for item in NAV_ITEMS
+                    ],
+                    id="main_nav",
+                    selected=DEFAULT_NAV_ID,
+                ),
+                class_="main",
             ),
-            class_="main",
+            class_="app-shell",
         ),
-        class_="app-shell",
-    ),
-    title="Egypt: MRV with SISEPUEDE",
-)
+        title=i18n.t("shell.title"),
+        lang=lang,
+    )
+
+
+def _lang_select(lang: str) -> ui.Tag:
+    return ui.tags.select(
+        *[
+            ui.tags.option(language.name, value=code, lang=code, **({"selected": ""} if code == lang else {}))
+            for code, language in i18n.LANGUAGES.items()
+        ],
+        class_="lang-select",
+        onchange="mrvSetLang(this)",
+        title=i18n.t("shell.language", lang),
+        **{"aria-label": i18n.t("shell.language", lang)},
+    )
 
 
 def server(input, output, session):
-    state = new_app_state()
+    chosen_lang = reactive.Value(None)  # set by the topbar selector; until then, the page's ?lang=
+
+    @reactive.calc
+    def lang() -> str:
+        return chosen_lang.get() or i18n.from_query(session.clientdata.url_search())
+
+    @reactive.effect
+    @reactive.event(input.ui_lang)
+    async def _switch_language():
+        new = i18n.normalize(input.ui_lang())
+        chosen_lang.set(new)
+        await session.send_custom_message(
+            "mrv-i18n", {"lang": new, "dir": i18n.LANGUAGES[new].dir, "strings": i18n.client_strings(new)}
+        )
+
+    def session_lang() -> str:
+        # inside i18n.keep_inputs builds, the language without a reactive dependency
+        return i18n.pinned() or lang()
+
+    state = new_app_state(lang=session_lang)
     model_attributes = catalog_service.build_model_attributes()
     state.model_attributes.set(model_attributes)
     result_charts.use_model_subsector_colors(model_attributes)
@@ -329,21 +474,21 @@ def server(input, output, session):
             if item.id == "data_input":
                 baselines = state.baselines.get()
                 if not baselines:
-                    return "No baseline yet"
+                    return i18n.t("nav.meta.no_baseline", lang())
                 return next(iter(baselines.values())).label + (f" +{len(baselines) - 1}" if len(baselines) > 1 else "")
             if item.id == "pathways":
                 n = _n_pathways()
                 tx = state.transformations_obj.get()
                 state.transformations_revision.get()
                 n_tx = 0 if tx is None else len(tx.dict_transformations) - 1
-                return f"{n} pathway{'s' if n != 1 else ''} · {n_tx} transformations"
+                return f"{i18n.tn('nav.meta.pathways', n, lang())} · {i18n.tn('nav.meta.transformations', n_tx, lang())}"
             if item.id == "run":
                 history = state.run_history.get()
                 if not history:
-                    return "Not run yet"
+                    return i18n.t("nav.meta.not_run", lang())
                 last = history[0]
                 n_ok = sum(1 for h in history if h["batch"] == last["batch"] and h["ok"])
-                return f"Last run {last['at']:%H:%M} · {n_ok} ok"
+                return i18n.t("nav.meta.last_run", lang(), time=f"{last['at']:%H:%M}", ok=n_ok)
             return ""
 
     for item in NAV_ITEMS:
@@ -361,16 +506,17 @@ def server(input, output, session):
             n_baselines = len(state.baselines.get())
             status = ui.div(
                 ui.span(class_="dot"),
-                f"{n_baselines} baseline{'s' if n_baselines != 1 else ''} loaded",
+                i18n.tn("shell.baselines_loaded", n_baselines, lang()),
                 class_="status-pill",
             )
 
+        crumb = i18n.t(f"nav.{item.id}.crumb", lang(), default="") or i18n.t(f"nav.groups.{item.group}", lang())
         return ui.div(
             ui.div(
-                ui.div(item.crumb or item.group, class_="topbar-crumb"),
-                ui.div(item.label, class_="topbar-title"),
-                ui.div(item.description, class_="topbar-desc"),
+                ui.div(crumb, class_="topbar-crumb"),
+                ui.div(i18n.t(f"nav.{item.id}.label", lang()), class_="topbar-title"),
+                ui.div(i18n.t(f"nav.{item.id}.description", lang()), class_="topbar-desc"),
             ),
-            status,
+            ui.div(status, _lang_select(lang()), class_="topbar-tools"),
             class_="topbar",
         )

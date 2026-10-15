@@ -1,0 +1,35 @@
+# Article 6 emission groups (ar); English is resources/article6/emission_groupings.csv.
+# Key = slug of the group name.
+
+"data":
+  "article6":
+    "agriculture":
+      "name": "الزراعة"
+    "carbon_capture_and_sequestration":
+      "name": "احتجاز الكربون وعزله"
+    "energy_technology":
+      "name": "تكنولوجيا الطاقة"
+    "fugitive_emissions":
+      "name": "الانبعاثات المتسربة"
+    "forest":
+      "name": "الغابات"
+    "industrial_energy":
+      "name": "الطاقة الصناعية"
+    "ippu":
+      "name": "IPPU"
+    "land_use":
+      "name": "استخدام الأراضي"
+    "livestock_manure_management":
+      "name": "إدارة السماد الحيواني"
+    "livestock":
+      "name": "الثروة الحيوانية"
+    "stationary_combustion_and_other_energy":
+      "name": "الاحتراق الثابت والطاقة الأخرى"
+    "soil_management":
+      "name": "إدارة التربة"
+    "transportation":
+      "name": "النقل"
+    "wastewater_treatment":
+      "name": "معالجة مياه الصرف"
+    "solid_waste":
+      "name": "النفايات الصلبة"

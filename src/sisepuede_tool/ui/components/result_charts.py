@@ -3,16 +3,24 @@ greys, no chart chrome). Palettes for subsectors, cost/benefit categories and
 pathways live here so every chart uses the same colours.
 
 Figures are built from plain DataFrames/Series; nothing here reads app state.
+Series keep their English names (colours are keyed by them); the figures
+show them in `lang` (series_label). Time axes stay left to right in every
+language.
 """
 
+import functools
+import re
 from typing import Dict, List, Optional, Sequence
 
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-FONT = "IBM Plex Sans, system-ui, sans-serif"
-MONO = "IBM Plex Mono, ui-monospace, monospace"
+from sisepuede_tool.services import i18n
+from sisepuede_tool.services.emissions_service import SUBSECTORS
+
+FONT = "IBM Plex Sans, IBM Plex Sans Arabic, system-ui, sans-serif"
+MONO = "IBM Plex Mono, IBM Plex Sans Arabic, ui-monospace, monospace"
 TEXT = "#1C2B33"
 LABEL = "#6F7A78"
 GRID = "#E8E1D2"
@@ -122,6 +130,23 @@ CB_CATEGORY_COLORS: Dict[str, str] = {
 }
 
 
+_SUBSECTOR_BY_LABEL = {label: abv for abv, (_, label) in SUBSECTORS.items()}
+
+
+def series_label(name: str, lang: Optional[str] = None, labels: Optional[Dict[str, str]] = None) -> str:
+    """Display name of a series in `lang`: `labels` first, then subsector names
+    (subsectors.<abv>), then results.series.<slug of the English name>."""
+    if labels and name in labels:
+        return labels[name]
+    if not isinstance(name, str):
+        return name
+    abv = _SUBSECTOR_BY_LABEL.get(name)
+    if abv:
+        return i18n.t(f"subsectors.{abv}", lang, default=name)
+    slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    return i18n.t(f"results.series.{slug}", lang, default=name) if slug else name
+
+
 def pathway_colors(pathway_ids: Sequence[int], bau_id: int = 0) -> Dict[int, str]:
     """Stable colour per pathway id (BAU grey; others by id order)."""
     out, i = {}, 0
@@ -189,6 +214,41 @@ def _base_layout(fig: go.Figure, height: int, legend: bool = True, legend_right:
     return fig
 
 
+_RLI, _PDI = "\u2067", "\u2069"  # right-to-left isolate ... pop directional isolate
+
+
+def bidi(fig: go.Figure, lang: Optional[str]) -> go.Figure:
+    """Right-to-left text in a figure. Plotly lays text out left to right (theme-rtl.css
+    keeps .js-plotly-plot ltr so labels anchor correctly), so under Arabic each title,
+    legend name and hover text is isolated as right-to-left and keeps its own order."""
+    if not lang or not i18n.is_rtl(lang):
+        return fig
+
+    def iso(text):
+        return f"{_RLI}{text}{_PDI}" if isinstance(text, str) and text and not text.startswith(_RLI) else text
+
+    fig.update_layout(title_text=iso(fig.layout.title.text), legend_title_text=iso(fig.layout.legend.title.text))
+    for ann in fig.layout.annotations:
+        ann.text = iso(ann.text)
+    fig.for_each_xaxis(lambda ax: ax.update(title_text=iso(ax.title.text)))
+    fig.for_each_yaxis(lambda ax: ax.update(title_text=iso(ax.title.text)))
+    fig.for_each_trace(lambda tr: tr.update(name=iso(tr.name), hovertemplate=iso(getattr(tr, "hovertemplate", None))))
+    return fig
+
+
+def bidi_for(lang_fn):
+    """Decorator for a @render_plotly function: bidi() on the figure it returns."""
+
+    def wrap(fn):
+        @functools.wraps(fn)
+        def inner(*args, **kwargs):
+            return bidi(fn(*args, **kwargs), lang_fn())
+
+        return inner
+
+    return wrap
+
+
 def empty_figure(message: str, height: int = 260) -> go.Figure:
     fig = go.Figure()
     fig.add_annotation(text=message, showarrow=False, font=dict(family=FONT, size=14, color=LABEL), x=0.5, y=0.5, xref="paper", yref="paper")
@@ -237,10 +297,12 @@ def stacked_panels(
     height: int = 340,
     mark_year: Optional[int] = 2030,
     legend_right: bool = True,
+    lang: Optional[str] = None,
 ) -> go.Figure:
     """One panel per pathway (`frames`: {title: [year, series, value]}), stacked
     areas by series in `order`. Negative series stack below zero. `share`
     normalises each year to 100%. `net`: optional {title: Series by year} line."""
+    net_name = i18n.t("results.net_total", lang)
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
     for j, title in enumerate(titles, start=1):
@@ -255,12 +317,13 @@ def stacked_panels(
             if (y.abs() < 1e-12).all():
                 continue
             neg = y.sum() < 0
+            label = series_label(name, lang)
             fig.add_trace(
                 go.Scatter(
-                    x=wide.index, y=y, name=name, legendgroup=name, showlegend=(j == 1),
+                    x=wide.index, y=y, name=label, legendgroup=name, showlegend=(j == 1),
                     mode="lines", line=dict(width=0.6, color=colors.get(name, OTHER_COLOR)),
                     fillcolor=colors.get(name, OTHER_COLOR), stackgroup="neg" if neg else "pos",
-                    hovertemplate=f"{name}: %{{y:,.3~g}} {unit}<extra></extra>",
+                    hovertemplate=f"{label}: %{{y:,.3~g}} {unit}<extra></extra>",
                 ),
                 row=1, col=j,
             )
@@ -268,9 +331,9 @@ def stacked_panels(
             s = net[title]
             fig.add_trace(
                 go.Scatter(
-                    x=s.index, y=s.values, name="Net total", legendgroup="Net total", showlegend=(j == 1),
+                    x=s.index, y=s.values, name=net_name, legendgroup="net_total", showlegend=(j == 1),
                     mode="lines", line=dict(color=NET, width=2.4),
-                    hovertemplate=f"Net: %{{y:,.1f}} {unit}<extra></extra>",
+                    hovertemplate=f"{i18n.t('results.net', lang)}: %{{y:,.1f}} {unit}<extra></extra>",
                 ),
                 row=1, col=j,
             )
@@ -303,10 +366,13 @@ def lines_by_pathway(series: Dict[str, pd.Series], colors: Dict[str, str], unit:
     return _base_layout(fig, height, legend_right=True)
 
 
-def delta_bars(deltas: pd.DataFrame, colors: Dict[str, str], years=(2030, 2050), height: int = 380) -> go.Figure:
+def delta_bars(
+    deltas: pd.DataFrame, colors: Dict[str, str], years=(2030, 2050), height: int = 380, lang: Optional[str] = None
+) -> go.Figure:
     """Change vs BAU by subsector. `deltas`: [subsector, pathway, year, delta] (MtCO2e).
     One panel per year, horizontal bars, one colour per pathway."""
-    fig = make_subplots(rows=1, cols=len(years), shared_yaxes=True, subplot_titles=[f"Change vs BAU in {y}" for y in years], horizontal_spacing=0.04)
+    titles = [i18n.t("results.change_vs_bau_in", lang, year=y) for y in years]
+    fig = make_subplots(rows=1, cols=len(years), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.04)
     last = deltas[deltas["year"] == years[-1]]
     order = last.groupby("subsector")["delta"].sum().sort_values(ascending=False).index.tolist()
     for j, y in enumerate(years, start=1):
@@ -315,14 +381,14 @@ def delta_bars(deltas: pd.DataFrame, colors: Dict[str, str], years=(2030, 2050),
             g = g.set_index("subsector").reindex(order)
             fig.add_trace(
                 go.Bar(
-                    y=g.index, x=g["delta"], orientation="h", name=pw, legendgroup=pw, showlegend=(j == 1),
+                    y=[series_label(n, lang) for n in g.index], x=g["delta"], orientation="h", name=pw, legendgroup=pw, showlegend=(j == 1),
                     marker_color=colors.get(pw, OTHER_COLOR),
                     hovertemplate=f"{pw} · %{{y}}: %{{x:+,.1f}} MtCO₂e<extra></extra>",
                 ),
                 row=1, col=j,
             )
     fig.update_layout(barmode="group", bargap=0.25, hovermode="closest")
-    fig.update_xaxes(title_text="MtCO₂e vs BAU", title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
+    fig.update_xaxes(title_text=i18n.t("results.mt_vs_bau", lang), title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
     fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12, color=TEXT))
     fig = _base_layout(fig, height)
     fig.update_layout(hovermode="closest")
@@ -330,21 +396,23 @@ def delta_bars(deltas: pd.DataFrame, colors: Dict[str, str], years=(2030, 2050),
     return fig
 
 
-def cb_bars(wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420) -> go.Figure:
+def cb_bars(wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None) -> go.Figure:
     """Stacked +/- bars per year by group (`wide`: year x group) and the net line."""
     fig = go.Figure()
     for name in wide.columns:
         y = wide[name]
         if (y.abs() < 1e-12).all():
             continue
+        label = series_label(name, lang)
         fig.add_trace(
-            go.Bar(x=wide.index, y=y, name=name, marker_color=colors.get(name, OTHER_COLOR),
-                   hovertemplate=f"{name}: %{{y:+,.3~g}} {unit}<extra></extra>"),
+            go.Bar(x=wide.index, y=y, name=label, marker_color=colors.get(name, OTHER_COLOR),
+                   hovertemplate=f"{label}: %{{y:+,.3~g}} {unit}<extra></extra>"),
         )
     net = wide.sum(axis=1)
+    net_name = i18n.t("results.net", lang)
     fig.add_trace(
-        go.Scatter(x=net.index, y=net.values, name="Net", mode="lines+markers", line=dict(color=NET, width=2.4), marker=dict(size=4),
-                   hovertemplate=f"Net: %{{y:+,.3~g}} {unit}<extra></extra>"),
+        go.Scatter(x=net.index, y=net.values, name=net_name, mode="lines+markers", line=dict(color=NET, width=2.4), marker=dict(size=4),
+                   hovertemplate=f"{net_name}: %{{y:+,.3~g}} {unit}<extra></extra>"),
     )
     fig.update_layout(barmode="relative", bargap=0.18)
     fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
@@ -354,16 +422,19 @@ def cb_bars(wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int =
     return fig
 
 
-def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str) -> go.Figure:
+def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str, lang: Optional[str] = None) -> go.Figure:
     """Horizontal bars, one per cost/benefit item (`items`: display_name, category,
-    sector_label, pv), largest at the top, coloured by category."""
+    sector_label, pv), largest at the top, coloured by category. Item names come
+    from the C&B config workbook and stay as they are there."""
     d = items.iloc[::-1]
+    custom = [[series_label(c, lang), series_label(s, lang)] for c, s in zip(d["category"], d["sector_label"])]
     fig = go.Figure(
         go.Bar(
             y=d["display_name"], x=d["pv"], orientation="h",
             marker_color=[colors.get(c, OTHER_COLOR) if v >= 0 else COST for c, v in zip(d["category"], d["pv"])],
-            customdata=d[["category", "sector_label"]].values,
-            hovertemplate="%{y}<br>%{customdata[0]} · %{customdata[1]}<br>%{x:+,.2f} B USD<extra></extra>",
+            customdata=custom,
+            hovertemplate="%{y}<br>%{customdata[0]} · %{customdata[1]}<br>%{x:+,.2f} "
+            + i18n.t("results.busd_short", lang) + "<extra></extra>",
         )
     )
     fig.update_xaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
@@ -373,9 +444,18 @@ def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str) -> go.Figu
     return fig
 
 
-def credit_bars(frames: Dict[str, pd.DataFrame], colors: Dict[str, str], order: List[str], unit: str, height: int = 380) -> go.Figure:
+def credit_bars(
+    frames: Dict[str, pd.DataFrame],
+    colors: Dict[str, str],
+    order: List[str],
+    unit: str,
+    height: int = 380,
+    lang: Optional[str] = None,
+    labels: Optional[Dict[str, str]] = None,
+) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
-    one stacked bar per target year, stacked by emission group in `order`."""
+    one stacked bar per target year, stacked by emission group in `order`
+    (shown as `labels`, when given)."""
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
     years: List[int] = sorted({int(y) for f in frames.values() for y in f["year"].unique()})
@@ -385,10 +465,11 @@ def credit_bars(frames: Dict[str, pd.DataFrame], colors: Dict[str, str], order: 
         for name in order:
             if name not in wide.columns or (wide[name].abs() < 1e-9).all():
                 continue
+            label = series_label(name, lang, labels)
             fig.add_trace(
-                go.Bar(x=x, y=wide[name].to_numpy(), width=2.2, name=name, legendgroup=name,
-                       showlegend=name not in {t.name for t in fig.data}, marker_color=colors.get(name, OTHER_COLOR),
-                       hovertemplate=f"{name}: %{{y:,.1f}} {unit}<extra></extra>"),
+                go.Bar(x=x, y=wide[name].to_numpy(), width=2.2, name=label, legendgroup=name,
+                       showlegend=label not in {t.name for t in fig.data}, marker_color=colors.get(name, OTHER_COLOR),
+                       hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
                 row=1, col=j,
             )
         for xi, v in zip(x, wide.sum(axis=1).to_numpy()):

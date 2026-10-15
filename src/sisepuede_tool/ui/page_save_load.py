@@ -7,7 +7,7 @@ in. Session state is otherwise in-memory only -- see persistence_service.
 import pandas as pd
 from shiny import module, reactive, render, ui
 
-from sisepuede_tool.services import library_service, pathway_service, persistence_service, projects_service
+from sisepuede_tool.services import i18n, library_service, pathway_service, persistence_service, projects_service
 from sisepuede_tool.ui.state import AppState
 
 
@@ -20,24 +20,15 @@ RESULTS_CUSTOM_VARS_FILENAME = "results_custom_vars.csv"
 def page_save_load_ui():
     return ui.layout_columns(
         ui.card(
-            ui.card_header("Export session"),
-            ui.p(
-                "Download the current session's Transformations and Strategies as a "
-                "sisepuede project .zip (config_general.yaml, transformation_*.yaml, "
-                "strategy_definitions.csv) -- loadable unmodified by the sisepuede CLI "
-                "or notebooks."
-            ),
-            ui.download_button("download_export", "Download .zip"),
+            ui.card_header(i18n.t("save_load.export_title")),
+            ui.p(i18n.t("save_load.export_text")),
+            ui.download_button("download_export", i18n.t("save_load.download")),
         ),
         ui.card(
-            ui.card_header("Import session"),
-            ui.p(
-                "Upload a previously exported (or CLI-authored) project .zip. This "
-                "replaces the current session's Transformations and Strategies -- "
-                "export first if you want to keep them."
-            ),
-            ui.input_file("import_file", "Project .zip", accept=[".zip"]),
-            ui.input_action_button("import_btn", "Import", class_="btn-primary"),
+            ui.card_header(i18n.t("save_load.import_title")),
+            ui.p(i18n.t("save_load.import_text")),
+            ui.input_file("import_file", i18n.t("save_load.project_zip"), accept=[".zip"]),
+            ui.input_action_button("import_btn", i18n.t("save_load.import_button"), class_="btn-primary"),
             ui.output_ui("import_status_ui"),
         ),
         col_widths=[6, 6],
@@ -47,6 +38,9 @@ def page_save_load_ui():
 @module.server
 def page_save_load_server(input, output, session, state: AppState):
     last_import_result = reactive.Value(None)  # (ok, message) | None
+
+    def _t(key, **fmt):
+        return i18n.t(f"save_load.{key}", state.lang(), **fmt)
 
     @render.download_button(filename="sisepuede_session_export.zip")
     def download_export():
@@ -71,12 +65,12 @@ def page_save_load_server(input, output, session, state: AppState):
     def _on_import():
         file_infos = input.import_file()
         if not file_infos:
-            last_import_result.set((False, "Choose a project .zip file first."))
+            last_import_result.set((False, _t("choose_zip")))
             return
 
         transformers_catalog = state.transformers_catalog.get()
         if transformers_catalog is None:
-            last_import_result.set((False, "Add a baseline on the Baseline Data page first."))
+            last_import_result.set((False, _t("add_baseline_first")))
             return
 
         try:
@@ -84,7 +78,7 @@ def page_save_load_server(input, output, session, state: AppState):
                 file_infos[0]["datapath"], transformers_catalog
             )
         except Exception as e:
-            last_import_result.set((False, f"Import failed: {e}"))
+            last_import_result.set((False, _t("import_failed", error=e)))
             return
 
         # library transformations not in the file come back from the shipped library
@@ -111,10 +105,8 @@ def page_save_load_server(input, output, session, state: AppState):
 
         n_transformations = len(transformations_obj.dict_transformations) - 1
         n_strategies = len(strategies_map) - (1 if 0 in strategies_map else 0)
-        last_import_result.set(
-            (True, f"Imported {n_transformations} transformation(s) and {n_strategies} strategy(ies).")
-        )
-        ui.notification_show("Session imported.", type="message")
+        last_import_result.set((True, _t("imported", transformations=n_transformations, strategies=n_strategies)))
+        ui.notification_show(_t("session_imported"), type="message")
 
     @render.ui
     def import_status_ui():

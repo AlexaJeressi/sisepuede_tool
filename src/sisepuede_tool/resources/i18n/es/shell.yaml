@@ -1,0 +1,74 @@
+# UI text, Spanish. Draft: review before release (see README.md).
+# Sidebar, topbar, page names, sector names.
+
+shell:
+  title: "Egipto: MRV con SISEPUEDE"
+  country: "Egipto"
+  console: "Consola MRV"
+  pin: "Mantener el menú abierto"
+  advanced: "Opciones avanzadas"
+  advanced_on: "Las opciones avanzadas están activadas"
+  advanced_note: "Muestra todos los parámetros y ajustes de sisepuede."
+  engine_note: "Motor SISEPUEDE · módulo CB"
+  language: "Idioma"
+  baselines_loaded:
+    one: "{n} línea base cargada"
+    other: "{n} líneas base cargadas"
+
+nav:
+  groups:
+    workflow: "Flujo de trabajo"
+    results: "Resultados"
+    mrv: "MRV"
+    portfolio: "Cartera · opcional"
+    system: "Sistema"
+  meta:
+    no_baseline: "Aún no hay línea base"
+    pathways:
+      one: "{n} trayectoria"
+      other: "{n} trayectorias"
+    transformations:  # short: the sidebar doesn't wrap
+      one: "{n} transf."
+      other: "{n} transf."
+    not_run: "Aún sin ejecutar"
+    last_run: "Última ejecución {time} · {ok} correctas"
+  data_input:
+    label: "Datos de línea base"
+    description: "La línea base de emisiones de la que parte cada escenario."
+    crumb: "Configuración / 1"
+  pathways:
+    label: "Trayectorias"
+    description: "Abra un transformador, reutilice o cree transformaciones y agréguelas a una trayectoria."
+    crumb: "Construcción / 2"
+  run:
+    label: "Ejecutar"
+    description: "Elija líneas base y trayectorias, y luego ejecute."
+    crumb: "Ejecución / 3"
+  output_explorer:
+    label: "Emisiones y factores"
+    description: "De dónde vienen las emisiones, cómo las cambian las trayectorias y qué las impulsa."
+  cost_benefits:
+    label: "Costos y beneficios"
+    description: "En relación con el escenario tendencial."
+  macroeconomic_impacts:
+    label: "Impactos macroeconómicos"
+    description: "PIB y empleo en relación con el escenario tendencial."
+  article_6:
+    label: "Artículo 6"
+    description: "Mitigación más allá de la meta de la NDC que podría transferirse."
+  validation:
+    label: "Monitoreo"
+    description: "Compare los resultados del modelo con los datos observados del inventario."
+  projects:
+    label: "Proyectos"
+    description: "Consulte los proyectos anunciados y vincule cada uno a una transformación."
+  persistence:
+    label: "Archivos del proyecto"
+    description: "Exporte el proyecto como archivos de sisepuede o importe uno."
+
+sectors:
+  afolu: "AFOLU"
+  energy: "Energía"
+  circular_economy: "Economía circular"
+  ippu: "IPPU"
+  socioeconomic: "Socioeconómico"

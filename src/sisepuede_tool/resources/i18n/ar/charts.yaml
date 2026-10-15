@@ -1,0 +1,6 @@
+# Small inline charts (ui/components/charts.py). Draft: needs review by an Egyptian reviewer.
+
+charts:
+  implementation: "التنفيذ"
+  over_time: "{label} عبر الزمن"
+  today: "اليوم"

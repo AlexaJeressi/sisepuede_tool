@@ -1,0 +1,165 @@
+# Parameter labels and help from resources/param_schemas.yaml (es). Draft: review before release.
+# data.params.<transformer code>.<parameter>.{label,help}; English is param_schemas.yaml.
+
+data:
+  params:
+    "TFR:AGRC:TARGET_RESIDUE_MANAGEMENT":
+      dict_categories_to_magnitude:
+        label: "Proporción de tierra de cultivo sin labranza al final del periodo"
+        help: "Proporción mínima de la tierra de cada cultivo sin labranza (agricultura de conservación). Solo estos seis cultivos tienen una variable de labranza cero; los cultivos en blanco mantienen su proporción actual."
+      include_conservation_agriculture:
+        label: "Aplicar agricultura de conservación"
+        help: "Manténgalo activado; si se desactiva, la versión instalada de sisepuede falla."
+      magnitude_burned:
+        label: "Residuos quemados"
+        help: "No tiene efecto en la versión instalada de sisepuede (el código que lo usa está desactivado)."
+      magnitude_removed:
+        label: "Residuos retirados"
+        help: "No tiene efecto en la versión instalada de sisepuede (el código que lo usa está desactivado)."
+    "TFR:LNDU:BOUND_CLASSES":
+      dict_directional_categories_to_magnitude:
+        label: "Límites de superficie por clase de uso del suelo"
+        help: "Superficie mínima y/o máxima (hectáreas) de cada clase de uso del suelo en el último año. Deje una celda en blanco para no fijar límite. Sin ningún límite, la transformación no tiene efecto."
+      delim_key:
+        label: "Separador de claves"
+        help: "Lo fija la aplicación."
+    "TFR:LNDU:DEC_CLASS_LOSS":
+      cat_lndu:
+        label: "Clase de uso del suelo que se protege"
+    "TFR:LNDU:INC_REFORESTATION":
+      cats_inflow_restriction:
+        label: "Tierras de las que no puede provenir el nuevo bosque"
+    "TFR:LSMM:INC_MANAGEMENT_CATTLE_PIGS":
+      dict_lsmm_pathways:
+        label: "Sistemas de manejo de estiércol al final del periodo"
+        help: "Proporción del estiércol de los animales seleccionados que maneja cada sistema en el último año. Los sistemas que deje en blanco pierden participación en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+      vec_cats_lvst:
+        label: "Animales"
+    "TFR:LSMM:INC_MANAGEMENT_OTHER":
+      dict_lsmm_pathways:
+        label: "Sistemas de manejo de estiércol al final del periodo"
+        help: "Proporción del estiércol de los animales seleccionados que maneja cada sistema en el último año. Los sistemas que deje en blanco pierden participación en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+      vec_cats_lvst:
+        label: "Animales"
+    "TFR:LSMM:INC_MANAGEMENT_POULTRY":
+      dict_lsmm_pathways:
+        label: "Sistemas de manejo de estiércol al final del periodo"
+        help: "Proporción del estiércol de los animales seleccionados que maneja cada sistema en el último año. Los sistemas que deje en blanco pierden participación en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+      vec_cats_lvst:
+        label: "Animales"
+    "TFR:LVST:DEC_ENTERIC_FERMENTATION":
+      dict_lvst_reductions:
+        label: "Reducción del metano entérico por animal"
+        help: "Reducción del factor de emisión de metano de cada tipo de animal al final del periodo. Los animales en blanco no cambian."
+    "TFR:LVST:SHIFT_DIETARY_BOUNDS":
+      dict_lvst_shifts:
+        label: "Cambios en la dieta del ganado"
+        help: "No implementado en la versión instalada de sisepuede; este transformador deja la línea base sin cambios."
+    "TFR:WALI:INC_TREATMENT_INDUSTRIAL":
+      dict_magnitude:
+        label: "Vías de tratamiento al final del periodo"
+        help: "Proporción de este flujo de aguas residuales tratada por cada vía en el último año. Las vías que deje en blanco se reducen en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+    "TFR:WALI:INC_TREATMENT_RURAL":
+      dict_magnitude:
+        label: "Vías de tratamiento al final del periodo"
+        help: "Proporción de este flujo de aguas residuales tratada por cada vía en el último año. Las vías que deje en blanco se reducen en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+    "TFR:WALI:INC_TREATMENT_URBAN":
+      dict_magnitude:
+        label: "Vías de tratamiento al final del periodo"
+        help: "Proporción de este flujo de aguas residuales tratada por cada vía en el último año. Las vías que deje en blanco se reducen en proporción. El total no puede superar 100%: si lo supera, sisepuede ignora toda la transformación."
+    "TFR:ENTC:INCREASE_EFFICIENCY_FUEL_PROD":
+      dict_magnitudes:
+        label: "Eficiencia de la producción de combustibles"
+        help: "Para un combustible producido, la producción objetivo por unidad de un combustible de entrada (p. ej., hidrógeno por unidad de electricidad). Solo se modifica la primera tecnología que produce el combustible. Sin filas, la transformación no tiene efecto."
+      kwargs:
+        label: "Opciones adicionales"
+        help: "La aplicación no lo usa."
+    "TFR:ENTC:TARGET_RENEWABLE_ELEC":
+      dict_entc_renewable_target_msp:
+        label: "Participación mínima de la electricidad por tecnología"
+        help: "Piso opcional de la participación de cada renovable en la generación del último año. Si el total supera la meta renovable global, sisepuede los reduce para ajustarse a ella."
+      categories_entc_renewable:
+        label: "Tecnologías consideradas renovables"
+        help: "Déjelo vacío para usar la lista de sisepuede (geotérmica, hidroeléctrica, oceánica, solar, eólica). Si fija una lista, solo se consideran renovables las tecnologías que además tengan una participación mínima arriba."
+      categories_entc_max_investment_ramp:
+        label: "Tecnologías con crecimiento de la inversión limitado"
+    "TFR:ENTC:TARGET_CLEAN_HYDROGEN":
+      categories_source:
+        label: "Producción de hidrógeno que se reemplaza"
+      categories_target:
+        label: "Producción de hidrógeno limpio"
+    "TFR:INEN:INC_EFFICIENCY_PRODUCTION":
+      categories:
+        label: "Industrias"
+        help: "Déjelo vacío para todas las industrias."
+    "TFR:INEN:SHIFT_FUEL_HEAT":
+      frac_high_given_high:
+        label: "Proporción de la demanda de calor de alta temperatura"
+        help: "Por industria. Solo estas seis industrias reciben también el cambio de calor de baja temperatura; dejar una en blanco la excluye de ambos cambios."
+    "TFR:SCOE:INC_EFFICIENCY_HEAT":
+      dict_cats_to_magnitude:
+        label: "Mejora de la eficiencia de calefacción por combustible"
+        help: "Aumento de la eficiencia del calor de cada combustible al final del periodo. Los combustibles en blanco no cambian."
+    "TFR:SCOE:SHIFT_FUEL_HEAT":
+      cat_enfu_target:
+        label: "Combustible de destino"
+      cats_enfu_source:
+        label: "Combustibles de origen"
+        help: "Déjelo vacío para todos. No incluya el combustible de destino."
+      cats_scoe_apply:
+        label: "Tipos de edificio"
+        help: "Déjelo vacío para todos."
+    "TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY":
+      dict_fuel_allocation:
+        label: "Nueva mezcla de combustibles para la parte que cambia"
+        help: "Cómo se reparte el consumo de combustible que cambia entre los nuevos combustibles. Debe sumar exactamente 100%; de lo contrario, sisepuede usa sin aviso su reparto predeterminado."
+      categories:
+        label: "Tipos de vehículo"
+    "TFR:TRNS:SHIFT_FUEL_RAIL":
+      dict_fuel_allocation:
+        label: "Nueva mezcla de combustibles para la parte que cambia"
+        help: "Cómo se reparte el consumo de combustible que cambia entre los nuevos combustibles. Debe sumar exactamente 100%; de lo contrario, sisepuede usa sin aviso su reparto predeterminado."
+      categories:
+        label: "Tipos de vehículo"
+    "TFR:TRNS:SHIFT_FUEL_MARITIME":
+      dict_allocation_fuels_target:
+        label: "Nueva mezcla de combustibles para la parte que cambia"
+        help: "Cómo se reparte el consumo de combustible que cambia entre los nuevos combustibles. Debe sumar exactamente 100%; de lo contrario, sisepuede usa sin aviso su valor predeterminado. El consumo que no cambia pasa luego a electricidad."
+      fuels_source:
+        label: "Combustibles de origen"
+      categories:
+        label: "Tipos de vehículo"
+    "TFR:TRNS:SHIFT_FUEL_MEDIUM_DUTY":
+      dict_allocation_fuels_target:
+        label: "Nueva mezcla de combustibles para la parte que cambia"
+        help: "Cómo se reparte el consumo de combustible que cambia entre los nuevos combustibles. Debe sumar exactamente 100%; de lo contrario, sisepuede usa sin aviso su valor predeterminado. El consumo que no cambia pasa luego a hidrógeno."
+      fuels_source:
+        label: "Combustibles de origen"
+      categories:
+        label: "Tipos de vehículo"
+    "TFR:TRNS:SHIFT_MODE_FREIGHT":
+      dict_categories_target:
+        label: "Hacia dónde va la carga"
+        help: "Por defecto: todo al ferrocarril de carga pesada. Nota: sisepuede ignora actualmente este ajuste (error conocido en sisepuede), por lo que no puede cambiarse aquí."
+      categories_out:
+        label: "Modos de origen"
+    "TFR:TRNS:SHIFT_MODE_PASSENGER":
+      dict_categories_target:
+        label: "Hacia dónde van los pasajeros"
+        help: "Por defecto: 1/6 movilidad activa, 2/6 bicicletas motorizadas, 1/2 transporte público vial. Nota: sisepuede ignora actualmente este ajuste (error conocido en sisepuede), por lo que no puede cambiarse aquí."
+      categories_out:
+        label: "Modos de origen"
+    "TFR:TRNS:SHIFT_MODE_REGIONAL":
+      dict_categories_out:
+        label: "Proporción de los viajes de cada modo que cambia"
+        help: "Fracción de los viajes regionales de pasajeros de cada modo que pasa a otros modos al final del periodo. Total de 100% como máximo."
+      dict_categories_target:
+        label: "Hacia dónde van los viajes"
+        help: "Por defecto: todo a transporte vial regional. Nota: sisepuede ignora actualmente este ajuste (error conocido en sisepuede), por lo que no puede cambiarse aquí."
+    "TFR:PFLO:INC_IND_CCS":
+      dict_magnitude_prev:
+        label: "Proporción de plantas con captura de carbono"
+        help: "Proporción mínima de la producción de cada industria con captura de carbono al final del periodo. Las industrias en blanco no cambian."
+      dict_magnitude_eff:
+        label: "Proporción de CO₂ capturado donde está instalada"
+        help: "Eficiencia mínima de captura por industria. Las industrias en blanco mantienen su eficiencia actual."

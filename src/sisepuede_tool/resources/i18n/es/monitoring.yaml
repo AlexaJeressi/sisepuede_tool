@@ -1,0 +1,23 @@
+# Monitoring page (es; hidden in the NDC version). Draft.
+
+monitoring:
+  upload_title: "Cargar datos de monitoreo"
+  dataset_csv: "CSV con los datos de monitoreo"
+  crosswalk_csv: "CSV de correspondencia"
+  validate_load: "Validar y cargar"
+  compare_title: "Comparar"
+  comparison: "Comparación"
+  runs_to_compare: "Ejecuciones a comparar"
+  chart_title: "Observado vs. modelado"
+  choose_both: "Elija un CSV de datos de monitoreo y un CSV de correspondencia."
+  crosswalk_errors: "Errores en la correspondencia:"
+  loaded:
+    one: "Cargado. Hay {n} comparación disponible."
+    other: "Cargado. Hay {n} comparaciones disponibles."
+  data_loaded: "Datos de monitoreo cargados."
+  no_data: "Aún no se han cargado datos de monitoreo."
+  chart_empty: "Cargue datos de validación, elija una comparación y seleccione las ejecuciones a comparar."
+  axis_year: "Periodo"
+  axis_value: "Valor"
+  metrics: "{label}: RMSE={rmse:.4g}, MAE={mae:.4g}, sesgo={bias:.4g}"
+  no_overlap: "No hay periodos en común para evaluar."
