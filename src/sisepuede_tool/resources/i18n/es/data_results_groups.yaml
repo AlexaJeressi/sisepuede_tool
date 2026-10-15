@@ -30,10 +30,10 @@
       "why": "Las emisiones de proceso (cemento, químicos, metales) aumentan con la producción."
     "clinker":
       "title": "Proporción de clínker en el cemento"
-      "why": "El clínker es la fuente del CO2 de proceso del cemento; menos clínker por tonelada significa menos CO2."
+      "why": "El clínker es la fuente del CO₂ de proceso del cemento; menos clínker por tonelada significa menos CO₂."
     "inen_energy":
-      "title": "Uso de energía industrial por industria"
-      "why": "Combustible quemado para calor y energía en las fábricas."
+      "title": "Energía industrial por rama"
+      "why": "Combustible quemado en las fábricas para producir calor y electricidad."
     "inen_fuels":
       "title": "Matriz de combustibles industriales"
       "why": "Cambiar de combustibles fósiles a electricidad o hidrógeno reduce las emisiones de combustión."
@@ -70,10 +70,10 @@
       "unit": "millones de ha"
     "food_loss":
       "title": "Alimentos perdidos antes del consumo"
-      "why": "Los alimentos perdidos en la cadena de suministro igual hubo que producirlos, y parte termina en rellenos sanitarios."
+      "why": "Los alimentos que se pierden en la cadena de suministro de todos modos se produjeron, y parte termina en rellenos sanitarios."
     "fertilizer":
       "title": "Uso de nitrógeno en fertilizantes"
-      "why": "El nitrógeno aplicado a los suelos es la principal fuente de N2O agrícola."
+      "why": "El nitrógeno aplicado a los suelos es la principal fuente de N₂O agrícola."
     "herd":
       "title": "Tamaño del hato"
       "why": "La fermentación entérica y el metano del estiércol aumentan con el número de animales."
@@ -90,14 +90,14 @@
       "why": "Carbono almacenado en la biomasa forestal."
     "waste_generated":
       "title": "Residuos sólidos generados"
-      "why": "Los residuos orgánicos en rellenos y botaderos producen metano."
+      "why": "Los residuos orgánicos en rellenos sanitarios y vertederos a cielo abierto producen metano."
     "waste_destination":
       "title": "Destino de los residuos sólidos"
-      "why": "Los rellenos y botaderos emiten metano; el reciclaje, el compostaje y la digestión evitan la mayor parte."
+      "why": "Los rellenos sanitarios y los vertederos a cielo abierto emiten metano; el reciclaje, el compostaje y la digestión anaeróbica evitan la mayor parte."
       "unit": "% de Mt"
     "ww_urban":
       "title": "Tratamiento de aguas residuales urbanas"
-      "why": "Las aguas residuales sin tratar y de letrinas emiten metano; el tratamiento avanzado con captura de biogás es el que menos emite."
+      "why": "Las aguas residuales sin tratar y las de letrinas emiten metano; el tratamiento avanzado con captura de biogás es el que menos emite."
       "unit": "% de la población"
     "ww_rural":
       "title": "Tratamiento de aguas residuales rurales"

@@ -8,7 +8,7 @@
     "carbon_capture_and_sequestration":
       "name": "Captura y almacenamiento de carbono"
     "energy_technology":
-      "name": "Tecnología energética"
+      "name": "Tecnologías energéticas"
     "fugitive_emissions":
       "name": "Emisiones fugitivas"
     "forest":
@@ -20,13 +20,13 @@
     "land_use":
       "name": "Uso del suelo"
     "livestock_manure_management":
-      "name": "Gestión del estiércol del ganado"
+      "name": "Manejo del estiércol del ganado"
     "livestock":
       "name": "Ganadería"
     "stationary_combustion_and_other_energy":
-      "name": "Combustión estacionaria y otra energía"
+      "name": "Combustión estacionaria y otros usos de la energía"
     "soil_management":
-      "name": "Gestión de suelos"
+      "name": "Manejo de suelos"
     "transportation":
       "name": "Transporte"
     "wastewater_treatment":
