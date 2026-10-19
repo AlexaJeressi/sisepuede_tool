@@ -50,6 +50,18 @@ conda activate ssp_biomass_env
 Run `conda env create` from the repo root, because the env file installs `.`
 in editable mode.
 
+The *Article 6* tab also needs a clone of
+[`sisepuede_a6`](https://github.com/jcsyme/sisepuede_a6) next to this repo
+(it isn't a pip package, so the app loads it from disk):
+
+```bash
+cd ..
+git clone https://github.com/jcsyme/sisepuede_a6.git
+```
+
+To keep it somewhere else, set `SISEPUEDE_A6_DIR` to its path before starting
+the app.
+
 ## Running the app
 
 ```bash
@@ -98,22 +110,19 @@ baseline after that has to be for the same region.
 
 The *Article 6* tab estimates the credits a country could transfer under
 Article 6 of the Paris Agreement: the emission reductions a pathway achieves
-**beyond its NDC target**, valued at a carbon price. The calculation is ported
-from [`sisepuede_a6`](https://github.com/jcsyme/sisepuede_a6) (`ssp_asix.py`).
+**beyond its NDC target**, valued at a carbon price. The app doesn't do the
+calculation itself: for each pathway it calls `get_credit_estimate` from
+[`sisepuede_a6`](https://github.com/jcsyme/sisepuede_a6)
+(`sisepuede_a6/src/ssp_asix.py`), with the app's `ModelAttributes` and a
+`TimePeriods` built from them. Any change to that function changes the app's
+results; `git pull` the clone and restart the app.
 
-For each NDC target year (2030 and 2035) and each emission group (Agriculture,
-Transportation, IPPU, ...):
+The credits are computed for each NDC target year and each emission group
+(Agriculture, Transportation, IPPU, ...) in the `sisepuede_a6` reference files,
+and valued at the carbon price of that year (USD/tCO2e).
 
-```
-credits (MtCO2e) = NDC target − pathway emissions, if positive; otherwise 0
-value (million USD) = credits × carbon price of that year (USD/tCO2e)
-```
-
-- Each group counts on its own: a group above its target earns nothing and
-  doesn't reduce the credits of another group.
-- Only pathways that go **beyond the NDC** are shown. The NDC targets are the
-  NDC pathway's own emissions, so business as usual and pathways made only of
-  NDC transformations earn no credits and are listed as "Not shown".
+- Only pathways that go **beyond the NDC** are shown. Business as usual and
+  pathways made only of NDC transformations are listed as "Not shown".
 - The app preloads two pathways when you add the first baseline: **NDC**
   (strategy 6003) and **LEP** (strategy 6005, "Example LEP pathway used to
   demonstrate A6 opportunities": 13 NDC transformations plus 9 higher-ambition
@@ -126,14 +135,15 @@ value (million USD) = credits × carbon price of that year (USD/tCO2e)
   goes back.
 - **Electricity model.** Electricity (Energy Technology) and fugitive emissions
   are only computed when *Run electricity dispatch (NemoMod)* is ticked on the
-  *Run* page. Without it those two groups are left out, and the page says so.
+  *Run* page. Without them those two groups have no emissions, and the page says so.
 - The *Download data (.xlsx)* button exports every group, year and pathway
-  (emissions, target, surplus, credits, price, value), plus the targets, prices
-  and groupings used.
+  (emissions, target, difference, credits, price, value), plus the targets,
+  prices and groupings used.
 
-The NDC targets, carbon prices and emission groupings are the example files from
-`sisepuede_a6`, in `src/sisepuede_tool/resources/article6/`. Replace those CSVs
-(same columns) to use other values.
+The NDC targets, carbon prices and emission groupings are read from the
+`sisepuede_a6` clone: `ref/ndc_targets_for_a6_demo.csv`,
+`ref/carbon_prices_example.csv` and `ref/emission_groupings_example.csv`. Edit
+those CSVs (same columns) and restart the app to use other values.
 
 ## Baseline CSV format
 
@@ -166,8 +176,7 @@ src/sisepuede_tool/
   services/           logic with no UI (catalog, runs, costs & benefits, ...)
   models/             dataclasses shared between UI and services
   resources/          YAML configs, the NDC and LEP transformation libraries
-                      (library/egypt_ndc, library/egypt_lep), Article 6 reference
-                      data (article6/), CSS theme
+                      (library/egypt_ndc, library/egypt_lep), CSS theme
   ref/                Egypt projects workbook
 tests/                pytest suite; tests/fixtures/ has the example input and the C&B config
 scripts/              helpers that regenerate metadata in resources/
