@@ -1,24 +1,22 @@
 """Article 6 page (results): credits the country could sell from mitigation
 beyond its NDC targets.
 
-Only pathways that go beyond the NDC earn credits: the NDC targets are the
-NDC pathway's own emissions, so business as usual and pathways made of NDC
-transformations only are left out (article6_service.earns_credits), e.g. the
-preloaded LEP pathway is shown and the NDC pathway is not.
+Only pathways that go beyond the NDC are estimated: business as usual and
+pathways made of NDC transformations only are left out
+(article6_service.earns_credits), e.g. the preloaded LEP pathway is shown and
+the NDC pathway is not.
 
-For each NDC target year (the years in resources/article6/ndc_targets.csv)
-and each of those pathways: emissions by emission group are compared with the
-group's target; what is below the target is a tradeable credit, valued at
-that year's carbon price (services/article6_service.py, ported from
-sisepuede_a6). Shows:
+The credits are computed by sisepuede_a6 (ssp_asix.get_credit_estimate, called
+from services/article6_service.py) for each NDC target year and emission group
+in its ref/ files. Shows:
 - one tile per pathway: credits (MtCO2e) and their value (million USD) in
   each target year;
 - the carbon price used in each target year; in advanced mode it can be
   changed per year (the page recomputes at once, no model run needed);
 - credit value per target year, stacked by emission group (subsector colours).
 
-The Excel download has every group, year and pathway, with emissions, the
-target, the surplus or shortfall, the price and the value.
+The Excel download has every group, year and pathway, with the emissions, the
+target, the difference, the price and the value.
 """
 
 import re
@@ -37,7 +35,7 @@ from sisepuede_tool.ui.state import AppState
 
 
 def group_name(group: str, lang=None) -> str:
-    """An emission group (resources/article6/emission_groupings.csv) in `lang`."""
+    """An emission group (sisepuede_a6 ref/emission_groupings_example.csv) in `lang`."""
     return i18n.td("article6", re.sub(r"[^a-z0-9]+", "_", group.lower()).strip("_"), "name", group, lang)
 
 
@@ -148,7 +146,8 @@ def page_article_6_server(input, output, session, state: AppState):
         """(baseline id, [(sid, name, estimate frame)]) for the visible pathways that go beyond the NDC."""
         bid, rows, _ = pathway_rows()
         used = ref_used()
-        return bid, [(sid, name, a6.credit_estimate(rr.df_output, used)) for sid, name, rr in rows]
+        ma = state.model_attributes.get()
+        return bid, [(sid, name, a6.credit_estimate(rr.df_output, ma, used)) for sid, name, rr in rows]
 
     @reactive.effect
     @reactive.event(input.ui_event)

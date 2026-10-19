@@ -134,7 +134,7 @@ def article6_workbook(
 ) -> bytes:
     """`runs`: [(pathway name, article6_service.credit_estimate frame)] for one baseline.
     `ref["prices"]` is the price table used (edited or not); `price_note` says which."""
-    cols = ["year", "pathway", "baseline", "emission_group", "emissions_mt", "target_mt", "surplus_mt", "modelled", "credits_mt", "price_usd_per_t", "value_musd"]
+    cols = ["year", "pathway", "baseline", "emission_group", "emissions_mt", "target_mt", "diff_mt", "modelled", "credits_mt", "price_usd_per_t", "value_musd"]
     parts = []
     for name, est in runs:
         d = est.rename(
@@ -142,7 +142,7 @@ def article6_workbook(
                 "emission_groups": "emission_group",
                 "emissions": "emissions_mt",
                 "target": "target_mt",
-                "surplus": "surplus_mt",
+                "diff": "diff_mt",
                 "price": "price_usd_per_t",
             }
         )
@@ -156,11 +156,10 @@ def article6_workbook(
     notes = pd.DataFrame(
         {
             "note": [
-                "surplus_mt = NDC target - pathway emissions (MtCO2e); positive = below the target.",
-                "credits_mt = surplus_mt when positive, else 0; a group above its target does not reduce another group's credits.",
-                "modelled = FALSE: the run has no emissions for a group with a target (e.g. electricity without the electricity model); it earns no credits.",
-                "value_musd = credits_mt x carbon price (USD per tCO2e = million USD per MtCO2e).",
-                "Targets, carbon prices and emission groupings are demo/example values from sisepuede_a6 (sheets below).",
+                "Computed by sisepuede_a6 (ssp_asix.get_credit_estimate); diff_mt is its diff_emission_total_co2e (MtCO2e).",
+                "credits_mt = tradeable MtCO2e from ssp_asix.get_credit_estimate_from_diff; value_musd = credits x carbon price (USD per tCO2e = million USD per MtCO2e).",
+                "modelled = FALSE: the run has no emissions for a group with a target (e.g. electricity without the electricity model).",
+                "Targets, carbon prices and emission groupings are the demo/example files in sisepuede_a6/ref (sheets below).",
             ]
             + ([price_note] if price_note else [])
         }

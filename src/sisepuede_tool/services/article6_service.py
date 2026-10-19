@@ -1,37 +1,29 @@
-"""Article 6 credit estimate: mitigation beyond the NDC target, valued at a carbon price.
+"""Article 6 credit estimate, computed by the sisepuede_a6 repository.
 
-Ported from sisepuede_a6 (sisepuede_a6/src/ssp_asix.py), without the
-ModelAttributes / TimePeriods dependency. For each NDC target year and each
-emission group:
+The calculation is not done here: credit_estimate() calls
+ssp_asix.get_credit_estimate() from a local clone of sisepuede_a6
+(https://github.com/jcsyme/sisepuede_a6), so a change to that function changes
+the tool's results. The clone is found at $SISEPUEDE_A6_DIR, or next to this
+repo (../sisepuede_a6) when the variable is not set.
 
-    surplus = NDC target - pathway emissions        (MtCO2e)
-    credits = max(surplus, 0)                        (tradeable MtCO2e)
-    value   = credits * carbon price                 (million USD)
-
-A positive surplus means the pathway emits less than the target. A shortfall
-in one group does not reduce the credits from another (groups are clipped
-one by one, as in ssp_asix). A group whose emissions are exactly zero while
-its target is not (e.g. electricity and fugitive emissions in a run without
-the electricity model) is marked not modelled and earns no credits. Note: ssp_asix computes result - target and
-clips that, which would credit emitting *above* the target; the sign is
-flipped here so the result matches its own docstring.
-
-Reference data (resources/article6/, copied from sisepuede_a6/ref):
-- emission_groupings.csv: emission_groups, sisepuede_fields ("|"-separated
-  output fields summed into the group);
-- ndc_targets.csv: year, emission_groups, target_mt_co2e_ndc2 (demo targets);
-- carbon_prices.csv: year, price_mm_usd_carbon_per_mt (million USD per
-  MtCO2e = USD per tCO2e; example prices).
+Reference data, read from the clone's ref/ folder:
+- emission_groupings_example.csv: emission_groups, sisepuede_fields
+  ("|"-separated output fields summed into the group);
+- ndc_targets_for_a6_demo.csv: year, emission_groups, target_mt_co2e_ndc2;
+- carbon_prices_example.csv: year, price_mm_usd_carbon_per_mt (million USD per
+  MtCO2e = USD per tCO2e).
 """
 
 import functools
+import importlib.util
+import os
 import pathlib
 from typing import Dict, Iterable, Optional
 
 import pandas as pd
+from sisepuede.core.support_classes import TimePeriods
 
-import sisepuede_tool
-from sisepuede_tool.services.emissions_service import YEAR_0
+from sisepuede_tool import config
 
 DELIM_SSP_FIELDS = "|"
 FIELD_GROUP = "emission_groups"
@@ -39,16 +31,33 @@ FIELD_SSP_FIELDS = "sisepuede_fields"
 FIELD_TARGET = "target_mt_co2e_ndc2"
 FIELD_PRICE = "price_mm_usd_carbon_per_mt"
 
-RESOURCES_DIR = pathlib.Path(sisepuede_tool.__file__).parent / "resources" / "article6"
+A6_DIR = pathlib.Path(os.environ.get("SISEPUEDE_A6_DIR", config.REPO_ROOT.parent / "sisepuede_a6"))
+A6_MODULE_PATH = A6_DIR / "sisepuede_a6" / "src" / "ssp_asix.py"
+A6_REF_DIR = A6_DIR / "ref"
+
+
+@functools.lru_cache(maxsize=1)
+def asix():
+    """The ssp_asix module of the sisepuede_a6 clone (the repo is not a package,
+    so the file is loaded by path)."""
+    if not A6_MODULE_PATH.exists():
+        raise FileNotFoundError(
+            f"sisepuede_a6 not found at {A6_DIR}: clone https://github.com/jcsyme/sisepuede_a6 "
+            "next to this repo or set SISEPUEDE_A6_DIR"
+        )
+    spec = importlib.util.spec_from_file_location("ssp_asix", A6_MODULE_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 @functools.lru_cache(maxsize=1)
 def load_reference() -> Dict[str, pd.DataFrame]:
-    """{"groupings", "targets", "prices"} from resources/article6/."""
+    """{"groupings", "targets", "prices"} from the sisepuede_a6 ref/ folder."""
     return {
-        "groupings": pd.read_csv(RESOURCES_DIR / "emission_groupings.csv"),
-        "targets": pd.read_csv(RESOURCES_DIR / "ndc_targets.csv"),
-        "prices": pd.read_csv(RESOURCES_DIR / "carbon_prices.csv"),
+        "groupings": pd.read_csv(A6_REF_DIR / "emission_groupings_example.csv"),
+        "targets": pd.read_csv(A6_REF_DIR / "ndc_targets_for_a6_demo.csv"),
+        "prices": pd.read_csv(A6_REF_DIR / "carbon_prices_example.csv"),
     }
 
 
@@ -56,38 +65,42 @@ def target_years(targets: pd.DataFrame) -> list:
     return sorted(int(y) for y in targets["year"].unique())
 
 
-def emissions_vs_targets(df_output: pd.DataFrame, groupings: pd.DataFrame, targets: pd.DataFrame) -> pd.DataFrame:
-    """[year, emission_groups, emissions, target, surplus, modelled] (MtCO2e) for the target years.
+@functools.lru_cache(maxsize=4)
+def _time_periods(model_attributes) -> TimePeriods:
+    return TimePeriods(model_attributes)
 
-    surplus = target - emissions: positive = beyond the NDC target.
-    modelled = False when the run has no emissions for a group that has a target.
+
+def credit_estimate(df_output: pd.DataFrame, model_attributes, ref: Optional[Dict[str, pd.DataFrame]] = None) -> pd.DataFrame:
+    """[year, emission_groups, emissions, target, diff, modelled, price, credits_mt, value_musd].
+
+    value_musd is ssp_asix.get_credit_estimate(). The other columns come from
+    the same module, so they follow it: emissions, target and diff (as
+    ssp_asix defines it) from get_emissions_from_target_years(), and
+    credits_mt from get_credit_estimate_from_diff() at a price of 1.
+    modelled = False flags groups with no emissions in the run although they
+    have a target (information only; it does not change the credits).
     """
-    years = df_output["time_period"].astype(int) + YEAR_0
-    rows = df_output[years.isin(targets["year"]).values]
-    yrs = (rows["time_period"].astype(int) + YEAR_0).values
-    parts = []
-    for g in groupings.itertuples(index=False):
-        group = str(getattr(g, FIELD_GROUP))
-        fields = [f for f in str(getattr(g, FIELD_SSP_FIELDS)).split(DELIM_SSP_FIELDS) if f in rows.columns]
-        parts.append(pd.DataFrame({"year": yrs, FIELD_GROUP: group, "emissions": rows[fields].sum(axis=1).values}))
-    if not parts:
-        return pd.DataFrame(columns=["year", FIELD_GROUP, "emissions", "target", "surplus", "modelled"])
-    df = pd.concat(parts, ignore_index=True).merge(
-        targets.rename(columns={FIELD_TARGET: "target"})[["year", FIELD_GROUP, "target"]],
-        on=["year", FIELD_GROUP],
-        how="inner",
+    ref = ref or load_reference()
+    m = asix()
+    tp = _time_periods(model_attributes)
+    groupings, targets, prices = ref["groupings"], ref["targets"], ref["prices"]
+    keys = [tp.field_year, m._FIELD_EMISSION_GROUPS]
+
+    diff = m.get_emissions_from_target_years(df_output, groupings, targets, m._FIELD_VALUE_NDC2, model_attributes, tp)
+    value = m.get_credit_estimate(df_output, prices, groupings, targets, m._FIELD_VALUE_NDC2, model_attributes, tp)
+    tradeable = m.get_credit_estimate_from_diff(diff, prices.assign(**{m._FIELD_PRICE_CARBON: 1.0}), tp)
+
+    df = (
+        diff.rename(columns={"emission_total_co2e": "emissions", m._FIELD_VALUE_NDC2: "target", m._FIELD_EMISSION_DIFF: "diff"})
+        .merge(prices.rename(columns={m._FIELD_PRICE_CARBON: "price"})[[tp.field_year, "price"]], on=tp.field_year, how="left")
+        .merge(tradeable.rename(columns={m._FIELD_CREDIT_VALUE: "credits_mt"}), on=keys, how="left")
+        .merge(value.rename(columns={m._FIELD_CREDIT_VALUE: "value_musd"}), on=keys, how="left")
+        .rename(columns={tp.field_year: "year"})
     )
-    df["surplus"] = df["target"] - df["emissions"]
-    df["modelled"] = (df["emissions"] != 0) | (df["target"] == 0)
-    return df
-
-
-def credits(df_diff: pd.DataFrame, prices: pd.DataFrame) -> pd.DataFrame:
-    """Adds price (USD/tCO2e), credits_mt (tradeable MtCO2e) and value_musd (million USD)."""
-    df = df_diff.merge(prices.rename(columns={FIELD_PRICE: "price"})[["year", "price"]], on="year", how="left")
-    df["credits_mt"] = df["surplus"].clip(lower=0).where(df["modelled"], 0.0)
-    df["value_musd"] = df["credits_mt"] * df["price"]
-    return df
+    # a group without a target (NaN) has no credits
+    df[["credits_mt", "value_musd"]] = df[["credits_mt", "value_musd"]].fillna(0.0)
+    df["modelled"] = (df["emissions"] != 0) | (df["target"].fillna(0) == 0)
+    return df[["year", FIELD_GROUP, "emissions", "target", "diff", "modelled", "price", "credits_mt", "value_musd"]]
 
 
 def price_by_year(prices: pd.DataFrame, years) -> Dict[int, float]:
@@ -108,14 +121,8 @@ def with_prices(prices: pd.DataFrame, overrides: Dict[int, float]) -> pd.DataFra
     return out.sort_values("year").reset_index(drop=True)
 
 
-def credit_estimate(df_output: pd.DataFrame, ref: Optional[Dict[str, pd.DataFrame]] = None) -> pd.DataFrame:
-    """[year, emission_groups, emissions, target, surplus, modelled, price, credits_mt, value_musd]."""
-    ref = ref or load_reference()
-    return credits(emissions_vs_targets(df_output, ref["groupings"], ref["targets"]), ref["prices"])
-
-
 def not_modelled(est: pd.DataFrame) -> list:
-    """Emission groups left out of the credits because the run has no emissions for them."""
+    """Emission groups with a target but no emissions in the run."""
     return sorted(est.loc[~est["modelled"].astype(bool), FIELD_GROUP].unique())
 
 
