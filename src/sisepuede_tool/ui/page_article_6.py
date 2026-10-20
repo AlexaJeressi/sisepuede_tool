@@ -9,11 +9,13 @@ the NDC pathway is not.
 The credits are computed by sisepuede_a6 (ssp_asix.get_credit_estimate, called
 from services/article6_service.py) for each NDC target year and emission group
 in its ref/ files. Shows:
-- one tile per pathway: credits (MtCO2e) and their value (million USD) in
-  each target year;
-- the carbon price used in each target year; in advanced mode it can be
-  changed per year (the page recomputes at once, no model run needed);
-- credit value per target year, stacked by emission group (subsector colours).
+- one tile per pathway: credits (MtCO2e) and their value (million USD) over
+  all the target years and in the milestone years (2030, 2035);
+- the carbon price used, as a range and average (each year in the ⓘ); in
+  advanced mode it can be set for every year at once or year by year (the
+  page recomputes at once, no model run needed);
+- credit value per target year, stacked by emission group (subsector colours),
+  totals written above the milestone years.
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.
@@ -54,11 +56,20 @@ def page_article_6_ui():
             ui.div(
                 ui.div(ui.span(i18n.t("article_6.change_price"), class_="section-label"), ui.span(i18n.t("results.advanced"), class_="adv-tag")),
                 ui.div(
-                    *[
-                        ui.input_numeric(f"price_{y}", f"{y} (USD/tCO₂e)", value=round(p, 2), min=0, step=0.5, width="170px")
-                        for y, p in a6.price_by_year(a6.load_reference()["prices"], a6.target_years(a6.load_reference()["targets"])).items()
-                    ],
-                    class_="btn-row",
+                    ui.input_numeric("price_all", i18n.t("article_6.all_years") + " (USD/tCO₂e)", value=None, min=0, step=0.5, width="200px"),
+                    ui.input_action_button("price_apply_all", i18n.t("article_6.apply_all"), class_="btn-inline"),
+                    class_="btn-row a6-price-all",
+                ),
+                ui.tags.details(
+                    ui.tags.summary(i18n.t("article_6.by_year")),
+                    ui.div(
+                        *[
+                            ui.input_numeric(f"price_{y}", f"{y} (USD/tCO₂e)", value=round(p, 2), min=0, step=0.5, width="150px")
+                            for y, p in a6.price_by_year(a6.load_reference()["prices"], a6.target_years(a6.load_reference()["targets"])).items()
+                        ],
+                        class_="btn-row",
+                    ),
+                    class_="a6-price-years",
                 ),
                 ui.input_action_button("price_reset", i18n.t("article_6.reset"), class_="btn-inline btn-ghost"),
                 ui.div(i18n.t("article_6.instant"), class_="small muted"),
@@ -74,9 +85,9 @@ def page_article_6_ui():
                 class_="box-head",
             ),
             output_widget("groups_chart"),
+            ui.output_ui("groups_legend"),
             ui.output_ui("modelled_note"),
             ui.output_ui("excluded_note"),
-            ui.div(i18n.t("article_6.formula"), class_="small muted"),
             class_="box",
         ),
         class_="res-page",
@@ -89,6 +100,7 @@ def page_article_6_server(input, output, session, state: AppState):
     results_bar.bar_server(input, state, ev_id)
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
+    headline = a6.headline_years(years)
     ref_price = a6.price_by_year(ref["prices"], years)
 
     def _t(key, **fmt):
@@ -117,12 +129,39 @@ def page_article_6_server(input, output, session, state: AppState):
     @reactive.effect
     @reactive.event(input.price_reset)
     def _reset_prices():
+        ui.update_numeric("price_all", value=None)
         for y in years:
             ui.update_numeric(f"price_{y}", value=round(ref_price[y], 2))
 
+    @reactive.effect
+    @reactive.event(input.price_apply_all)
+    def _apply_price_to_all():
+        v = input.price_all()
+        if v is None or v < 0:
+            return
+        for y in years:
+            ui.update_numeric(f"price_{y}", value=float(v))
+
+    def _year_span() -> str:
+        return f"{years[0]}–{years[-1]}" if len(years) > 1 else str(years[0])
+
+    def _price_summary(prices: dict) -> str:
+        """Short text for the prices of the target years: each year when there
+        are a few, otherwise the range and the average."""
+        if len(years) <= 3:
+            return " · ".join(f"{y}: {_price(prices[y])}" for y in years)
+        vals = [prices[y] for y in years]
+        if max(vals) - min(vals) < 0.005:
+            return f"{_year_span()}: {_price(vals[0])}"
+        # one unit for the range: $10.70–12.26/t
+        span = i18n.t("results.price_t", state.lang(), p=f"{min(vals):.2f}–{max(vals):.2f}")
+        return _t("price_range", years=_year_span(), range=span, avg=_price(sum(vals) / len(vals)))
+
+    def _price_by_year_text(prices: dict) -> str:
+        return " · ".join(f"{y}: {_price(prices[y])}" for y in years)
+
     def _price_text() -> str:
-        used = a6.price_by_year(ref_used()["prices"], years)
-        return " · ".join(f"{y}: {_price(used[y])}" for y in years)
+        return _price_summary(a6.price_by_year(ref_used()["prices"], years))
 
     def _earns_credits(sid: int) -> bool:
         tx = state.transformations_obj.get()
@@ -162,28 +201,29 @@ def page_article_6_server(input, output, session, state: AppState):
         if not rows:
             return None
         colors = results_bar.colors_for(state, bid)
+        lang = state.lang()
+
+        def val(key, value_musd, detail):
+            return ui.div(
+                ui.div(key, class_="k"),
+                ui.div(i18n.t("results.money_m", lang, v=rc.fmt(value_musd)), class_="v " + ("pos" if value_musd > 0 else "")),
+                ui.div(detail, class_="small muted mono"),
+            )
+
+        def credits(mt):
+            return i18n.isolate(rc.fmt(mt) + " MtCO₂e", lang)
+
         tiles = []
         for sid, name, est in rows:
             tot = a6.totals_by_year(est).set_index("year")
+            # the whole target period, then the milestone years; every year is in the chart and the download
             vals = []
-            for y in years:
-                if y not in tot.index:
-                    continue
-                t = tot.loc[y]
-                vals.append(
-                    ui.div(
-                        ui.div(str(y), class_="k"),
-                        ui.div(
-                            i18n.t("results.money_m", state.lang(), v=rc.fmt(t["value_musd"])),
-                            class_="v " + ("pos" if t["value_musd"] > 0 else ""),
-                        ),
-                        ui.div(
-                            f"{i18n.isolate(rc.fmt(t['credits_mt']) + ' MtCO₂e', state.lang())}"
-                            f" · {i18n.isolate(_price(t['price']), state.lang())}",
-                            class_="small muted mono",
-                        ),
-                    )
-                )
+            if len(tot) > 1:
+                vals.append(val(_t("total_years", years=_year_span()), tot["value_musd"].sum(), credits(tot["credits_mt"].sum())))
+            for y in headline:
+                if y in tot.index:
+                    t = tot.loc[y]
+                    vals.append(val(str(y), t["value_musd"], f"{credits(t['credits_mt'])} · {i18n.isolate(_price(t['price']), lang)}"))
             tiles.append(
                 ui.div(
                     ui.div(ui.span(class_="swatch", style=f"background:{colors.get(sid)}"), ui.span(name, class_="kpi-name"), class_="kpi-head"),
@@ -210,18 +250,38 @@ def page_article_6_server(input, output, session, state: AppState):
         order = list(ref["groupings"][a6.FIELD_GROUP])
         return rc.credit_bars(
             frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
-            lang=lang, labels={g: group_name(g, lang) for g in order},
+            lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+        )
+
+    @render.ui
+    def groups_legend():
+        """The chart's legend, as HTML under the chart: it wraps on a narrow
+        window instead of covering the bars."""
+        _, rows = estimates()
+        shown = {g for _, _, est in rows for g in est.loc[est["value_musd"] > 1e-9, a6.FIELD_GROUP]}
+        if not shown:
+            return None
+        lang = state.lang()
+        colors = a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS)
+        return ui.div(
+            *[
+                ui.span(ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"), group_name(g, lang), class_="a6-legend-item")
+                for g in ref["groupings"][a6.FIELD_GROUP]
+                if g in shown
+            ],
+            class_="a6-legend",
         )
 
     @render.ui
     def price_used():
-        edited = edited_prices()
-        if not edited:
-            return ui.div(ui.span(_price_text(), class_="mono"), ui.span(" · " + _t("reference_prices"), class_="small muted"))
-        ref_txt = " · ".join(f"{y}: {_price(ref_price[y])}" for y in years)
+        used = a6.price_by_year(ref_used()["prices"], years)
+        tip = info_tip(_price_by_year_text(used)) if len(years) > 3 else None
+        if not edited_prices():
+            return ui.div(ui.span(_price_text(), class_="mono"), tip, ui.span(" · " + _t("reference_prices"), class_="small muted"))
         return ui.div(
             ui.span(_price_text(), class_="mono"),
-            ui.div(_t("changed", prices=ref_txt), class_="small", style="color:var(--rust)"),
+            tip,
+            ui.div(_t("changed", prices=_price_summary(ref_price)), class_="small", style="color:var(--rust)"),
         )
 
     @render.ui
