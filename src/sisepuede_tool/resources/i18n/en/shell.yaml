@@ -51,6 +51,9 @@ nav:
   cost_benefits:
     label: "Costs & benefits"
     description: "Relative to business as usual."
+  mac:
+    label: "Abatement costs"
+    description: "Cost per tonne of CO₂e abated by each NDC transformation."
   macroeconomic_impacts:
     label: "Macroeconomic impacts"
     description: "GDP and jobs relative to business as usual."

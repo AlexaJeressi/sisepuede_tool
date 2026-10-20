@@ -50,6 +50,9 @@ nav:
   cost_benefits:
     label: "Costos y beneficios"
     description: "En relación con el escenario tendencial."
+  mac:
+    label: "Costos de abatimiento"
+    description: "Costo por tonelada de CO₂e reducida de cada transformación de la NDC."
   macroeconomic_impacts:
     label: "Impactos macroeconómicos"
     description: "PIB y empleo en relación con el escenario tendencial."
