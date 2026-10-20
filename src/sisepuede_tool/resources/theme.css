@@ -1126,3 +1126,20 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .a6-price-years { margin: 6px 0 8px; }
 .a6-price-years summary { cursor: pointer; font-size: 13px; color: var(--accent); margin-bottom: 6px; }
 .a6-price-all .btn { margin-bottom: 1rem; }
+
+/* MAC page: value toggles (checkboxes) that are also the chart legend -- the
+   marker of each value, as in the chart; an unticked one is faded. */
+.mac-measures .shiny-options-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.mac-measures label.checkbox-inline { margin: 0; padding: 0; cursor: pointer; font-weight: 500; }
+.mac-measures .shiny-options-group > label { margin-inline: 0 !important; padding-inline: 0 !important; }
+.mac-measures label.checkbox-inline input[type=checkbox] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.mac-measures label.checkbox-inline > span {
+  display: inline-flex; align-items: center; padding: 4px 11px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; color: var(--text-secondary); opacity: 0.55;
+}
+.mac-measures label.checkbox-inline input:checked + span { opacity: 1; color: var(--text); background: var(--surface); border-color: var(--text-secondary); }
+.mac-measures label.checkbox-inline input:focus-visible + span { box-shadow: 0 0 0 2px var(--focus-ring); }
+.mac-measure { display: inline-flex; align-items: center; gap: 6px; }
+/* the two subsector selects have a label above them: line the toggles up with the selects, not the labels */
+.mac-controls { align-items: flex-end; }
+.mac-controls .shiny-input-container > label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
