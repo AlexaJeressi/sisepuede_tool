@@ -10,7 +10,7 @@ language.
 
 import functools
 import re
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -452,33 +452,41 @@ def credit_bars(
     height: int = 380,
     lang: Optional[str] = None,
     labels: Optional[Dict[str, str]] = None,
+    label_years: Optional[Iterable[int]] = None,
+    legend: bool = True,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
     one stacked bar per target year, stacked by emission group in `order`
-    (shown as `labels`, when given)."""
+    (shown as `labels`, when given). The bar total is written above the bars of
+    `label_years` (default: every year). The years are categories, so the bars
+    keep their width whatever the gap between target years and Plotly drops
+    tick labels when the chart is narrow."""
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
     years: List[int] = sorted({int(y) for f in frames.values() for y in f["year"].unique()})
+    label_years = set(years if label_years is None else label_years)
     for j, title in enumerate(titles, start=1):
         wide = frames[title].pivot_table(index="year", columns="series", values="value", aggfunc="sum").fillna(0.0)
-        x = [int(y) for y in wide.index]
+        x = [str(int(y)) for y in wide.index]
         for name in order:
             if name not in wide.columns or (wide[name].abs() < 1e-9).all():
                 continue
             label = series_label(name, lang, labels)
             fig.add_trace(
-                go.Bar(x=x, y=wide[name].to_numpy(), width=2.2, name=label, legendgroup=name,
+                go.Bar(x=x, y=wide[name].to_numpy(), name=label, legendgroup=name,
                        showlegend=label not in {t.name for t in fig.data}, marker_color=colors.get(name, OTHER_COLOR),
                        hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
                 row=1, col=j,
             )
         for xi, v in zip(x, wide.sum(axis=1).to_numpy()):
-            fig.add_annotation(x=xi, y=float(v), text=fmt(float(v)), showarrow=False, yshift=10,
-                               font=dict(family=MONO, size=11.5, color=NET), row=1, col=j)
-    fig.update_layout(barmode="stack")
+            if int(xi) in label_years:
+                # on a category axis a number is read as a position, and Plotly turns "2030" into 2030
+                fig.add_annotation(x=years.index(int(xi)), y=float(v), text=fmt(float(v)), showarrow=False, yshift=10,
+                                   font=dict(family=MONO, size=11.5, color=NET), row=1, col=j)
+    # few bars (e.g. only 2030 and 2035) would otherwise be very wide
+    fig.update_layout(barmode="stack", bargap=0.55 if len(years) <= 3 else 0.3)
     fig.update_yaxes(title_text=unit, row=1, col=1, title_font=dict(size=11.5, color=LABEL))
-    fig = _base_layout(fig, height)
-    if years:
-        fig.update_xaxes(tickvals=years, range=[years[0] - 3, years[-1] + 3])
+    fig = _base_layout(fig, height, legend=legend)
+    fig.update_xaxes(type="category", categoryorder="array", categoryarray=[str(y) for y in years])
     fig.update_layout(hovermode="closest")
     return fig
