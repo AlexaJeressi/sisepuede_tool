@@ -18,6 +18,7 @@ from plotly.subplots import make_subplots
 
 from sisepuede_tool.services import i18n
 from sisepuede_tool.services.emissions_service import SUBSECTORS
+from sisepuede_tool.services.mac_service import log_ticks, signed_log
 
 FONT = "IBM Plex Sans, IBM Plex Sans Arabic, system-ui, sans-serif"
 MONO = "IBM Plex Mono, IBM Plex Sans Arabic, ui-monospace, monospace"
@@ -440,6 +441,120 @@ def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str, lang: Opti
     fig.update_xaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
     fig = _base_layout(fig, max(220, 30 * len(d) + 80), legend=False)
     fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12.5, color=TEXT), automargin=True)
+    fig.update_layout(hovermode="closest")
+    return fig
+
+
+# MAC measures: colour and marker shape, fixed whatever is shown (validated as a set,
+# light surface); the shape keeps them apart without colour
+MAC_MEASURE_STYLE = {
+    "mean": ("#00918A", "circle"),
+    "tornado": ("#C46B2A", "diamond"),
+    "whirlpool": ("#6A5ACD", "square"),
+}
+SURFACE = "#FFFDF8"
+
+
+def short_number(v: float) -> str:
+    """Compact number for a narrow label: 2,850 / 12.3k / 4.06B (three digits
+    from 10,000 on, sign kept); fmt() below that."""
+    a = abs(v)
+    if a < 1e4:
+        return fmt(v).replace("-", "−")
+    sign = "−" if v < 0 else ""
+    for div, suffix in ((1e3, "k"), (1e6, "M"), (1e9, "B"), (1e12, "T")):
+        if round(a / div, 3 - len(str(int(a // div)))) < 1000 or suffix == "T":
+            return f"{sign}{a / div:.3g}{suffix}"
+
+
+def mac_chart(
+    rows: pd.DataFrame,
+    measures: Sequence[str],
+    names: Dict[str, str],
+    unit: str,
+    log: bool = False,
+    limit: Optional[float] = None,
+    lang: Optional[str] = None,
+) -> go.Figure:
+    """Marginal abatement cost, one row per transformation (`rows`: code and a
+    column per measure, cheapest first), cheapest at the top.
+
+    One measure: a lollipop (stem from zero, value written after the dot).
+    Two or three: a dot per measure joined by a line from the lowest to the
+    highest, so the spread between tornado and whirlpool shows. Each measure
+    keeps its colour and shape (MAC_MEASURE_STYLE).
+
+    `log`: signed logarithmic axis (mac_service.signed_log), for values that
+    span many orders of magnitude; ticks show the real values. Otherwise linear,
+    and with `limit` the axis stops at ±limit: a dot beyond it is drawn at the
+    edge as an arrow and the row's cut values are written there."""
+    d = rows.iloc[::-1].reset_index(drop=True)
+    labels = [names.get(c, c) for c in d["code"]]
+    vals = d[list(measures)].astype(float)
+    if log:
+        pos = vals.apply(lambda col: col.map(signed_log))
+    else:
+        pos = vals.clip(-limit, limit) if limit else vals
+    cut = (vals.abs() > limit) if (limit and not log) else vals.astype(bool) & False
+
+    fig = go.Figure()
+    # stems (one measure) or ranges (two or more): one trace, rows split by None
+    xs, ys = [], []
+    for i, lab in enumerate(labels):
+        p = pos.iloc[i]
+        a, b = (0.0, float(p.iloc[0])) if len(measures) == 1 else (float(p.min()), float(p.max()))
+        xs += [a, b, None]
+        ys += [lab, lab, None]
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color=ZERO, width=2), hoverinfo="skip", showlegend=False))
+
+    names_m = {m: i18n.t(f"mac.{m}", lang) for m in measures}
+    hover_all = "<br>".join(f"{i18n.t(f'mac.{m}', lang)}: %{{customdata[{j}]:+,.2f}} {unit}" for j, m in enumerate(measures))
+    custom = vals.to_numpy()
+    for m in measures:
+        color, symbol = MAC_MEASURE_STYLE[m]
+        symbols = [
+            ("triangle-right" if v > 0 else "triangle-left") if c else symbol for v, c in zip(vals[m], cut[m])
+        ]
+        text = None
+        if len(measures) == 1:
+            text = ["" if c else ("≈ 0" if abs(v) < 0.05 else short_number(v)) for v, c in zip(vals[m], cut[m])]
+        fig.add_trace(
+            go.Scatter(
+                x=pos[m], y=labels, mode="markers+text" if text else "markers", name=names_m[m],
+                marker=dict(color=color, symbol=symbols, size=11 if m == "mean" else 10, line=dict(color=SURFACE, width=1.5)),
+                text=text, textposition=["middle right" if v >= 0 else "middle left" for v in vals[m]],
+                textfont=dict(family=MONO, size=11, color=LABEL), cliponaxis=False,
+                customdata=custom, hovertemplate=f"%{{y}}<br>{hover_all}<extra></extra>",
+            )
+        )
+
+    if log:
+        lo, hi = float(vals.min().min()), float(vals.max().max())
+        ticks = log_ticks(min(lo, 0.0), max(hi, 0.0))
+        tpos = [signed_log(t) for t in ticks]
+        x0, x1 = min(signed_log(lo), 0.0), max(signed_log(hi), 0.0)
+        pad = (0.04 if len(measures) > 1 else 0.14) * (x1 - x0)  # room for the value written after a dot
+        fig.update_xaxes(tickvals=tpos, ticktext=[short_number(t) if abs(t) >= 1e4 else (f"{t / 1e3:.0f}k" if abs(t) >= 1e3 else f"{t:.0f}").replace("-", "−") for t in ticks], tickangle=0,
+                         range=[x0 - (pad if lo < 0 else 0.02 * (x1 - x0)), x1 + (pad if hi > 0 else 0.02 * (x1 - x0))])
+    else:
+        lo, hi = float(pos.min().min()), float(pos.max().max())
+        span = max(hi - lo, 1e-9)
+        pad = 0.18 if len(measures) == 1 else 0.06
+        fig.update_xaxes(range=[min(lo, 0.0) - pad * span * (lo < 0) - 0.02 * span, max(hi, 0.0) + pad * span * (hi > 0) + 0.02 * span])
+        # the cut values of a row, written once at the edge it was cut at
+        for i, lab in enumerate(labels):
+            for side in (1, -1):
+                over = [m for m in measures if cut[m].iloc[i] and (vals[m].iloc[i] > 0) == (side > 0)]
+                if over:
+                    txt = " · ".join(f"{vals[m].iloc[i]:,.0f}" for m in over)
+                    fig.add_annotation(x=side * limit, y=lab, text=(txt + " ›") if side > 0 else ("‹ " + txt), showarrow=False,
+                                       xanchor="right" if side > 0 else "left", yshift=12, font=dict(family=MONO, size=10.5, color=TEXT))
+
+    fig.update_xaxes(title_text=unit + (" · " + i18n.t("mac.log_axis", lang) if log else ""), title_font=dict(size=11.5, color=LABEL),
+                     zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
+    fig = _base_layout(fig, max(200, 32 * len(d) + 90), legend=False)
+    fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12.5, color=TEXT), automargin=True,
+                     type="category", categoryorder="array", categoryarray=labels)
     fig.update_layout(hovermode="closest")
     return fig
 

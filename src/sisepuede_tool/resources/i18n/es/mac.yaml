@@ -1,0 +1,28 @@
+# Marginal abatement cost page (es). Draft: review before release.
+
+"mac":
+  "static_note": "Valores de referencia preliminares de sisepuede_a6. Todavía no cambian con sus corridas."
+  "by_transformation": "Costo por tonelada reducida, por transformación"
+  "by_transformation_tip": "Lo que cuesta cada transformación de la NDC por cada tonelada de CO₂e que evita, la más barata arriba. Por debajo de cero, la transformación ahorra más de lo que cuesta. Tornado y whirlpool son dos estimaciones de conjuntos de corridas distintos; el promedio está a medio camino entre ambas. Elija un subsector para ver solo sus transformaciones. Los costos son para toda la economía, salvo que elija un subsector en el que se mide la reducción."
+  "unit": "USD/tCO₂e"
+  "all_subsectors": "Todos los subsectores"
+  "pflo": "Intersectorial (PFLO)"
+  "mean": "Promedio"
+  "tornado": "Tornado"
+  "whirlpool": "Whirlpool"
+  "scale_auto": "Automático"
+  "scale_linear": "Lineal"
+  "scale_log": "Logarítmico"
+  "log_axis": "logarítmico"
+  "log_note": "Eje logarítmico: los valores abarcan muchos órdenes de magnitud. Cada marca del eje es diez veces la anterior."
+  "cut": "Cortados en el borde del gráfico para que los demás valores se lean bien (el valor está escrito en el borde): {names}."
+  "zero_rows": "Cero para los valores mostrados, fuera del gráfico: {names}."
+  "empty_measures": "Elija al menos un valor: promedio, tornado o whirlpool."
+  "empty_zero": "Todas las transformaciones son cero en este subsector para los valores mostrados."
+  "filter_transformations": "Transformaciones"
+  "filter_measured_in": "Reducción medida en"
+  "whole_economy": "Toda la economía"
+  "measured_note": "Costo de cada transformación por tonelada que reduce solo en {subsector}. Una transformación que casi no cambia las emisiones de este subsector divide todo su costo entre una reducción muy pequeña, por lo que su costo por tonelada aquí puede ser enorme."
+  "zero_count":
+    "one": "{n} transformación más es cero para los valores mostrados."
+    "other": "{n} transformaciones más son cero para los valores mostrados."

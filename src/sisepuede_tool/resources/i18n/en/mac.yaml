@@ -1,0 +1,28 @@
+# Marginal abatement cost page (ui/page_mac.py).
+
+"mac":
+  "static_note": "Preliminary reference values from sisepuede_a6. They do not change with your runs yet."
+  "by_transformation": "Cost per tonne abated, by transformation"
+  "by_transformation_tip": "What each NDC transformation costs for every tonne of CO₂e it avoids, cheapest at the top. Below zero, the transformation saves more than it costs. Tornado and whirlpool are two estimates from different sets of runs; the mean is halfway between them. Pick a subsector to see only its transformations. The costs are for the whole economy unless you pick a subsector the abatement is measured in."
+  "unit": "USD/tCO₂e"
+  "all_subsectors": "All subsectors"
+  "pflo": "Cross-sector (PFLO)"
+  "mean": "Mean"
+  "tornado": "Tornado"
+  "whirlpool": "Whirlpool"
+  "scale_auto": "Auto"
+  "scale_linear": "Linear"
+  "scale_log": "Logarithmic"
+  "log_axis": "logarithmic"
+  "log_note": "Logarithmic axis: the values span many orders of magnitude. Each mark of the axis is ten times the previous one."
+  "cut": "Cut at the edge of the chart so the other values stay readable (value written at the edge): {names}."
+  "zero_rows": "Zero for the values shown, not in the chart: {names}."
+  "empty_measures": "Pick at least one value: mean, tornado or whirlpool."
+  "empty_zero": "Every transformation is zero in this subsector for the values shown."
+  "filter_transformations": "Transformations"
+  "filter_measured_in": "Abatement measured in"
+  "whole_economy": "Whole economy"
+  "measured_note": "Cost of each transformation per tonne it abates in {subsector} only. A transformation that barely changes the emissions of this subsector divides its whole cost by a very small abatement, so its cost per tonne here can be huge."
+  "zero_count":
+    "one": "{n} other transformation is zero for the values shown."
+    "other": "{n} other transformations are zero for the values shown."
