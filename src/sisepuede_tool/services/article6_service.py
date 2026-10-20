@@ -65,6 +65,13 @@ def target_years(targets: pd.DataFrame) -> list:
     return sorted(int(y) for y in targets["year"].unique())
 
 
+def headline_years(years: Iterable[int]) -> list:
+    """The target years put forward on the page (tiles, chart labels): the
+    five-year milestones (2030, 2035), or the last year when there is none."""
+    years = sorted(int(y) for y in years)
+    return [y for y in years if y % 5 == 0] or years[-1:]
+
+
 @functools.lru_cache(maxsize=4)
 def _time_periods(model_attributes) -> TimePeriods:
     return TimePeriods(model_attributes)

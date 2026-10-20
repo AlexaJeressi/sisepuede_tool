@@ -103,3 +103,9 @@ def test_changed_prices_change_the_value_only_in_their_year(model_attributes):
     assert ref["prices"].set_index("year").loc[2030].iloc[0] == 10.0  # the reference table is not modified
     added = a6.with_prices(ref["prices"], {2040: 30.0})
     assert a6.price_by_year(added, [2040]) == {2040: 30.0}
+
+
+def test_headline_years_are_the_milestones():
+    assert a6.headline_years(range(2026, 2036)) == [2030, 2035]
+    assert a6.headline_years([2030, 2035]) == [2030, 2035]
+    assert a6.headline_years([2026, 2027, 2028]) == [2028]  # no milestone: the last year
