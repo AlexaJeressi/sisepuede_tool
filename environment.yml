@@ -54,8 +54,8 @@ dependencies:
     # `@biomass_fix` with a commit hash, e.g. `@f7084c4`.
     - "sisepuede @ git+https://github.com/jcsyme/sisepuede.git@biomass_fix"
 
-    # costs_benefits_ssp from GitHub (the PyPI version is not the one used here)
-    - "costs_benefits_ssp @ git+https://github.com/sisepuede-framework/costs_benefits_ssp.git"
+    # costs_benefits_ssp from GitHub, main branch (the PyPI version is not the one used here)
+    - "costs_benefits_ssp @ git+https://github.com/sisepuede-framework/costs_benefits_ssp.git@main"
 
     # sisepuede_tool itself (shiny, shinywidgets, plotly, ... come from pyproject.toml)
     - -e .[dev]
