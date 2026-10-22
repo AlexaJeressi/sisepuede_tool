@@ -22,6 +22,7 @@ CATEGORIES: Dict[str, str] = {
     "technical_cost": "Technology capex & opex",
     "technical_savings": "O&M & technical savings",
     "fuel_cost": "Fuel costs & savings",
+    "gas_recovery_savings": "Fuel costs & savings",  # value of the gas FGTV recovers
     "consumer_savings": "Consumer savings",
     "human_health": "Health & air quality",
     "air_pollution": "Health & air quality",

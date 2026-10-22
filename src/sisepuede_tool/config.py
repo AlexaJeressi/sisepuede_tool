@@ -19,5 +19,6 @@ JULIA_DIR = SISEPUEDE_PACKAGE_DIR / "julia"
 NEMOMOD_REFERENCE_DIR = SISEPUEDE_PACKAGE_DIR / "ref" / "nemo_mod"
 
 PROJECTS_XLSX_PATH = SISEPUEDE_TOOL_PACKAGE_DIR / "ref" / "Egypt_Projects_SISEPUEDE_NDC_LTS.xlsx"
-CB_CONFIG_XLSX_PATH = REPO_ROOT / "tests" / "fixtures" / "cb_config_params.xlsx"
+# Egypt cost factors, revision of 2026-09-18 (ssp_egypt cost-benefits/cb_config_files)
+CB_CONFIG_XLSX_PATH = SISEPUEDE_TOOL_PACKAGE_DIR / "ref" / "cb_config_params_091826.xlsx"
 EXAMPLE_INPUT_PATH = REPO_ROOT / "tests" / "fixtures" / "example_input.csv"
