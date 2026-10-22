@@ -1,5 +1,7 @@
 citations: null
-description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
+
+  Changed from the tool (2026-10-22): magnitude 0.28 -> 0.32, calibrated to the BTR1 2030 target: transport (TRNS, inventory scope) -7.06% vs BAU (target -7%; 0.28 gave -6.18%).'
 identifiers:
   transformation_code: TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_NDC
   transformation_name: 'NDC · TRNS: Electrify light duty road transport'
@@ -7,7 +9,7 @@ parameters:
   categories:
   - road_light
   dict_fuel_allocation: null
-  magnitude: 0.27999999999999997
+  magnitude: 0.32
   vec_implementation_ramp:
     tp_0_ramp: 2
 transformer: TFR:TRNS:SHIFT_FUEL_LIGHT_DUTY

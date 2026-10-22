@@ -2,6 +2,13 @@ citations: null
 description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent. Renewable mix
   updated by jcsyme in commit 802be90 (2026-10-06), as used for the Article 6 demo targets.
 
+  Changed from the tool (2026-10-22): scale_non_renewables_to_match_surplus_msp true -> false
+  (with true NemoMod is INFEASIBLE and the NDC electricity is filled with 0) and
+  vec_implementation_ramp tp_0_ramp 2 -> 5 (linear ramp 2020 -> 2050), calibrated to the BTR1
+  2030 target: electricity (ENTC, inventory scope) -38.3% vs BAU (target -37%). Tests: tp_0 7
+  -32.6%; default ramp (2028) -9.5%; the MSP dict and magnitude do not move the result, only the
+  ramp does. The NDC leads LEP in mitigation until 2037, LEP is more aggressive from 2038.
+
   Set a target for renewable electricity. Includes minimum targets for specific renewable
   energy technologies.'
 identifiers:
@@ -21,7 +28,7 @@ parameters:
     pp_solar: 0.5
     pp_wind: 0.25
   magnitude: 0.85
-  scale_non_renewables_to_match_surplus_msp: true
+  scale_non_renewables_to_match_surplus_msp: false
   vec_implementation_ramp:
-    tp_0_ramp: 2
+    tp_0_ramp: 5
 transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC

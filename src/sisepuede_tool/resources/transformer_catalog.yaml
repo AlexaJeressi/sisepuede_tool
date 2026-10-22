@@ -7978,13 +7978,13 @@ library:
     emissions_alone:
       year_index: -1
       total_baseline_mtco2e: 578.349
-      total_delta_mtco2e: -28.917
-      total_delta_pct: -5.0
-      cumulative_delta_mtco2e: -367.498
+      total_delta_mtco2e: -33.0479
+      total_delta_pct: -5.714
+      cumulative_delta_mtco2e: -419.998
       by_sector_delta_mtco2e:
-        Energy: -28.917
+        Energy: -33.0479
       by_subsector_delta_mtco2e:
-        trns: -28.917
+        trns: -33.0479
       direction_raw: decreases
       direction: depends_on_grid
   TX:TRNS:SHIFT_FUEL_MEDIUM_DUTY_LEP:
