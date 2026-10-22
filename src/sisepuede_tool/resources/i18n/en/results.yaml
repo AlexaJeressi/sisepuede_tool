@@ -12,6 +12,9 @@
   "bau": "Business as usual"
   "advanced": "ADVANCED"
   "list_sep": ", "
+  "nemomod_failed_title": "The electricity model found no solution ({status}) for: {names}."
+  "nemomod_failed_body": "These runs completed, but sisepuede filled their electricity and fuel production with 0, so their emissions, costs and benefits are not real. Fix the pathway (e.g. the renewables target) and run it again."
+  "nemomod_failed_chip": "Electricity model with no solution ({status}): electricity results are 0 and not real."
   "run_stamp":
     "one": "Run {time} · {n} scenario"
     "other": "Run {time} · {n} scenarios"

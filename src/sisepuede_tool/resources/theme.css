@@ -991,6 +991,7 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .res-bar .btn { width: auto; }
 .res-bar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .res-bar-row .shiny-input-container { margin: 0; }
+.res-nemomod-warn { margin-top: 8px; }
 .res-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .res-controls .shiny-input-container { margin: 0; width: auto; }
 .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }

@@ -13,3 +13,11 @@ class RunResult:
     df_input: Optional[pd.DataFrame] = None
     error: Optional[str] = None
     elapsed_seconds: float = 0.0
+    # NemoMod's result ("OPTIMAL", "INFEASIBLE", ...); None when it didn't run
+    nemomod_status: Optional[str] = None
+
+    @property
+    def nemomod_failed(self) -> bool:
+        """NemoMod ran without a solution: sisepuede completed the run with the
+        electricity outputs filled with 0, so they are not real."""
+        return self.nemomod_status is not None and self.nemomod_status.upper() != "OPTIMAL"

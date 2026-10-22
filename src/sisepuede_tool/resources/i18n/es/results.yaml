@@ -11,6 +11,9 @@
   "bau": "Escenario tendencial"
   "advanced": "AVANZADO"
   "list_sep": ", "
+  "nemomod_failed_title": "El modelo eléctrico no encontró solución ({status}) para: {names}."
+  "nemomod_failed_body": "Estas corridas terminaron, pero sisepuede llenó su producción de electricidad y combustibles con 0, así que sus emisiones, costos y beneficios no son reales. Corrija la trayectoria (p. ej. la meta de renovables) y vuelva a correrla."
+  "nemomod_failed_chip": "Modelo eléctrico sin solución ({status}): los resultados de electricidad son 0 y no son reales."
   "run_stamp":
     "one": "Ejecución {time} · {n} escenario"
     "other": "Ejecución {time} · {n} escenarios"

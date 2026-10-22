@@ -73,6 +73,16 @@ def pathway_name(state, sid: int) -> str:
     return entry.strategy.name if entry else str(sid)
 
 
+def nemomod_failures(state, baseline_id: Optional[str]) -> Dict[int, str]:
+    """{pathway id: NemoMod status} of the runs of `baseline_id` whose electricity
+    model had no solution (run_service: they completed with electricity at 0)."""
+    return {
+        sid: r.nemomod_status
+        for (sid, bid), r in state.run_results.get().items()
+        if bid == baseline_id and r.ok and r.nemomod_failed
+    }
+
+
 def colors_for(state, baseline_id: Optional[str]) -> Dict[int, str]:
     return result_charts.pathway_colors(runs_by_baseline(state).get(baseline_id, []) or [BAU])
 
@@ -110,6 +120,7 @@ def bar_server(input, state, ev_id: str):
         choices = {b: (baselines[b].label if b in baselines else b) for b in runs}
         shown = visible_pathways(state, bid)
         colors = colors_for(state, bid)
+        failed = nemomod_failures(state, bid)
         chips = []
         for sid in runs[bid]:
             on = sid in shown
@@ -117,14 +128,24 @@ def bar_server(input, state, ev_id: str):
             chips.append(
                 ui.tags.button(
                     ui.span(class_="swatch", style=f"background:{colors.get(sid)};" + ("" if on else "opacity:.35")),
-                    pathway_name(state, sid),
+                    pathway_name(state, sid) + (" ⚠" if sid in failed else ""),
                     class_="chip" + (" active" if on else ""),
+                    title=i18n.t("results.nemomod_failed_chip", lang, status=failed[sid]) if sid in failed else None,
                     onclick=f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;",
                     type="button",
                 )
             )
         first, last = year_range(state)
-        return ui.div(
+        # a run that completed without an electricity solution: its electricity is 0, not real
+        warn = None
+        if failed:
+            names = i18n.t("results.list_sep", lang).join(pathway_name(state, s) for s in runs[bid] if s in failed)
+            warn = ui.div(
+                ui.tags.b(i18n.t("results.nemomod_failed_title", lang, names=names, status=next(iter(failed.values())))),
+                " " + i18n.t("results.nemomod_failed_body", lang),
+                class_="warn-box res-nemomod-warn", role="alert",
+            )
+        row = ui.div(
             ui.span(i18n.t("results.baseline", lang), class_="section-label"),
             ui.input_select("rb_baseline", None, choices=choices, selected=bid, width="220px"),
             ui.span(i18n.t("results.pathways", lang), class_="section-label", style="margin-inline-start:10px"),
@@ -140,6 +161,7 @@ def bar_server(input, state, ev_id: str):
             ),
             class_="res-bar-row",
         )
+        return ui.TagList(row, warn) if warn else row
 
     @reactive.effect
     @reactive.event(input.rb_years)

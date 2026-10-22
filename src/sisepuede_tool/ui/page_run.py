@@ -307,6 +307,9 @@ def page_run_server(input, output, session, state: AppState):
                 )
                 if not result.ok:
                     logger.warning("run failed: strategy %s x baseline %s: %s", strategy_id, baseline.label, result.error)
+                if result.nemomod_failed:
+                    logger.warning("NemoMod %s: strategy %s x baseline %s; electricity outputs set to 0",
+                                   result.nemomod_status, strategy_id, baseline.label)
                 run_results[(strategy_id, baseline_id)] = result
                 new_history.append(
                     {
@@ -320,6 +323,8 @@ def page_run_server(input, output, session, state: AppState):
                         "at": datetime.datetime.now(),
                         "error": result.error,
                         "nemomod": nemomod,
+                        "nemomod_status": result.nemomod_status,
+                        "nemomod_failed": result.nemomod_failed,
                     }
                 )
             p.set(len(combinations), message=_t("done"))
@@ -330,6 +335,14 @@ def page_run_server(input, output, session, state: AppState):
         fmt = {"ok": n_ok, "failed": len(new_history) - n_ok}
         logger.info(i18n.tn("run.ran", len(new_history), i18n.DEFAULT_LANG, **fmt))
         ui.notification_show(_tn("ran", len(new_history), **fmt), type="message" if n_ok == len(new_history) else "warning")
+        # completed, but the electricity model had no solution: say so, and don't let it fade
+        infeasible = [h for h in new_history if h.get("nemomod_failed")]
+        if infeasible:
+            names = i18n.t("results.list_sep", state.lang()).join(
+                dict.fromkeys(_t("bau") if h["strategy_id"] == _BAU else h["strategy_name"] for h in infeasible)
+            )
+            ui.notification_show(_t("nemomod_failed_notice", names=names, status=infeasible[0]["nemomod_status"]),
+                                 type="error", duration=None)
         _run_cost_benefit(sorted({bid for _, bid in combinations}), cb_base, run_results)
 
     @reactive.effect
@@ -366,9 +379,12 @@ def page_run_server(input, output, session, state: AppState):
             return ui.div(_t("no_runs"), class_="small muted")
         rows = []
         for h in history:
-            status = (
-                ui.span(_t("status_done"), class_="pill pill-ok") if h["ok"] else ui.span(_t("status_failed"), class_="pill pill-err")
-            )
+            if not h["ok"]:
+                status = ui.span(_t("status_failed"), class_="pill pill-err")
+            elif h.get("nemomod_failed"):
+                status = ui.span(_t("status_done_infeasible"), class_="pill pill-warn")
+            else:
+                status = ui.span(_t("status_done"), class_="pill pill-ok")
             if h["ok"]:
                 action = ui.tags.button(_t("view_results"), class_="link-btn", onclick="mrvGoTo('output_explorer')")
             else:
@@ -382,6 +398,7 @@ def page_run_server(input, output, session, state: AppState):
                 ui.div(_t("bau") if h["strategy_id"] == _BAU else h["strategy_name"], style="font-weight:500"),
                 ui.div(_baseline_label(h) + (" · NemoMod" if h.get("nemomod") else ""), class_="code"),
                 ui.div((h["error"] or "")[:400], class_="err") if not h["ok"] else None,
+                ui.div(_t("nemomod_failed_row", status=h["nemomod_status"]), class_="err") if h.get("nemomod_failed") else None,
             )
             rows.append(
                 ui.tags.tr(
