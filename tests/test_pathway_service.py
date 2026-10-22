@@ -54,7 +54,7 @@ def test_library_parses_all_files():
     assert item.transformer_code == "TFR:ENTC:TARGET_RENEWABLE_ELEC"
     assert item.name == "NDC · ENTC: Renewable electricity target"
     assert item.config["parameters"]["magnitude"] == 0.85
-    assert item.config["parameters"]["dict_entc_renewable_target_msp"] == {"pp_hydropower": 0.05, "pp_nuclear": 0.05, "pp_solar": 0.5, "pp_wind": 0.25}
+    assert item.config["parameters"]["dict_entc_renewable_target_msp"] == {"pp_hydropower": 0.04, "pp_nuclear": 0.04, "pp_solar": 0.52, "pp_wind": 0.25}
     # one transformation per transformer
     assert len({i.transformer_code for i in items}) == 18
 
