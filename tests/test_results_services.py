@@ -57,7 +57,7 @@ def egypt_runs(model_attributes):
         r = run_service.run_combination(models, pathways[sid].strategy, v.df, v.region, False, sid, "egypt")
         assert r.ok, r.error
         results[sid] = r
-    return {"results": results, "ndc_id": ndc_id, "pathways": pathways}
+    return {"results": results, "ndc_id": ndc_id, "pathways": pathways, "tx": tx}
 
 
 @pytest.fixture(scope="module")
@@ -286,3 +286,83 @@ def test_subsector_totals_by_gas_add_up(egypt_runs):
         for gas in ("CO2", "CH4", "N2O", "F-gases")
     )
     pd.testing.assert_series_equal(parts, total, check_names=False, atol=1e-6)
+
+
+# Tableau download (same columns as ssp_egypt tableau/data/tool_pathways)
+
+
+@pytest.fixture(scope="module")
+def tableau_tables(egypt_runs, model_attributes):
+    from sisepuede_tool.services import tableau_export_service as tes
+
+    sids = sorted(egypt_runs["results"])
+    rr = {(sid, "egypt"): r for sid, r in egypt_runs["results"].items()}
+    wide = cost_benefit_service.build_wide_results(rr, "egypt", sids, model_attributes)
+    pathways = egypt_runs["pathways"]
+    attr = tes.strategy_table(pathways, sids)
+    cbw = cost_benefit_service.build_cb_wrapper(model_attributes, config.CB_CONFIG_XLSX_PATH)
+    df_cb, _, cb_data = cost_benefit_service.calculate_cost_benefit_detail(cbw, wide, pathways, "BASE")
+    return {
+        "emissions": tes.emissions_table(wide, attr),
+        "drivers": tes.drivers_table(wide, attr),
+        "cb": tes.recode_cb(cb_data, attr),
+        "df_cb": df_cb,
+        "levers": tes.levers_table(sids, pathways, egypt_runs["tx"], model_attributes),
+        "wide": wide,
+    }
+
+
+def test_tableau_columns(tableau_tables, egypt_runs):
+    from sisepuede_tool.services import tableau_export_service as tes
+
+    assert list(tableau_tables["emissions"].columns) == [
+        "strategy_id", "primary_id", "design_id", "future_id", "strategy", "ID", "sector", "subsector",
+        "subsector_detail", "category", "variable", "model_variable", "category_value", "gas", "Gas", "gas_group",
+        "gas_name", "Year", "value", "Code", "Country", "source", "value_original", "Contry", "value_hp",
+    ]
+    assert list(tableau_tables["drivers"].columns) == tes.DRIVERS_COLUMNS
+    assert list(tableau_tables["cb"].columns) == [
+        "strategy_code", "future_id", "region", "time_period", "difference_variable", "variable_value_baseline",
+        "variable_value_pathway", "difference_value", "variable", "value", "name", "sector", "cb_type", "item_1",
+        "item_2", "Year", "strategy_id", "primary_id", "strategy", "ids", "gdp_mmm_usd",
+    ]
+    levers = tableau_tables["levers"]
+    assert list(levers.columns[:7]) == [
+        "sector", "subsector", "transformer_code", "transformer_name", "transformer_description", "transformer_unit",
+        "maximum_magnitude",
+    ]
+    assert list(levers.columns[-6:]) == [
+        "transformation_code", "transformation_description_long", "transformation_name_stakeholder",
+        "Sector..output.", "Subsector..output.", "Example.government.policies",
+    ]
+    assert len(levers) > 0
+    assert "strategy_PFLO_NDC" in levers.columns
+    assert set(tableau_tables["cb"]["strategy_code"]) == {"PFLO:NDC"}
+    assert "Strategy TX:BASE" in set(tableau_tables["emissions"]["strategy"])
+
+
+def test_tableau_model_only_and_matches_the_run(tableau_tables):
+    e, drv = tableau_tables["emissions"], tableau_tables["drivers"]
+    assert set(e["source"]) == {"SISEPUEDE"} and "Historical" not in set(e["strategy"])
+    assert e["value"].equals(e["value_original"])
+    assert set(drv["Data_Type"]) == {"sisepuede simulation"}
+    assert e["Year"].min() == 2015 and drv["Year"].min() == 2015
+
+    # emissions add up to the model's subsector totals
+    wide = tableau_tables["wide"]
+    totals = [c for c in wide.columns if c.startswith("emission_co2e_subsector_total_")]
+    want = wide.assign(Year=wide["time_period"] + 2015).groupby(["strategy_id", "Year"])[totals].sum().sum(axis=1)
+    got = e.groupby(["strategy_id", "Year"])["value"].sum()
+    assert (want - got.reindex(want.index)).abs().max() < 1e-3
+
+    # calibrated to 2015: every pathway equals BAU there
+    at = e[e["Year"] == 2015].groupby("strategy_id")["value"].sum()
+    assert (at - at.loc[0]).abs().max() < 1e-6
+
+
+def test_tableau_cb_matches_wrapper(tableau_tables):
+    df_cb = tableau_tables["df_cb"]
+    fields = [c for c in df_cb.columns if c not in ("strategy_id", "time_period")]
+    wrapper = df_cb.set_index(["strategy_id", "time_period"])[fields].sum(axis=1)
+    ours = tableau_tables["cb"].groupby(["strategy_id", "time_period"])["value"].sum()
+    assert (wrapper - ours.reindex(wrapper.index).fillna(0.0)).abs().max() < 1e-6

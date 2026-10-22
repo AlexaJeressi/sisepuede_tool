@@ -88,8 +88,35 @@ def calculate_cost_benefit(
     """Returns (df_cb, df_attr_variable) -- cost/benefit results by strategy
     and time period, and the variable attribute table used to group/label
     them for graphics."""
+    df_cb, df_attr_variable, _ = calculate_cost_benefit_detail(cb_wrapper, df_wide, strategies_map, code_strat_base)
+    return df_cb, df_attr_variable
+
+
+def calculate_cost_benefit_detail(
+    cb_wrapper: CBSSPWrapperForDFComparison,
+    df_wide: pd.DataFrame,
+    strategies_map: Dict[int, StrategyEntry],
+    code_strat_base: str,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """calculate_cost_benefit plus cb_data (the long table of the Tableau
+    workbook, tableau_export_service.cb_table). The steps of the wrapper's
+    _calculate, kept apart so the rows before its pivot are not lost."""
+    from sisepuede_tool.services import tableau_export_service
+
     attr_strat = persistence_service.strategies_to_dataframe(strategies_map)
-    return cb_wrapper(df_wide, attr_strat, code_strat_base=code_strat_base)
+    attr_prim = cb_wrapper._update_cb_components(df_wide, attr_strat, code_strat_base=code_strat_base)
+    strategy_id_map, primary_id_map = cb_wrapper._build_strategy_maps(attr_prim, attr_strat)
+
+    cb_obj = cb_wrapper.cb_obj
+    df_all = pd.concat(
+        [cb_obj.compute_system_cost_for_all_strategies(verbose=False), cb_obj.compute_technical_cost_for_all_strategies(verbose=False)],
+        ignore_index=True,
+    )
+    df_all = cb_obj.cb_shift_costs(cb_obj.cb_process_interactions(df_all))
+
+    df_cb, df_attr_variable = cb_wrapper._reshape(df_all.copy(), strategy_id_map, primary_id_map)
+    cb_data = tableau_export_service.cb_table(df_all, df_wide, strategy_id_map, primary_id_map)
+    return df_cb, df_attr_variable, cb_data
 
 
 def get_cba_plot_data(
