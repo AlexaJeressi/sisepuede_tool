@@ -191,6 +191,13 @@ def test_npv_by_hand():
     assert s["by_group"]["Technology capex & opex"] == pytest.approx(-15.0)
 
 
+def test_every_cb_type_has_a_cb_sector(cb_long):
+    """The Tableau workbook's CB sectors cover every cb_type the C&B config
+    produces except gas_recovery_savings (its "Other", as in the workbook)."""
+    other = set(cb_long.loc[cb_long["cb_sector"] == cb_summary_service.OTHER, "cb_type"])
+    assert other <= {"gas_recovery_savings"}
+
+
 def test_cb_long_has_categories_and_names(cb_long, egypt_runs):
     assert set(cb_long["strategy_id"]) == {egypt_runs["ndc_id"]}
     assert (cb_long["category"] != cb_summary_service.OTHER).all()

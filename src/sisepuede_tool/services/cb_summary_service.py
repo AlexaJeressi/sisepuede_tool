@@ -13,33 +13,70 @@ import pathlib
 from typing import Dict, List, Optional
 
 import pandas as pd
+import yaml
+
+import sisepuede_tool
 
 from sisepuede_tool.services.emissions_service import SUBSECTORS as SUBSECTORS_ABV
 from sisepuede_tool.services.emissions_service import YEAR_0, subsector_label
 
-# cb_type -> display category (order = legend order)
-CATEGORIES: Dict[str, str] = {
-    "technical_cost": "Technology capex & opex",
-    "technical_savings": "O&M & technical savings",
-    "fuel_cost": "Fuel costs & savings",
-    "gas_recovery_savings": "Fuel costs & savings",  # value of the gas FGTV recovers
-    "consumer_savings": "Consumer savings",
-    "human_health": "Health & air quality",
-    "air_pollution": "Health & air quality",
-    "water_pollution": "Pollution avoided",
-    "land_pollution": "Pollution avoided",
-    "env_pollution": "Pollution avoided",
-    "ecosystem_services": "Ecosystem services",
-    "crop_value": "Crop & livestock output",
-    "lvst_value": "Crop & livestock output",
-    "ippu_value": "Industrial output",
-    "congestion": "Congestion & road safety",
-    "road_safety": "Congestion & road safety",
-    "sector_specific": "Other sector-specific",
-    "system_cost": "Other sector-specific",
-}
-CATEGORY_ORDER: List[str] = list(dict.fromkeys(CATEGORIES.values()))
 OTHER = "Other"
+
+
+def groups_path() -> pathlib.Path:
+    return pathlib.Path(sisepuede_tool.__file__).parent / "resources" / "cb_groups.yaml"
+
+
+def load_groups(path: Optional[pathlib.Path] = None) -> dict:
+    """The C&B crosswalk (resources/cb_groups.yaml): per cb_type its CB sector,
+    order, colour, broader category and names in each language."""
+    data = yaml.safe_load(pathlib.Path(path or groups_path()).read_text(encoding="utf-8"))
+    sectors, types = [], {}
+    for block in data["sectors"]:
+        sector = block["sector"]["en"]
+        sectors.append(sector)
+        for t in block.get("types") or ():
+            types[t["cb_type"]] = {**t, "sector": sector, "sector_name": block["sector"]}
+    if OTHER not in sectors:
+        sectors.append(OTHER)
+    return {"categories": list(data.get("categories") or ()), "sectors": sectors, "types": types}
+
+
+_GROUPS = load_groups()
+_SECTOR_NAMES: Dict[str, Dict[str, str]] = {t["sector"]: t["sector_name"] for t in _GROUPS["types"].values()}
+
+# cb_type -> display category; CATEGORY_ORDER = legend order
+CATEGORIES: Dict[str, str] = {t: v["category"] for t, v in _GROUPS["types"].items() if v.get("category")}
+CATEGORY_ORDER: List[str] = _GROUPS["categories"]
+
+# The Egypt Tableau workbook's "CB Sector" of each cb_type (see cb_groups.yaml);
+# sectors and types in the file's order, unlisted types in "Other".
+CB_SECTOR_ORDER: List[str] = _GROUPS["sectors"]
+CB_TYPE_ORDER: List[str] = list(_GROUPS["types"])
+CB_SECTORS: Dict[str, str] = {t: v["sector"] for t, v in _GROUPS["types"].items()}
+CB_TYPE_COLORS: Dict[str, str] = {t: v["color"] for t, v in _GROUPS["types"].items() if v.get("color")}
+
+
+def _in_lang(names: Optional[Dict[str, str]], lang: Optional[str], default: str) -> str:
+    names = names or {}
+    return names.get(lang or "en") or names.get("en") or default
+
+
+def cb_type_name(cb_type: str, lang: Optional[str] = None) -> str:
+    """Shown name of a cb_type ('fuel_cost' -> 'Fuel cost savings (...)')."""
+    return _in_lang(_GROUPS["types"].get(cb_type, {}).get("name"), lang, str(cb_type).replace("_", " ").capitalize())
+
+
+def cb_sector_name(sector: str, lang: Optional[str] = None) -> str:
+    """Shown name of a CB sector (its English name, as in cb_sector)."""
+    return _in_lang(_SECTOR_NAMES.get(sector), lang, sector)
+
+
+LONG_COLUMNS = [
+    "strategy_id", "year", "variable", "display_name", "sector", "sector_label",
+    "cb_type", "cb_sector", "item_1", "item_2", "category", "value_busd",
+]
+GROUPS = ["category", "sector_label", "cb_type", "item_1", "item_2"]  # what the yearly chart can be split by
 
 DISCOUNT_RATES = (0, 3, 5, 7)  # 0 = not discounted (plain sum 2025-2050)
 DEFAULT_RATE = 0.0  # not discounted by default, as in the team's usual C&B reporting; a rate is an advanced option
@@ -52,6 +89,17 @@ START_YEAR = 2025  # the package shifts earlier costs into 2025
 
 def category_of(cb_type: Optional[str]) -> str:
     return CATEGORIES.get(cb_type or "", OTHER)
+
+
+def cb_sector_of(cb_type: Optional[str]) -> str:
+    """The workbook's "CB Sector" of a cb_type ("Other" when it has none)."""
+    return CB_SECTORS.get(cb_type or "", OTHER)
+
+
+def cb_type_order(cb_types) -> List[str]:
+    """`cb_types` in the workbook's order (by CB sector), unknown ones last."""
+    have = [t for t in dict.fromkeys(cb_types) if isinstance(t, str)]
+    return [t for t in CB_TYPE_ORDER if t in have] + sorted(t for t in have if t not in CB_TYPE_ORDER)
 
 
 @functools.lru_cache(maxsize=2)
@@ -97,7 +145,10 @@ def generated_name(cb_type: Optional[str], item_1: Optional[str], item_2: Option
 
 
 def to_long(df_cb: pd.DataFrame, df_attr_variable: pd.DataFrame, config_path: Optional[pathlib.Path] = None) -> pd.DataFrame:
-    """[strategy_id, year, variable, display_name, sector, sector_label, cb_type, category, value_busd]."""
+    """[strategy_id, year, variable, display_name, sector, sector_label, cb_type,
+    cb_sector, item_1, item_2, category, value_busd]. item_1 / item_2 are the last
+    two parts of the variable name (cb:<sector>:<cb_type>:<item_1>:<item_2>), e.g.
+    trns / gasoline; "" when the variable has none."""
     value_cols = [c for c in df_cb.columns if c not in ("strategy_id", "time_period")]
     long = df_cb.melt(id_vars=["strategy_id", "time_period"], value_vars=value_cols, var_name="variable", value_name="value_busd")
     long["year"] = long["time_period"].astype(int) + YEAR_0
@@ -105,6 +156,10 @@ def to_long(df_cb: pd.DataFrame, df_attr_variable: pd.DataFrame, config_path: Op
     long["sector"] = long["variable"].map(attr["sector"]) if "sector" in attr else None
     long["cb_type"] = long["variable"].map(attr["cb_type"]) if "cb_type" in attr else None
     long["category"] = long["cb_type"].map(category_of)
+    long["cb_sector"] = long["cb_type"].map(cb_sector_of)
+    for item in ("item_1", "item_2"):
+        values = long["variable"].map(attr[item]) if item in attr else pd.Series("", index=long.index)
+        long[item] = values.where(values.map(lambda v: isinstance(v, str) and v not in ("", "X")), "")
     long["sector_label"] = long["sector"].map(lambda s: subsector_label(s) if isinstance(s, str) else OTHER)
     names = display_names(str(config_path)) if config_path else {}
     # The config's display name is missing for some variables and is a shared
@@ -122,16 +177,53 @@ def to_long(df_cb: pd.DataFrame, df_attr_variable: pd.DataFrame, config_path: Op
             ) if row is not None else v
     long["display_name"] = long["variable"].map(shown)
     long["value_busd"] = long["value_busd"].fillna(0.0)
-    cols = ["strategy_id", "year", "variable", "display_name", "sector", "sector_label", "cb_type", "category", "value_busd"]
-    return long[cols]
+    return long[LONG_COLUMNS]
 
 
 def by_group(long: pd.DataFrame, strategy_id: int, group: str = "category") -> pd.DataFrame:
-    """Wide by year: one column per group (category or sector_label), billions USD."""
+    """Wide by year: one column per group (category, cb_type or sector_label), billions USD."""
     d = long[(long["strategy_id"] == strategy_id) & (long["year"] >= START_YEAR)]
     wide = d.pivot_table(index="year", columns=group, values="value_busd", aggfunc="sum", fill_value=0.0)
-    order = CATEGORY_ORDER + [OTHER] if group == "category" else sorted(wide.columns)
+    if group == "category":
+        order = CATEGORY_ORDER + [OTHER]
+    elif group == "cb_type":
+        order = cb_type_order(wide.columns)
+    else:
+        order = sorted(wide.columns)
     return wide[[c for c in order if c in wide.columns]]
+
+
+def filter_by(long: pd.DataFrame, **picked) -> pd.DataFrame:
+    """Only the rows whose column is in the picked values, e.g.
+    filter_by(long, cb_type=["fuel_cost"], item_1=[]); an empty pick keeps all."""
+    for column, values in picked.items():
+        values = [v for v in (values or ()) if v is not None]
+        if values:
+            long = long[long[column].isin(values)]
+    return long
+
+
+def item_label(token: str) -> str:
+    """Readable item_1 / item_2: a subsector or category name, else the token
+    ('trns' -> 'Transportation'); "(none)" for an empty one."""
+    return _pretty(token) or ("(none)" if token == "" else token)
+
+
+def by_cb_type(long: pd.DataFrame, strategy_id: int, rate_pct: float = 0.0) -> pd.DataFrame:
+    """[cb_sector, cb_type, value] of a pathway, value = 2025-2050 total in billions
+    USD (discounted to START_YEAR when rate_pct > 0). Every cb_type in `long`
+    has a row, in the workbook's order, also when it is zero for this pathway."""
+    types = cb_type_order(long["cb_type"].dropna().unique())
+    d = long[(long["strategy_id"] == strategy_id) & (long["year"] >= START_YEAR)]
+    if d.empty:
+        values = pd.Series(0.0, index=types)
+    else:
+        df = discount_factors(sorted(d["year"].unique()), rate_pct)
+        values = (d["value_busd"] * d["year"].map(df)).groupby(d["cb_type"]).sum().reindex(types, fill_value=0.0)
+    out = pd.DataFrame({"cb_type": types, "value": values.to_numpy()})
+    out.insert(0, "cb_sector", out["cb_type"].map(cb_sector_of))
+    order = {s: i for i, s in enumerate(CB_SECTOR_ORDER)}
+    return out.sort_values("cb_sector", key=lambda s: s.map(order), kind="stable").reset_index(drop=True)
 
 
 def discount_factors(years, rate_pct: float, base_year: int = START_YEAR) -> pd.Series:

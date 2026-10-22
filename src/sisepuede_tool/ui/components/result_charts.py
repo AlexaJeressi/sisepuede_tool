@@ -435,45 +435,147 @@ def delta_bars(
 
 
 def cb_bars(
-    wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None, years: Years = None
+    wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None, years: Years = None,
+    labels: Optional[Dict[str, str]] = None,
 ) -> go.Figure:
     """Stacked +/- bars per year by group (`wide`: year x group) and the net
-    line, over `years`."""
-    wide = wide[in_years(wide.index, years)]
-    fig = go.Figure()
-    for name in wide.columns:
-        y = wide[name]
-        if (y.abs() < 1e-12).all():
-            continue
-        label = series_label(name, lang)
-        fig.add_trace(
-            go.Bar(x=wide.index, y=y, name=label, marker_color=colors.get(name, OTHER_COLOR),
-                   hovertemplate=f"{label}: %{{y:+,.3~g}} {unit}<extra></extra>"),
-        )
-    net = wide.sum(axis=1)
+    line, over `years`. `labels`: display names of the groups (else series_label)."""
+    return cb_panels({"": wide}, colors, unit, height=height, lang=lang, years=years, labels=labels)
+
+
+def cb_panels(
+    frames: Dict[str, pd.DataFrame], colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None,
+    years: Years = None, labels: Optional[Dict[str, str]] = None,
+) -> go.Figure:
+    """cb_bars for several pathways: one panel per pathway (`frames`: {title:
+    year x group}), side by side on a shared axis, one legend for all. A
+    single frame has no panel title."""
+    titles = list(frames)
+    many = len(titles) > 1
+    fig = make_subplots(rows=1, cols=len(titles), shared_yaxes=True, horizontal_spacing=0.035,
+                        subplot_titles=titles if many else None)
     net_name = i18n.t("results.net", lang)
-    fig.add_trace(
-        go.Scatter(x=net.index, y=net.values, name=net_name, mode="lines+markers", line=dict(color=NET, width=2.4), marker=dict(size=4),
-                   hovertemplate=f"{net_name}: %{{y:+,.3~g}} {unit}<extra></extra>"),
-    )
+    # legend in the groups' order across panels (a group only in a later panel too)
+    rank = {n: k for k, n in enumerate(dict.fromkeys(c for w in frames.values() for c in w.columns))}
+    shown = set()
+    for j, title in enumerate(titles, start=1):
+        wide = frames[title]
+        wide = wide[in_years(wide.index, years)]
+        for name in wide.columns:
+            y = wide[name]
+            if (y.abs() < 1e-12).all():
+                continue
+            label = series_label(name, lang, labels)
+            fig.add_trace(
+                go.Bar(x=wide.index, y=y, name=label, marker_color=colors.get(name, OTHER_COLOR), legendgroup=str(name),
+                       showlegend=name not in shown, legendrank=rank[name], hovertemplate=f"{label}: %{{y:+,.3~g}} {unit}<extra></extra>"),
+                row=1, col=j,
+            )
+            shown.add(name)
+        net = wide.sum(axis=1)
+        fig.add_trace(
+            go.Scatter(x=net.index, y=net.values, name=net_name, mode="lines+markers", line=dict(color=NET, width=2.4),
+                       marker=dict(size=4), legendgroup="net", showlegend=(j == 1), legendrank=len(rank),
+                       hovertemplate=f"{net_name}: %{{y:+,.3~g}} {unit}<extra></extra>"),
+            row=1, col=j,
+        )
     fig.update_layout(barmode="relative", bargap=0.18)
-    fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
-    fig.update_xaxes(tickvals=year_ticks(years, range(2025, 2051, 5)))
+    fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), row=1, col=1)
+    ticks = year_ticks(years, range(2025, 2051, 5))
+    if many and len(ticks) > 4:
+        ticks = ticks[::2] + ([ticks[-1]] if (len(ticks) - 1) % 2 else [])
+    fig.update_xaxes(tickvals=ticks)
     fig = _base_layout(fig, height)
     fig.update_yaxes(zeroline=True, zerolinecolor=NET)
     return fig
 
 
-def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str, lang: Optional[str] = None) -> go.Figure:
+def cb_type_breakdown(
+    table: pd.DataFrame,
+    colors: Dict[str, str],
+    type_labels: Dict[str, str],
+    sector_labels: Dict[str, str],
+    unit: str,
+    lang: Optional[str] = None,
+    pathway_colors: Optional[Dict[str, str]] = None,
+) -> go.Figure:
+    """Total by CB type (`table` of cb_summary_service.by_cb_type: cb_sector,
+    cb_type, value), one row per type under a light header per CB sector, as in
+    the Egypt Tableau workbook. Bars coloured like the yearly chart by CB type,
+    the value written after each (0.0 too: the type is in the pathway's data).
+    Several pathways (`table` with a `pathway` column, `pathway_colors`
+    {pathway: colour} in order): one bar per pathway in each row, in the
+    pathway's colour, with the pathways as legend."""
+    many = bool(pathway_colors) and len(pathway_colors) > 1
+    pws = list(pathway_colors) if many else [None]
+    first = table[table["pathway"] == pws[0]] if many else table
+    values = table.set_index(["pathway", "cb_type"])["value"] if many else None
+    row = 1.0 if not many else 0.3 + 0.46 * len(pws)  # height of a type's row
+    band = 0.62 if not many else row - 0.3  # its bars, together
+    tickvals, ticktext, dividers = [], [], []
+    bars = {p: {"y": [], "x": [], "color": [], "hover": []} for p in pws}
+    y = 0.0
+    n_rows = 0
+    for sector, d in first.groupby("cb_sector", sort=False):
+        if n_rows:
+            y -= 0.3
+            dividers.append(y + 0.15)
+        tickvals.append(y)
+        ticktext.append(f"<b>{sector_labels.get(sector, sector).upper()}</b>")
+        y -= 0.35 + row / 2
+        for t in d["cb_type"]:
+            name = type_labels.get(t, t)
+            tickvals.append(y)
+            ticktext.append(name)
+            for k, p in enumerate(pws):
+                v = float(values.get((p, t), 0.0)) if many else float(d.loc[d["cb_type"] == t, "value"].iloc[0])
+                b = bars[p]
+                b["y"].append(y + band / 2 - (k + 0.5) * band / len(pws))
+                b["x"].append(v)
+                b["color"].append(pathway_colors[p] if many else colors.get(t, OTHER_COLOR))
+                head = f"<b>{name}</b><br>" + (f"{p}<br>" if many else "")
+                b["hover"].append(f"{head}{sector_labels.get(sector, sector)}<br>{v:+,.1f} {unit}")
+            n_rows += 1
+            y -= row
+    y += row / 2
+    fig = go.Figure()
+    for p in pws:
+        b = bars[p]
+        fig.add_trace(go.Bar(
+            x=b["x"], y=b["y"], orientation="h", width=band / len(pws), name=p or "",
+            marker=dict(color=b["color"], line=dict(color=TEXT, width=0.6)),
+            text=[("0.0" if abs(v) < 0.05 else f"{v:,.1f}".replace("-", "−")) for v in b["x"]], textposition="outside", cliponaxis=False,
+            textfont=dict(family=MONO, size=10.5 if many else 11, color=TEXT), hovertext=b["hover"], hovertemplate="%{hovertext}<extra></extra>",
+        ))
+    legend_px = 28 if many else 0
+    fig = _base_layout(fig, max(220, int(25 * row * n_rows + 30 * len(dividers) + 90 + legend_px)), legend=many, legend_right=False)
+    for yd in dividers:
+        fig.add_shape(type="line", xref="paper", x0=0, x1=1, y0=yd, y1=yd, line=dict(color=GRID, width=1))
+    vals = [v for b in bars.values() for v in b["x"]]
+    lo, hi = min(vals + [0.0]), max(vals + [0.0])
+    span = max(hi - lo, 1e-9)
+    fig.update_xaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID, zeroline=True,
+                     zerolinecolor=NET, range=[lo - (0.45 if lo < 0 else 0.02) * span, hi + (0.3 if hi > 0 else 0.02) * span])
+    fig.update_yaxes(tickvals=tickvals, ticktext=ticktext, range=[y - 0.1, 0.6], showgrid=False, zeroline=False, automargin=True,
+                     tickfont=dict(family=FONT, size=12, color=TEXT))
+    fig.update_layout(hovermode="closest", barmode="overlay", margin=dict(l=8, r=8, t=20 + legend_px, b=8),
+                      uniformtext=dict(minsize=10, mode="show"))
+    if many:
+        fig.update_layout(legend=dict(orientation="h", x=0, xanchor="left", y=1.0, yanchor="bottom", traceorder="normal"))
+    return fig
+
+
+def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str, lang: Optional[str] = None, flipped: bool = False) -> go.Figure:
     """Horizontal bars, one per cost/benefit item (`items`: display_name, category,
     sector_label, pv), largest at the top, coloured by category. Item names come
-    from the C&B config workbook and stay as they are there."""
+    from the C&B config workbook and stay as they are there. Costs in the cost
+    colour: below zero, or above it when the values are `flipped` (times −1)."""
     d = items.iloc[::-1]
     custom = [[series_label(c, lang), series_label(s, lang)] for c, s in zip(d["category"], d["sector_label"])]
     fig = go.Figure(
         go.Bar(
             y=d["display_name"], x=d["pv"], orientation="h",
-            marker_color=[colors.get(c, OTHER_COLOR) if v >= 0 else COST for c, v in zip(d["category"], d["pv"])],
+            marker_color=[COST if (v > 0 if flipped else v < 0) else colors.get(c, OTHER_COLOR) for c, v in zip(d["category"], d["pv"])],
             customdata=custom,
             hovertemplate="%{y}<br>%{customdata[0]} · %{customdata[1]}<br>%{x:+,.2f} "
             + i18n.t("results.busd_short", lang) + "<extra></extra>",
@@ -633,10 +735,12 @@ def _mac_breaks(fig: go.Figure, breaks, size: float, unit: str, vertical: bool) 
 
 def mac_by_transformation(
     rows: pd.DataFrame,
-    measures: Sequence[str],
+    order: List[str],
+    pathways: List[str],
+    colors: Dict[str, str],
+    sub_names: Dict[str, str],
     names: Dict[str, str],
     unit: str,
-    log: bool = False,
     limit: Optional[float] = None,
     lang: Optional[str] = None,
 ) -> go.Figure:

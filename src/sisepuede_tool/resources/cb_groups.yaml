@@ -1,0 +1,128 @@
+# Costs & benefits: how each cb_type is grouped, ordered, coloured and named.
+#
+# One file to adjust the C&B page (services/cb_summary_service.py reads it):
+#   sector    the CB sector, with its name in each language. `en` is also the
+#             value of the cb_sector column in the downloads. Sectors are shown
+#             in this order; the last one ("Other") also takes any cb_type that
+#             is not listed here (a new one from costs_benefits_ssp).
+#   types     the cb_types of that sector, in the order they are shown:
+#     cb_type   as in cb variables, cb:<sector>:<cb_type>:<item_1>:<item_2>
+#     name      shown name in each language (en, es, ar)
+#     color     colour of the CB type in the charts
+#     category  (optional) one of `categories` below, for the "By category"
+#               split; without one it falls in "Other"
+#
+# categories: the broader groups of the "By category" split, in legend order
+# (their names in other languages are in i18n results.yaml, series).
+#
+# The grouping copies the Egypt Tableau workbook (Egypt_CaseStudy .twbx, which
+# reads cb_data.csv): its calculated field "CB Sector" and the aliases of
+# "CB Type". gas_recovery_savings is not in the workbook, so there it is
+# "Other" too. Change both together to keep the app and Tableau matching.
+#
+# Checked by tests/test_cb_summary_service.py (every language named, every
+# cb_type listed once, colours valid).
+
+categories:
+  - Technology capex & opex
+  - O&M & technical savings
+  - Fuel costs & savings
+  - Consumer savings
+  - Health & air quality
+  - Pollution avoided
+  - Ecosystem services
+  - Crop & livestock output
+  - Industrial output
+  - Congestion & road safety
+  - Other sector-specific
+
+sectors:
+  - sector: {en: "Environment", es: "Medio ambiente", ar: "البيئة"}
+    types:
+      - cb_type: ecosystem_services
+        name: {en: "Ecosystem services", es: "Servicios ecosistémicos", ar: "خدمات النظم البيئية"}
+        color: "#6E8B3D"
+        category: Ecosystem services
+      - cb_type: land_pollution
+        name: {en: "Reduce environmental damage (fertilizers)", es: "Menor daño ambiental (fertilizantes)", ar: "خفض الضرر البيئي (الأسمدة)"}
+        color: "#A9C25D"
+        category: Pollution avoided
+      - cb_type: env_pollution
+        name: {en: "Reduce environmental damage (waste pollution)", es: "Menor daño ambiental (contaminación por residuos)", ar: "خفض الضرر البيئي (التلوث بالنفايات)"}
+        color: "#4E9AA6"
+        category: Pollution avoided
+      - cb_type: water_pollution
+        name: {en: "Reduce environmental damage (water pollution)", es: "Menor daño ambiental (contaminación del agua)", ar: "خفض الضرر البيئي (تلوث المياه)"}
+        color: "#93CAD1"
+        category: Pollution avoided
+  - sector: {en: "Cost savings", es: "Ahorro de costos", ar: "وفورات التكاليف"}
+    types:
+      - cb_type: ippu_value
+        name: {en: "Avoided production costs (IPPU)", es: "Costos de producción evitados (IPPU)", ar: "تكاليف إنتاج متجنَّبة (IPPU)"}
+        color: "#C7A64E"
+        category: Industrial output
+      - cb_type: fuel_cost
+        name: {en: "Fuel cost savings (industry, buildings & transport)", es: "Ahorro en combustibles (industria, edificios y transporte)", ar: "وفورات تكلفة الوقود (الصناعة والمباني والنقل)"}
+        color: "#E8894A"
+        category: Fuel costs & savings
+      - cb_type: savings_opex
+        name: {en: "Fuel cost savings (power sector)", es: "Ahorro en combustibles (sector eléctrico)", ar: "وفورات تكلفة الوقود (قطاع الكهرباء)"}
+        color: "#F2B880"
+      - cb_type: technical_savings
+        name: {en: "O&M savings", es: "Ahorro en operación y mantenimiento", ar: "وفورات التشغيل والصيانة"}
+        color: "#0F6E6E"
+        category: O&M & technical savings
+      - cb_type: sector_specific
+        name: {en: "Other costs/benefits", es: "Otros costos/beneficios", ar: "تكاليف/فوائد أخرى"}
+        color: "#7C8A8F"
+        category: Other sector-specific
+  - sector: {en: "Food & Agriculture", es: "Alimentación y agricultura", ar: "الغذاء والزراعة"}
+    types:
+      - cb_type: crop_value
+        name: {en: "Crop value", es: "Valor de los cultivos", ar: "قيمة المحاصيل"}
+        color: "#5B84C4"
+        category: Crop & livestock output
+      - cb_type: lvst_value
+        name: {en: "Livestock value", es: "Valor del ganado", ar: "قيمة الثروة الحيوانية"}
+        color: "#9CC4E4"
+        category: Crop & livestock output
+      - cb_type: consumer_savings
+        name: {en: "Food consumer savings", es: "Ahorro de los consumidores en alimentos", ar: "وفورات المستهلكين في الغذاء"}
+        color: "#3E5F8A"
+        category: Consumer savings
+  - sector: {en: "Human health", es: "Salud", ar: "صحة الإنسان"}
+    types:
+      - cb_type: air_pollution
+        name: {en: "Human health (air quality)", es: "Salud (calidad del aire)", ar: "صحة الإنسان (جودة الهواء)"}
+        color: "#93C47D"
+        category: Health & air quality
+      - cb_type: human_health
+        name: {en: "Human health (diets and sanitation)", es: "Salud (dietas y saneamiento)", ar: "صحة الإنسان (النظم الغذائية والصرف الصحي)"}
+        color: "#4FA36C"
+        category: Health & air quality
+  - sector: {en: "Transport", es: "Transporte", ar: "النقل"}
+    types:
+      - cb_type: system_cost
+        name: {en: "Transportation infrastructure cost savings", es: "Ahorro en infraestructura de transporte", ar: "وفورات تكاليف البنية التحتية للنقل"}
+        color: "#D9A3BE"
+        category: Other sector-specific
+      - cb_type: congestion
+        name: {en: "Transport (congestion)", es: "Transporte (congestión)", ar: "النقل (الازدحام)"}
+        color: "#A0446E"
+        category: Congestion & road safety
+      - cb_type: road_safety
+        name: {en: "Transport (road safety)", es: "Transporte (seguridad vial)", ar: "النقل (السلامة على الطرق)"}
+        color: "#E7A3C4"
+        category: Congestion & road safety
+  - sector: {en: "Capital costs", es: "Costos de capital", ar: "التكاليف الرأسمالية"}
+    types:
+      - cb_type: technical_cost
+        name: {en: "Net reduction in capital costs", es: "Reducción neta de costos de capital", ar: "صافي خفض التكاليف الرأسمالية"}
+        color: "#E2B33C"
+        category: Technology capex & opex
+  - sector: {en: "Other", es: "Otros", ar: "أخرى"}
+    types:
+      - cb_type: gas_recovery_savings
+        name: {en: "Gas recovery savings", es: "Ahorro por recuperación de gas", ar: "وفورات استرداد الغاز"}
+        color: "#9C8A64"
+        category: Fuel costs & savings

@@ -1031,6 +1031,17 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .chip-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
 .cb-side { position: sticky; top: 0; }
+/* C&B: total by CB type on the left of the yearly chart (stacked when narrow) */
+.cb-split { display: grid; grid-template-columns: minmax(340px, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+.cb-breakdown { border-inline-end: 1px solid var(--border); padding-inline-end: 12px; }
+.cb-breakdown .box-head { margin-bottom: 4px; }
+.cb-filters { align-items: flex-end; }
+.cb-filters .shiny-input-container > label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.cb-item-filters { display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 1400px) {
+  .cb-split { grid-template-columns: 1fr; }
+  .cb-breakdown { border-inline-end: none; padding-inline-end: 0; }
+}
 .cb-kpis .v { font-size: 18px; }
 .npv-list { display: flex; flex-direction: column; gap: 7px; }
 .npv-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 92px; gap: 8px; align-items: center; font-size: 13px; }
@@ -1038,6 +1049,19 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .npv-track { height: 10px; background: var(--track); border-radius: 3px; overflow: hidden; }
 .npv-bar { height: 100%; border-radius: 3px; }
 .npv-val { text-align: end; font-size: 12.5px; }
+.cb-flip { display: flex; align-items: center; gap: 4px; }
+.cb-flip .form-group, .cb-flip .shiny-input-container { margin-bottom: 0; }
+.cb-compare-wrap { overflow-x: auto; }
+.cb-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cb-compare th, .cb-compare td { padding: 5px 6px; white-space: nowrap; border-bottom: 1px solid var(--border); text-align: end; vertical-align: top; }
+.cb-compare thead th { font-weight: 600; white-space: nowrap; }
+.cb-compare thead .swatch { margin-inline-end: 5px; }
+.cb-compare tbody th { white-space: normal; text-align: start; font-weight: 500; color: var(--text-secondary); }
+.cb-compare .cb-cmp-key td { font-size: 15px; font-weight: 600; }
+.cb-compare .cb-cmp-sep th, .cb-compare .cb-cmp-sep td { border-bottom: 2px solid var(--border); }
+.cb-compare .cb-cmp-name { font-weight: 400; line-height: 1.2; }
+.cb-compare td.pos { color: var(--accent); }
+.cb-compare td.neg { color: var(--rust); }
 @media (max-width: 1180px) {
   .cb-grid { grid-template-columns: 1fr; }
   .drv-grid { grid-template-columns: 1fr; }
