@@ -10,8 +10,9 @@ language.
 
 import functools
 import re
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -114,6 +115,8 @@ SEMANTIC_COLORS: Dict[str, str] = {
 # category in several variables (e.g. land use "other")
 LUMP = "Smaller categories"
 YEAR_TICKS = list(range(2015, 2051, 5))
+YEAR_MIN, YEAR_MAX = 2015, 2050
+Years = Optional[Tuple[int, int]]  # (first, last) shown; None = every year
 
 CB_CATEGORY_COLORS: Dict[str, str] = {
     "Technology capex & opex": "#8A93A6",
@@ -188,6 +191,26 @@ def fmt(v: Optional[float], digits: int = 3) -> str:
     if a >= 1:
         return f"{v:.2f}"
     return f"{v:.{digits}g}"
+
+
+def year_ticks(years: Years, default: Sequence[int] = YEAR_TICKS) -> List[int]:
+    """Year ticks for (first, last): every year on a short range, every other
+    one on a medium one, multiples of five otherwise. `default` when None."""
+    if years is None:
+        return list(default)
+    first, last = years
+    span = last - first
+    step = 1 if span <= 10 else 2 if span <= 20 else 5
+    ticks = [y for y in range(first, last + 1) if y % step == 0]
+    return ticks or [first, last]
+
+
+def in_years(index, years: Years):
+    """Boolean mask of the years (an Index, Series or array) inside `years`."""
+    v = pd.to_numeric(pd.Index(index), errors="coerce")
+    if years is None:
+        return np.ones(len(v), dtype=bool)
+    return np.asarray((v >= years[0]) & (v <= years[1]))
 
 
 def _base_layout(fig: go.Figure, height: int, legend: bool = True, legend_right: bool = True) -> go.Figure:
@@ -299,10 +322,16 @@ def stacked_panels(
     mark_year: Optional[int] = 2030,
     legend_right: bool = True,
     lang: Optional[str] = None,
+    years: Years = None,
 ) -> go.Figure:
     """One panel per pathway (`frames`: {title: [year, series, value]}), stacked
     areas by series in `order`. Negative series stack below zero. `share`
-    normalises each year to 100%. `net`: optional {title: Series by year} line."""
+    normalises each year to 100%. `net`: optional {title: Series by year} line.
+    `years`: only those years."""
+    frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
+    net = {k: s[in_years(s.index, years)] for k, s in net.items()} if net else net
+    if years and mark_year and not years[0] < mark_year < years[1]:
+        mark_year = None
     net_name = i18n.t("results.net_total", lang)
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -338,6 +367,8 @@ def stacked_panels(
                 ),
                 row=1, col=j,
             )
+            if s.empty:
+                continue
             last = s.index.max()
             fig.add_annotation(x=last, y=float(s[last]), text=f"{fmt(float(s[last]))}", showarrow=False, xanchor="right",
                                yshift=10, font=dict(family=MONO, size=11.5, color=NET), row=1, col=j)
@@ -346,14 +377,20 @@ def stacked_panels(
     fig.update_yaxes(title_text=("%" if share else unit), row=1, col=1, title_font=dict(size=11.5, color=LABEL))
     if share:
         fig.update_yaxes(range=[0, 100])
-    fig.update_xaxes(tickvals=YEAR_TICKS if len(titles) < 2 else YEAR_TICKS[::2] + [2050])
+    ticks = year_ticks(years)
+    if len(titles) >= 2 and len(ticks) > 5:
+        ticks = ticks[::2] + ([ticks[-1]] if (len(ticks) - 1) % 2 else [])
+    fig.update_xaxes(tickvals=ticks)
     return _base_layout(fig, height, legend_right=legend_right)
 
 
-def lines_by_pathway(series: Dict[str, pd.Series], colors: Dict[str, str], unit: str, height: int = 240, dashed: Sequence[str] = ()) -> go.Figure:
-    """One line per pathway (`series`: {name: Series by year})."""
+def lines_by_pathway(
+    series: Dict[str, pd.Series], colors: Dict[str, str], unit: str, height: int = 240, dashed: Sequence[str] = (), years: Years = None
+) -> go.Figure:
+    """One line per pathway (`series`: {name: Series by year}), over `years`."""
     fig = go.Figure()
     for name, s in series.items():
+        s = s[in_years(s.index, years)]
         fig.add_trace(
             go.Scatter(
                 x=s.index, y=s.values, name=name, mode="lines",
@@ -362,8 +399,9 @@ def lines_by_pathway(series: Dict[str, pd.Series], colors: Dict[str, str], unit:
             )
         )
     fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
-    fig.update_xaxes(tickvals=YEAR_TICKS)
-    fig.add_vline(x=2030, line=dict(color=ZERO, width=1, dash="dot"))
+    fig.update_xaxes(tickvals=year_ticks(years))
+    if years is None or years[0] < 2030 < years[1]:
+        fig.add_vline(x=2030, line=dict(color=ZERO, width=1, dash="dot"))
     return _base_layout(fig, height, legend_right=True)
 
 
@@ -397,8 +435,12 @@ def delta_bars(
     return fig
 
 
-def cb_bars(wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None) -> go.Figure:
-    """Stacked +/- bars per year by group (`wide`: year x group) and the net line."""
+def cb_bars(
+    wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int = 420, lang: Optional[str] = None, years: Years = None
+) -> go.Figure:
+    """Stacked +/- bars per year by group (`wide`: year x group) and the net
+    line, over `years`."""
+    wide = wide[in_years(wide.index, years)]
     fig = go.Figure()
     for name in wide.columns:
         y = wide[name]
@@ -417,7 +459,7 @@ def cb_bars(wide: pd.DataFrame, colors: Dict[str, str], unit: str, height: int =
     )
     fig.update_layout(barmode="relative", bargap=0.18)
     fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
-    fig.update_xaxes(tickvals=list(range(2025, 2051, 5)))
+    fig.update_xaxes(tickvals=year_ticks(years, range(2025, 2051, 5)))
     fig = _base_layout(fig, height)
     fig.update_yaxes(zeroline=True, zerolinecolor=NET)
     return fig
@@ -569,6 +611,7 @@ def credit_bars(
     labels: Optional[Dict[str, str]] = None,
     label_years: Optional[Iterable[int]] = None,
     legend: bool = True,
+    years: Years = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
     one stacked bar per target year, stacked by emission group in `order`
@@ -576,6 +619,7 @@ def credit_bars(
     `label_years` (default: every year). The years are categories, so the bars
     keep their width whatever the gap between target years and Plotly drops
     tick labels when the chart is narrow."""
+    frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
     years: List[int] = sorted({int(y) for f in frames.values() for y in f["year"].unique()})

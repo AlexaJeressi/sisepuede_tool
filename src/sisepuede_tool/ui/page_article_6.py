@@ -251,6 +251,7 @@ def page_article_6_server(input, output, session, state: AppState):
         return rc.credit_bars(
             frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+            years=state.results_years.get(),
         )
 
     @render.ui

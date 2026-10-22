@@ -24,7 +24,7 @@
   "kpi_avoided": "Avoided 2025–2050"
   "kpi_reference": "reference"
   "empty_run": "Run business as usual and at least one pathway to see results."
-  "panel_title": "{name} · {value} Mt in 2050{pct}"
+  "panel_title": "{name} · {value} Mt in {year}{pct}"
   "panel_pct": " · {pct}% vs BAU"
   "no_bau": "Business as usual has not run for this baseline: run it to compare."
   "pick_pathway": "Select at least one pathway besides business as usual."

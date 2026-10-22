@@ -123,14 +123,35 @@ def bar_server(input, state, ev_id: str):
                     type="button",
                 )
             )
+        first, last = year_range(state)
         return ui.div(
             ui.span(i18n.t("results.baseline", lang), class_="section-label"),
             ui.input_select("rb_baseline", None, choices=choices, selected=bid, width="220px"),
             ui.span(i18n.t("results.pathways", lang), class_="section-label", style="margin-inline-start:10px"),
             *chips,
             ui.span(run_stamp(state, bid), class_="small muted", style="margin-inline-start:10px"),
+            ui.div(
+                ui.span(i18n.t("results.years", lang), class_="section-label"),
+                ui.input_slider(
+                    "rb_years", None, result_charts.YEAR_MIN, result_charts.YEAR_MAX, (first, last),
+                    step=1, sep="", ticks=False, width="230px",
+                ),
+                class_="res-years",
+            ),
             class_="res-bar-row",
         )
+
+    @reactive.effect
+    @reactive.event(input.rb_years)
+    def _on_years():
+        value = input.rb_years()
+        if not value:
+            return
+        rng = (int(value[0]), int(value[1]))
+        full = rng == (result_charts.YEAR_MIN, result_charts.YEAR_MAX)
+        new = None if full else rng
+        if new != state.results_years.get():
+            state.results_years.set(new)
 
     @reactive.effect
     @reactive.event(input.rb_baseline)
@@ -138,6 +159,11 @@ def bar_server(input, state, ev_id: str):
         value = input.rb_baseline()
         if value and value != state.results_baseline_id.get():
             state.results_baseline_id.set(value)
+
+
+def year_range(state) -> Tuple[int, int]:
+    """(first, last) year shown on the results charts."""
+    return state.results_years.get() or (result_charts.YEAR_MIN, result_charts.YEAR_MAX)
 
 
 def toggle_pathway(state, sid: int):

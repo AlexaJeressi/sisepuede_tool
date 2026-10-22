@@ -1143,3 +1143,8 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 /* the two subsector selects have a label above them: line the toggles up with the selects, not the labels */
 .mac-controls { align-items: flex-end; }
 .mac-controls .shiny-input-container > label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+
+/* ---------- results: year range in the results bar, chart export (ui/components/chart_export.py) ---------- */
+.res-years { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: 10px; }
+.res-years .irs { margin-top: -6px; }
+.res-years .shiny-input-container { margin-bottom: 0; }

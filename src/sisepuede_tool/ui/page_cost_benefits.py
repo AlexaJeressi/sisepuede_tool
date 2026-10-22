@@ -218,7 +218,7 @@ def page_cost_benefits_server(input, output, session, state: AppState):
         colors = rc.CB_CATEGORY_COLORS if group == "category" else {
             c: rc.SUBSECTOR_COLORS.get(_abv_of(d, c), rc.OTHER_COLOR) for c in wide.columns
         }
-        return rc.cb_bars(wide, colors, unit, lang=lang)
+        return rc.cb_bars(wide, colors, unit, lang=lang, years=state.results_years.get())
 
     @reactive.effect
     def _item_categories():

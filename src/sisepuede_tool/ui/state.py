@@ -56,6 +56,7 @@ class AppState:
     # --- Results pages (shared results bar) ---
     results_baseline_id: reactive.Value  # str | None -- baseline shown on the results pages (None = default baseline)
     results_pathways: reactive.Value  # frozenset[int] | None -- pathway chips switched on (None = all that ran)
+    results_years: reactive.Value  # (first, last) | None -- year range of the results charts (None = all years)
     results_custom_vars: reactive.Value  # List[str] -- ModelVariables added as driver cards (advanced)
 
     # --- Output Explorer (M5) ---
@@ -97,6 +98,7 @@ def new_app_state(lang: Callable[[], str] | None = None) -> AppState:
         cb_tableau=reactive.Value({}),
         results_baseline_id=reactive.Value(None),
         results_pathways=reactive.Value(None),
+        results_years=reactive.Value(None),
         results_custom_vars=reactive.Value([]),
         io_fields_cache=reactive.Value(None),
         validation_dataset=reactive.Value(None),

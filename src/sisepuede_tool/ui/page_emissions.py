@@ -326,15 +326,17 @@ def page_emissions_server(input, output, session, state: AppState):
         bau_net = net.get(results_bar.pathway_name(state, _BAU))
         if bau_net is None and bau_run() is not None:
             bau_net = None  # BAU hidden: titles show totals only
+        years = state.results_years.get()
+        ly = years[1] if years else 2050
         for name, s in net.items():
-            v = float(s.get(2050, float("nan")))
+            v = float(s.get(ly, float("nan")))
             pct = ""
-            if bau_net is not None and name != results_bar.pathway_name(state, _BAU) and bau_net.get(2050):
-                pct = _t("panel_pct", pct=f"{((v / float(bau_net[2050])) - 1) * 100:+.0f}")
-            titles[name] = _t("panel_title", name=name, value=rc.fmt(v), pct=pct)
+            if bau_net is not None and name != results_bar.pathway_name(state, _BAU) and bau_net.get(ly):
+                pct = _t("panel_pct", pct=f"{((v / float(bau_net[ly])) - 1) * 100:+.0f}")
+            titles[name] = _t("panel_title", name=name, value=rc.fmt(v), pct=pct, year=ly)
         frames = {titles[k]: v for k, v in frames.items()}
         net = {titles[k]: v for k, v in net.items()}
-        return rc.stacked_panels(frames, colors, order, "MtCO₂e", net=net, height=380, lang=lang)
+        return rc.stacked_panels(frames, colors, order, "MtCO₂e", net=net, height=380, lang=lang, years=years)
 
     def _delta_figure(rows, focus, gas):
         bau = bau_run()
@@ -539,12 +541,12 @@ def page_emissions_server(input, output, session, state: AppState):
         if card["view"] == "total" or len(rows) == 0:
             series = {names[sid]: f.groupby("year")["value"].sum() for sid, f in frames.items() if not f.empty}
             return rc.lines_by_pathway(series, {names[s]: colors.get(s) for s in names}, unit, height=200 if card.get("_context") else 230,
-                                       dashed=[names.get(_BAU, "")])
+                                       dashed=[names.get(_BAU, "")], years=state.results_years.get())
         named = {names[sid]: f for sid, f in frames.items() if not f.empty}
         named, order = rc.lumped(named, n=8)
         return rc.stacked_panels(
             named, rc.series_colors(order), order, unit, share=card["view"] == "share", height=270, legend_right=True,
-            lang=state.lang(),
+            lang=state.lang(), years=state.results_years.get(),
         )
 
     def _make_slot(i: int):
