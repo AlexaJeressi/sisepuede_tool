@@ -3,6 +3,7 @@
 
 "results":
   "download": "Download data (.xlsx)"
+  "download_tableau": "Tableau data (.zip)"
   "no_results": "No results yet."
   "go_to_run": "Go to Run →"
   "baseline": "Baseline"

@@ -1,5 +1,6 @@
 """Shared bar on top of the results pages: baseline picker, pathway chips, run
-stamp, and the page's download button.
+stamp, and the page's download buttons: its Excel and the Tableau zip
+(services/tableau_export_service.py, the same for every results page).
 
 The selection lives in `state.results_baseline_id` / `state.results_pathways`
 so it carries from one results page to the other. Each page module calls
@@ -8,20 +9,26 @@ clicks through the page's `ui_event` input.
 """
 
 import json
+import logging
 from typing import Dict, List, Optional, Tuple
 
 from shiny import reactive, render, ui
 
-from sisepuede_tool.services import i18n, pathway_service
+from sisepuede_tool.services import cost_benefit_service, i18n, pathway_service
+from sisepuede_tool.services import tableau_export_service as tes
 from sisepuede_tool.ui.components import result_charts
 
+logger = logging.getLogger(__name__)
+
 BAU = pathway_service.BAU_STRATEGY_ID
+TABLEAU_DOWNLOAD_ID = "download_tableau"
 
 
 def bar_ui(download_id: str, download_label: Optional[str] = None):
     return ui.div(
         ui.output_ui("results_bar", class_="res-bar-left"),
         ui.download_button(download_id, download_label or i18n.t("results.download"), class_="btn-inline btn-ghost"),
+        ui.download_button(TABLEAU_DOWNLOAD_ID, i18n.t("results.download_tableau"), class_="btn-inline btn-ghost"),
         class_="res-bar",
     )
 
@@ -151,3 +158,32 @@ def runs_for_page(state) -> Tuple[Optional[str], List[Tuple[int, str, object]]]:
     results = state.run_results.get()
     out = [(sid, pathway_name(state, sid), results.get((sid, bid))) for sid in visible_pathways(state, bid)]
     return bid, out
+
+
+def tableau_zip(state) -> bytes:
+    """The Tableau CSVs for the chosen baseline and every pathway that ran on
+    it (Tableau filters pathways itself). A table that cannot be built is left
+    out of the zip and logged; cb_data is there only if costs & benefits ran."""
+    bid = current_baseline(state)
+    if bid is None:
+        return tes.tableau_zip({})
+    pathways = state.strategies_map.get()
+    sids = runs_by_baseline(state).get(bid, [])
+    model_attributes = state.model_attributes.get()
+    df_wide = cost_benefit_service.build_wide_results(state.run_results.get(), bid, sids, model_attributes)
+    attr_strat = tes.strategy_table(pathways, sids)
+    builders = {
+        "emissions_egypt.csv": lambda: tes.emissions_table(df_wide, attr_strat),
+        "drivers_egypt.csv": lambda: tes.drivers_table(df_wide, attr_strat),
+        "cb_data.csv": lambda: tes.recode_cb(state.cb_tableau.get()[bid], attr_strat) if bid in state.cb_tableau.get() else None,
+        "tableau_levers_table_complete.csv": lambda: tes.levers_table(
+            sids, pathways, state.transformations_obj.get(), model_attributes
+        ),
+    }
+    tables = {}
+    for name, build in builders.items():
+        try:
+            tables[name] = build()
+        except Exception:
+            logger.exception("tableau download: %s failed", name)
+    return tes.tableau_zip(tables)

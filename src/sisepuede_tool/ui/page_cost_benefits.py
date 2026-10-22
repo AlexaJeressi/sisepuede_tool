@@ -309,6 +309,10 @@ def page_cost_benefits_server(input, output, session, state: AppState):
             ui.div(_t("footer", rate=_rate_label(r)), class_="small muted"),
         )
 
+    @render.download(filename=lambda: "tableau_data.zip")
+    def download_tableau():
+        yield results_bar.tableau_zip(state)
+
     @render.download(filename=lambda: "costs_and_benefits.xlsx")
     def download_xlsx():
         d = long()

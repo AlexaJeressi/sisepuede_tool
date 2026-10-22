@@ -559,6 +559,10 @@ def page_emissions_server(input, output, session, state: AppState):
 
     # ------------------------------------------------------------------ download
 
+    @render.download(filename=lambda: "tableau_data.zip")
+    def download_tableau():
+        yield results_bar.tableau_zip(state)
+
     @render.download(filename=lambda: "emissions_and_drivers.xlsx")
     def download_xlsx():
         bid, rows = runs()

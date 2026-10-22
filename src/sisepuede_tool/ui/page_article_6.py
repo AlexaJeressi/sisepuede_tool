@@ -301,6 +301,10 @@ def page_article_6_server(input, output, session, state: AppState):
             return None
         return ui.div(_t("not_shown", names=i18n.t("results.list_sep", state.lang()).join(left_out)), class_="small muted")
 
+    @render.download(filename=lambda: "tableau_data.zip")
+    def download_tableau():
+        yield results_bar.tableau_zip(state)
+
     @render.download(filename=lambda: "article_6_credits.xlsx")
     def download_xlsx():
         bid, rows = estimates()

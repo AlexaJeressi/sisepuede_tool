@@ -51,6 +51,7 @@ class AppState:
     # --- Costs and Benefits ---
     cb_wrapper: reactive.Value  # CBSSPWrapperForDFComparison | None -- built once at session start
     cb_results: reactive.Value  # Dict[str, Tuple[pd.DataFrame, pd.DataFrame]] keyed by baseline_id -- (df_cb, df_attr_variable)
+    cb_tableau: reactive.Value  # Dict[str, pd.DataFrame] keyed by baseline_id -- cb_data for the Tableau download
 
     # --- Results pages (shared results bar) ---
     results_baseline_id: reactive.Value  # str | None -- baseline shown on the results pages (None = default baseline)
@@ -93,6 +94,7 @@ def new_app_state(lang: Callable[[], str] | None = None) -> AppState:
         run_history=reactive.Value([]),
         cb_wrapper=reactive.Value(None),
         cb_results=reactive.Value({}),
+        cb_tableau=reactive.Value({}),
         results_baseline_id=reactive.Value(None),
         results_pathways=reactive.Value(None),
         results_custom_vars=reactive.Value([]),

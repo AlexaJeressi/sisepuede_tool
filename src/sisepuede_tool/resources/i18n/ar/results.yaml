@@ -2,6 +2,7 @@
 
 "results":
   "download": "تنزيل البيانات (.xlsx)"
+  "download_tableau": "بيانات Tableau (.zip)"
   "no_results": "لا توجد نتائج بعد."
   "go_to_run": "انتقل إلى التشغيل ←"
   "baseline": "خط الأساس"

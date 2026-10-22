@@ -241,6 +241,7 @@ def page_run_server(input, output, session, state: AppState):
         model_attributes = state.model_attributes.get()
 
         cb_results = dict(state.cb_results.get())
+        cb_tableau = dict(state.cb_tableau.get())
         for baseline_id in baseline_ids:
             base_result = run_results.get((cb_base_strategy_id, baseline_id))
             if base_result is None or not base_result.ok:
@@ -253,7 +254,7 @@ def page_run_server(input, output, session, state: AppState):
             )
             try:
                 df_wide = cost_benefit_service.build_wide_results(run_results, baseline_id, strategy_ids, model_attributes)
-                df_cb, df_attr_variable = cost_benefit_service.calculate_cost_benefit(
+                df_cb, df_attr_variable, cb_data = cost_benefit_service.calculate_cost_benefit_detail(
                     cb_wrapper, df_wide, strategies_map, code_strat_base
                 )
             except Exception as e:
@@ -261,7 +262,9 @@ def page_run_server(input, output, session, state: AppState):
                 ui.notification_show(_t("cb_failed", baseline=baseline_id, error=e), type="warning")
                 continue
             cb_results[baseline_id] = (df_cb, df_attr_variable)
+            cb_tableau[baseline_id] = cb_data
         state.cb_results.set(cb_results)
+        state.cb_tableau.set(cb_tableau)
 
     def _execute(combinations):
         models = state.models.get()
