@@ -31,6 +31,7 @@ from shinywidgets import output_widget, render_plotly
 from sisepuede_tool.services import article6_service as a6
 from sisepuede_tool.services import download_service, i18n, library_service, pathway_service
 from sisepuede_tool.ui.components import result_charts as rc
+from sisepuede_tool.ui.components.chart_export import export_button
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
@@ -82,6 +83,7 @@ def page_article_6_ui():
                 ui.span(i18n.t("article_6.by_group"), class_="section-label"),
                 info_tip(i18n.t("article_6.by_group_tip")),
                 ui.span(i18n.t("results.million_usd"), class_="small muted"),
+                export_button("groups_chart", i18n.t("article_6.by_group")),
                 class_="box-head",
             ),
             output_widget("groups_chart"),

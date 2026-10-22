@@ -29,6 +29,7 @@ from shinywidgets import output_widget, render_plotly
 
 from sisepuede_tool.services import download_service, emissions_service, i18n, output_service, results_groups_service
 from sisepuede_tool.ui.components import result_charts as rc
+from sisepuede_tool.ui.components.chart_export import export_button
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
@@ -74,8 +75,11 @@ def page_emissions_ui():
         ui.output_ui("kpis"),
         ui.div(
             ui.div(
-                ui.span(i18n.t("emissions.net_ghg"), class_="section-label"),
-                ui.span(i18n.t("emissions.net_ghg_note"), class_="small muted"),
+                ui.div(
+                    ui.span(i18n.t("emissions.net_ghg"), class_="section-label"),
+                    ui.span(i18n.t("emissions.net_ghg_note"), class_="small muted"),
+                ),
+                export_button("emis_chart", i18n.t("emissions.net_ghg")),
                 class_="box-head",
             ),
             ui.div(
@@ -512,7 +516,12 @@ def page_emissions_server(input, output, session, state: AppState):
                             info_tip(_card_text(card, "why"), class_="drv-why"),
                             ui.span(_t("var_input"), class_="kind-tag") if card["source"] == "input" else None,
                         ),
-                        ui.div(ui.span(_card_text(card, "unit"), class_="small muted"), remove, class_="btn-row"),
+                        ui.div(
+                            ui.span(_card_text(card, "unit"), class_="small muted"),
+                            None if empty else export_button(f"slot_{i}", _card_text(card, "title"), state.lang()),
+                            remove,
+                            class_="btn-row",
+                        ),
                         class_="drv-head",
                     ),
                     ui.div(

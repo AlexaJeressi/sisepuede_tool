@@ -25,6 +25,7 @@ from sisepuede_tool import config
 from sisepuede_tool.services import cb_summary_service as cbs
 from sisepuede_tool.services import download_service, i18n
 from sisepuede_tool.ui.components import result_charts as rc
+from sisepuede_tool.ui.components.chart_export import export_button
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
@@ -40,7 +41,9 @@ def page_cost_benefits_ui():
             ui.div(
                 ui.div(
                     ui.div(
-                        ui.span(i18n.t("cost_benefits.by_year"), class_="section-label"), ui.output_ui("pw_label", inline=True), class_="box-head"
+                        ui.div(ui.span(i18n.t("cost_benefits.by_year"), class_="section-label"), ui.output_ui("pw_label", inline=True)),
+                        export_button("cb_chart", i18n.t("cost_benefits.by_year")),
+                        class_="box-head",
                     ),
                     ui.output_ui("pw_tabs"),
                     ui.div(
@@ -97,7 +100,11 @@ def page_cost_benefits_ui():
                     ui.span(i18n.t("cost_benefits.largest_items"), class_="section-label"),
                     info_tip(i18n.t("cost_benefits.largest_items_tip")),
                 ),
-                ui.input_select("item_category", None, {"": i18n.t("cost_benefits.all_categories")}, width="260px"),
+                ui.div(
+                    ui.input_select("item_category", None, {"": i18n.t("cost_benefits.all_categories")}, width="260px"),
+                    export_button("items_chart", i18n.t("cost_benefits.largest_items")),
+                    class_="btn-row",
+                ),
                 class_="box-head",
             ),
             output_widget("items_chart"),

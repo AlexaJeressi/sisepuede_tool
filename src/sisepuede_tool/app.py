@@ -19,7 +19,13 @@ if path_par not in sys.path:
 
 from sisepuede_tool.ui.app_shell import app_ui, server
 
-app = App(app_ui, server)
+import plotly
+
+# full plotly.js for the chart export (resources/chart_export.js); the page's
+# own copy is inside the widget bundle, out of reach
+PLOTLY_JS_DIR = pathlib.Path(plotly.__file__).resolve().parent / "package_data"
+
+app = App(app_ui, server, static_assets={"/vendor/plotly": PLOTLY_JS_DIR})
 
 
 def main() -> None:
