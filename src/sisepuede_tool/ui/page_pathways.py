@@ -45,6 +45,7 @@ from sisepuede_tool.services import (
     widget_metadata,
 )
 from sisepuede_tool.ui.components import charts, param_widget
+from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.services.labels import clean_label, strip_subsector_prefix
 from sisepuede_tool.ui.state import AppState
 
@@ -364,6 +365,8 @@ def page_pathways_server(input, output, session, state: AppState):
                 _show_rename_modal()
             elif kind == "delete_pathway":
                 _show_delete_modal()
+            elif kind == "base_year":
+                _show_base_year_modal()
             elif kind == "area":
                 if not value:
                     area_filter.set(frozenset())
@@ -594,6 +597,36 @@ def page_pathways_server(input, output, session, state: AppState):
         except ValueError as e:
             ui.notification_show(str(e), type="error")
             return
+        ui.modal_remove()
+
+    def _show_base_year_modal():
+        sid = active_pathway()
+        if sid is None:
+            return
+        entry = state.strategies_map.get()[sid]
+        ui.modal_show(
+            ui.modal(
+                ui.p(_t("base_year_help"), class_="small muted"),
+                ui.input_numeric("base_year_value", _t("base_year"), value=entry.base_year, min=2015, max=2049, step=1),
+                ui.p(_t("base_year_empty"), class_="small muted"),
+                title=_t("base_year_title", name=pathway_name(sid)),
+                footer=ui.div(
+                    ui.modal_button(_t("cancel"), class_="btn btn-inline"),
+                    ui.input_action_button("base_year_ok", _t("base_year_save"), class_="btn-primary btn-inline"),
+                    class_="btn-row",
+                ),
+                easy_close=True,
+            )
+        )
+
+    @reactive.effect
+    @reactive.event(input.base_year_ok)
+    def _on_base_year():
+        value = input.base_year_value()
+        if value is not None and not 2015 <= value <= 2049:
+            ui.notification_show(_t("base_year_range"), type="error")
+            return
+        set_pathways(pathway_service.set_base_year(state.strategies_map.get(), active_pathway(), value))
         ui.modal_remove()
 
     def _show_delete_modal():
@@ -1472,6 +1505,13 @@ def page_pathways_server(input, output, session, state: AppState):
                     ui.tags.button(_t("rename"), class_="link-btn", onclick=_ev("rename_pathway")),
                     ui.tags.button(_t("delete"), class_="link-btn danger", onclick=_ev("delete_pathway")),
                     class_="btn-row mt-1",
+                ),
+                ui.div(
+                    ui.span(_t("base_year_short", year=entry.base_year) if entry.base_year else _t("base_year_default"), class_="small"),
+                    info_tip(_t("base_year_help")),
+                    ui.tags.button(_t("change"), class_="link-btn", onclick=_ev("base_year")),
+                    ui.span(_t("advanced_tag"), class_="adv-tag"),
+                    class_="adv-only pw-base-year",
                 ),
                 *warnings,
                 class_="pw-pad",

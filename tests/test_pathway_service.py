@@ -174,3 +174,24 @@ def test_summary(tx, catalog):
     assert pathway_service.format_magnitude(0.99999) == "100%"
     assert pathway_service.format_magnitude(0.125) == "12.5%"
     assert pathway_service.format_magnitude(50) == "50"
+
+
+def test_base_year_kept_through_edits(tx, catalog, bau_only):
+    """The last historical year (StrategyEntry.base_year) stays with the pathway
+    when it is edited, renamed, rebuilt or copied; BAU keeps the default."""
+    items = library_service.add_library_to_collection(tx, catalog)
+    pathways, ndc = pathway_service.add_library_pathway(bau_only, tx, items, name="NDC", base_year=2017)
+    pathways, lep = pathway_service.add_library_pathway(pathways, tx, items, name="LEP", codes=library_service.lep_pathway_codes(),
+                                                        base_year=library_service.BASE_YEARS[library_service.SOURCE_LEP])
+    assert (pathways[ndc].base_year, pathways[lep].base_year, pathways[0].base_year) == (2017, 2026, None)
+    code = pathways[ndc].transformation_codes[0]
+    pathways = pathway_service.remove_from_pathway(pathways, tx, ndc, code)
+    pathways = pathway_service.rename_pathway(pathways, tx, ndc, "NDC 2")
+    pathways = pathway_service.rebuild_pathways(pathways, tx)
+    assert pathways[ndc].base_year == 2017
+    pathways, copy = pathway_service.create_pathway(pathways, tx, "Copy", copy_from=lep)
+    assert pathways[copy].base_year == 2026
+    pathways = pathway_service.set_base_year(pathways, copy, None)
+    assert pathways[copy].base_year is None and pathways[lep].base_year == 2026
+    with pytest.raises(ValueError):
+        pathway_service.set_base_year(pathways, 0, 2020)

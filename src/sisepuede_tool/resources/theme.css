@@ -1200,3 +1200,5 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .exp-actions #mrv-export-go { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 .exp-actions #mrv-export-go:hover { background: var(--accent-hover); }
 .exp-actions #mrv-export-go:disabled { opacity: .6; cursor: wait; }
+
+.pw-base-year { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

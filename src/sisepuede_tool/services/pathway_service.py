@@ -15,6 +15,7 @@ sisepuede applies them one after another in transformation-code order
 not defined yet, so the UI shows that order and warns (tracker, section 5).
 """
 
+import dataclasses
 from collections import OrderedDict
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -56,9 +57,9 @@ def _description(entry: StrategyEntry) -> str:
     return getattr(entry.strategy, "description", "") or ""
 
 
-def _entry(strategy_id, codes, transformations_obj, name, description="") -> StrategyEntry:
+def _entry(strategy_id, codes, transformations_obj, name, description="", base_year: Optional[int] = None) -> StrategyEntry:
     strategy = build_pathway_strategy(strategy_id, codes, transformations_obj, name, description)
-    return StrategyEntry(strategy=strategy, transformation_codes=list(codes))
+    return StrategyEntry(strategy=strategy, transformation_codes=list(codes), base_year=base_year)
 
 
 def pathway_ids(pathways: PathwayMap) -> List[int]:
@@ -83,11 +84,13 @@ def create_pathway(
     if any(e.strategy.name == name for sid, e in pathways.items() if sid != BAU_STRATEGY_ID):
         raise ValueError(f"A pathway named '{name}' already exists.")
     codes: List[str] = []
+    base_year = None
     if copy_from is not None:
         codes = pathway_codes(pathways[copy_from], transformations_obj)
+        base_year = pathways[copy_from].base_year
     sid = strategy_service.next_available_strategy_id(pathways.keys())
     out = dict(pathways)
-    out[sid] = _entry(sid, codes, transformations_obj, name, description)
+    out[sid] = _entry(sid, codes, transformations_obj, name, description, base_year)
     return out, sid
 
 
@@ -97,7 +100,7 @@ def rename_pathway(pathways: PathwayMap, transformations_obj, sid: int, name: st
         raise ValueError("A pathway needs a name.")
     entry = pathways[sid]
     out = dict(pathways)
-    out[sid] = _entry(sid, entry.transformation_codes, transformations_obj, name, _description(entry))
+    out[sid] = _entry(sid, entry.transformation_codes, transformations_obj, name, _description(entry), entry.base_year)
     return out
 
 
@@ -108,9 +111,11 @@ def add_library_pathway(
     name: str = "NDC",
     description: str = "",
     codes: Optional[Iterable[str]] = None,
+    base_year: Optional[int] = None,
 ) -> Tuple[PathwayMap, Optional[int]]:
     """Add a pathway holding the usable library transformations in `codes`
-    (default: the NDC set). Returns (pathways, None) if none is usable."""
+    (default: the NDC set), with last historical year `base_year`. Returns
+    (pathways, None) if none is usable."""
     usable = {i.code for i in library_items if i.ok and i.code in transformations_obj.dict_transformations}
     if codes is None:
         codes = [i.code for i in library_items if getattr(i, "source", "ndc") == "ndc"]
@@ -118,7 +123,8 @@ def add_library_pathway(
     if not codes:
         return pathways, None
     out, sid = create_pathway(pathways, transformations_obj, name, description=description)
-    return set_pathway_codes(out, transformations_obj, sid, codes), sid
+    out = set_pathway_codes(out, transformations_obj, sid, codes)
+    return (set_base_year(out, sid, base_year) if base_year is not None else out), sid
 
 
 def delete_pathway(pathways: PathwayMap, sid: int) -> PathwayMap:
@@ -135,7 +141,16 @@ def set_pathway_codes(pathways: PathwayMap, transformations_obj, sid: int, codes
     entry = pathways[sid]
     codes = list(dict.fromkeys(c for c in codes if c != transformations_obj.code_baseline))
     out = dict(pathways)
-    out[sid] = _entry(sid, codes, transformations_obj, entry.strategy.name, _description(entry))
+    out[sid] = _entry(sid, codes, transformations_obj, entry.strategy.name, _description(entry), entry.base_year)
+    return out
+
+
+def set_base_year(pathways: PathwayMap, sid: int, year: Optional[int]) -> PathwayMap:
+    """Set a pathway's last historical year (StrategyEntry.base_year); None = sisepuede's default."""
+    if sid == BAU_STRATEGY_ID:
+        raise ValueError("Business as usual keeps sisepuede's default base year.")
+    out = dict(pathways)
+    out[sid] = dataclasses.replace(pathways[sid], base_year=None if year is None else int(year))
     return out
 
 
@@ -157,7 +172,7 @@ def rebuild_pathways(pathways: PathwayMap, transformations_obj: trf.Transformati
     out = {}
     for sid, entry in pathways.items():
         codes = [c for c in entry.transformation_codes if c in known]
-        out[sid] = _entry(sid, codes, transformations_obj, entry.strategy.name, _description(entry))
+        out[sid] = _entry(sid, codes, transformations_obj, entry.strategy.name, _description(entry), entry.base_year)
     return out
 
 

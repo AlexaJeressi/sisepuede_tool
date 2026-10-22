@@ -170,3 +170,15 @@ def test_extra_tables_round_trip(transformers_catalog):
     # still a plain sisepuede directory for import
     tx2, _ = persistence_service.import_session_zip(io.BytesIO(blob), transformers_catalog)
     assert "TX:AGRC:DEC_EXPORTS_TEST" in tx2.dict_transformations
+
+
+def test_base_year_round_trips(transformers_catalog):
+    from sisepuede_tool.services import pathway_service
+
+    transformations_obj, strategies_map = _build_session(transformers_catalog)
+    strategies_map = pathway_service.set_base_year(strategies_map, 1000, 2026)
+    df = persistence_service.strategies_to_dataframe(strategies_map)
+    assert df.set_index("strategy_id")["base_year"].to_dict()[1000] == 2026
+    blob = persistence_service.export_session_zip(transformations_obj, strategies_map)
+    _, strategies2 = persistence_service.import_session_zip(io.BytesIO(blob), transformers_catalog)
+    assert (strategies2[1000].base_year, strategies2[0].base_year) == (2026, None)

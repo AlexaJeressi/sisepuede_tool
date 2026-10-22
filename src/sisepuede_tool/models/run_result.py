@@ -15,6 +15,8 @@ class RunResult:
     elapsed_seconds: float = 0.0
     # NemoMod's result ("OPTIMAL", "INFEASIBLE", ...); None when it didn't run
     nemomod_status: Optional[str] = None
+    # the pathway's last historical year NemoMod ran with; None = sisepuede's default (first year)
+    base_year: Optional[int] = None
 
     @property
     def nemomod_failed(self) -> bool:

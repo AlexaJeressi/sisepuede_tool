@@ -304,6 +304,7 @@ def page_run_server(input, output, session, state: AppState):
                     strategy_id,
                     baseline_id,
                     models_run=sectors,
+                    base_year=entry.base_year,
                 )
                 if not result.ok:
                     logger.warning("run failed: strategy %s x baseline %s: %s", strategy_id, baseline.label, result.error)
@@ -325,6 +326,7 @@ def page_run_server(input, output, session, state: AppState):
                         "nemomod": nemomod,
                         "nemomod_status": result.nemomod_status,
                         "nemomod_failed": result.nemomod_failed,
+                        "base_year": result.base_year,
                     }
                 )
             p.set(len(combinations), message=_t("done"))

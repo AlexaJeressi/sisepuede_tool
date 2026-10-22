@@ -82,12 +82,16 @@ def strategies_to_dataframe(strategies_map: Dict[int, StrategyEntry], code_basel
             "strategy": entry.strategy.name or "",
             "description": getattr(entry.strategy, "description", "") or "",
             "transformation_specification": "|".join(entry.transformation_codes) or code_baseline,
+            # the tool's own column (sisepuede reads the others): the pathway's last historical year
+            "base_year": entry.base_year,
         }
         for entry in strategies_map.values()
     ]
-    return pd.DataFrame(
-        rows, columns=["strategy_id", "strategy_code", "strategy", "description", "transformation_specification"]
+    df = pd.DataFrame(
+        rows, columns=["strategy_id", "strategy_code", "strategy", "description", "transformation_specification", "base_year"]
     )
+    df["base_year"] = df["base_year"].astype("Int64")
+    return df
 
 
 def _parse_strategy_definitions(fp_csv: pathlib.Path, transformations_obj: trf.Transformations) -> Dict[int, StrategyEntry]:
@@ -111,7 +115,9 @@ def _parse_strategy_definitions(fp_csv: pathlib.Path, transformations_obj: trf.T
                 strategy_id, codes, transformations_obj, name=name, description=description
             )
 
-        strategies_map[strategy_id] = StrategyEntry(strategy=strategy, transformation_codes=codes)
+        base_year = row.get("base_year")
+        base_year = None if strategy_id == 0 or base_year is None or pd.isna(base_year) else int(base_year)
+        strategies_map[strategy_id] = StrategyEntry(strategy=strategy, transformation_codes=codes, base_year=base_year)
 
     return strategies_map
 

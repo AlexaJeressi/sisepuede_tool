@@ -34,6 +34,10 @@ SOURCE_USER = "user"
 SOURCE_NDC = "ndc"
 SOURCE_LEP = "lep"
 SOURCE_LABELS = {SOURCE_NDC: "NDC", SOURCE_LEP: "LEP"}
+# Last historical year of each ready-made pathway (StrategyEntry.base_year):
+# the NDC is a policy from about 2018, the LEP one adopted now (2026 the last
+# fixed year). NemoMod keeps the years up to it as history.
+BASE_YEARS = {SOURCE_NDC: 2017, SOURCE_LEP: 2026}
 
 
 def default_library_dir() -> pathlib.Path:

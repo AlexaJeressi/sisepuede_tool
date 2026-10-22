@@ -317,7 +317,8 @@ def page_data_input_server(input, output, session, state: AppState):
         pathways = {0: StrategyEntry(strategy=baseline_strategy, transformation_codes=[transformations_obj.code_baseline])}
         # the NDC pathway (strategy 6003 in ssp_egypt btr_invent), ready to run or edit
         pathways, _ = pathway_service.add_library_pathway(
-            pathways, transformations_obj, library_items, name="NDC", description="Egypt NDC transformations"
+            pathways, transformations_obj, library_items, name="NDC", description="Egypt NDC transformations",
+            base_year=library_service.BASE_YEARS[library_service.SOURCE_NDC],
         )
         # the LEP pathway (strategy 6005 in ssp_egypt btr_invent): NDC + LEP transformations,
         # the example used to demonstrate Article 6 opportunities
@@ -328,6 +329,7 @@ def page_data_input_server(input, output, session, state: AppState):
             name="LEP",
             description="Egypt LEP pathway: NDC plus higher-ambition LEP transformations",
             codes=library_service.lep_pathway_codes(),
+            base_year=library_service.BASE_YEARS[library_service.SOURCE_LEP],
         )
         state.strategies_map.set(pathways)
 

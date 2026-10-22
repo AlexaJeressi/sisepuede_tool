@@ -103,7 +103,8 @@ def calculate_cost_benefit_detail(
     _calculate, kept apart so the rows before its pivot are not lost."""
     from sisepuede_tool.services import tableau_export_service
 
-    attr_strat = persistence_service.strategies_to_dataframe(strategies_map)
+    # sisepuede's columns only (base_year is the tool's)
+    attr_strat = persistence_service.strategies_to_dataframe(strategies_map).drop(columns=["base_year"])
     attr_prim = cb_wrapper._update_cb_components(df_wide, attr_strat, code_strat_base=code_strat_base)
     strategy_id_map, primary_id_map = cb_wrapper._build_strategy_maps(attr_prim, attr_strat)
 

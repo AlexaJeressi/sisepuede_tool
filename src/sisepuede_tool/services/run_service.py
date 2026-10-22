@@ -19,6 +19,11 @@ doesn't raise. It fills the electricity outputs with 0 and the run completes,
 saying so only through its logger ("NemoMod run failed with result ...").
 The models get SISEPUEDE_LOGGER, and run_combination() reads that message
 into RunResult.nemomod_status, so the run is kept but can be flagged.
+
+Base year: each pathway can have a last historical year (StrategyEntry.base_year).
+Its time periods up to that year are passed as `time_periods_base`, which
+NemoMod optimizes first and then keeps fixed for the rest of the run
+(time_periods_base()). Without one, sisepuede's default: the first period only.
 """
 
 import logging
@@ -29,6 +34,7 @@ from typing import List, Optional
 import pandas as pd
 import sisepuede.transformers as trf
 from sisepuede.core.model_attributes import ModelAttributes
+from sisepuede.core.support_classes import TimePeriods
 from sisepuede.manager.sisepuede_models import SISEPUEDEModels
 
 from sisepuede_tool import config
@@ -96,6 +102,17 @@ def build_models(model_attributes: ModelAttributes) -> SISEPUEDEModels:
     )
 
 
+def time_periods_base(model_attributes: ModelAttributes, base_year: Optional[int]) -> Optional[List[int]]:
+    """Time periods up to `base_year` (its last historical year), mapped with
+    sisepuede's TimePeriods; None (sisepuede's default) when there is none.
+    E.g. 2017 -> [0, 1, 2] and 2026 -> [0, ..., 11] when period 0 is 2015."""
+    if base_year is None:
+        return None
+    tps = TimePeriods(model_attributes)
+    out = [tp for tp in tps.all_time_periods if tps.tp_to_year(tp) <= base_year]
+    return out or None
+
+
 def run_combination(
     models: SISEPUEDEModels,
     strategy: trf.Strategy,
@@ -105,6 +122,7 @@ def run_combination(
     strategy_id: int,
     baseline_id: str,
     models_run: Optional[List[str]] = None,
+    base_year: Optional[int] = None,
 ) -> RunResult:
     """Apply `strategy` to `df_baseline` and run it through the model.
 
@@ -113,19 +131,25 @@ def run_combination(
     captured into the returned RunResult so one failing combination in a
     batch doesn't lose the others. `models_run` lets a caller exclude a
     known-broken sector (e.g. AFOLU, see the LivestockDietEstimator issue)
-    without abandoning the whole run.
+    without abandoning the whole run. `base_year`: the pathway's last
+    historical year for NemoMod (module docstring).
     """
     t0 = time.time()
     status = _NemoModStatus()
     SISEPUEDE_LOGGER.addHandler(status)
     try:
         df_transformed = strategy(df_input=df_baseline)
+        kwargs = {}
+        base = time_periods_base(models.model_attributes, base_year) if run_energy_production else None
+        if base is not None:
+            kwargs["time_periods_base"] = base
         df_output = models.project(
             df_transformed,
             regions=[region],
             include_nemo_fuel_production=run_energy_production,
             check_results=True,
             models_run=models_run,
+            **kwargs,
         )
         return RunResult(
             strategy_id=strategy_id,
@@ -135,6 +159,7 @@ def run_combination(
             df_input=df_transformed,
             elapsed_seconds=time.time() - t0,
             nemomod_status=nemomod_status(status.statuses),
+            base_year=base_year if run_energy_production else None,
         )
     except Exception as e:
         return RunResult(
@@ -144,6 +169,7 @@ def run_combination(
             error=str(e),
             elapsed_seconds=time.time() - t0,
             nemomod_status=nemomod_status(status.statuses),
+            base_year=base_year if run_energy_production else None,
         )
     finally:
         SISEPUEDE_LOGGER.removeHandler(status)
