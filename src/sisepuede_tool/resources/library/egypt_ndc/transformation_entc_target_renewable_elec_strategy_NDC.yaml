@@ -9,6 +9,9 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent. Renewabl
   -32.6%; default ramp (2028) -9.5%; the MSP dict and magnitude do not move the result, only the
   ramp does. The NDC leads LEP in mitigation until 2037, LEP is more aggressive from 2038.
 
+  Updated later on 2026-10-22: scale_non_renewables_to_match_surplus_msp back to true and the
+  target mix to hydropower 0.04, nuclear 0.04, solar 0.52 (wind 0.25); ramp tp_0_ramp 5 kept.
+
   Set a target for renewable electricity. Includes minimum targets for specific renewable
   energy technologies.'
 identifiers:
@@ -23,12 +26,12 @@ parameters:
   - pp_solar
   - pp_wind
   dict_entc_renewable_target_msp:
-    pp_hydropower: 0.05
-    pp_nuclear: 0.05
-    pp_solar: 0.5
+    pp_hydropower: 0.04
+    pp_nuclear: 0.04
+    pp_solar: 0.52
     pp_wind: 0.25
   magnitude: 0.85
-  scale_non_renewables_to_match_surplus_msp: false
+  scale_non_renewables_to_match_surplus_msp: true
   vec_implementation_ramp:
     tp_0_ramp: 5
 transformer: TFR:ENTC:TARGET_RENEWABLE_ELEC
