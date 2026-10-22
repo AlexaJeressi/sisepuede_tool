@@ -1,16 +1,28 @@
-"""Marginal abatement cost (MAC) of the NDC transformations, from sisepuede_a6.
+"""Marginal abatement cost (MAC) of the transformations of a pathway, from sisepuede_a6.
 
-For now the numbers are static: ref/temporary_mac.csv of the sisepuede_a6
-clone (found as in article6_service), with the cost per tonne abated
-(USD/tCO2e) from two sets of runs, tornado and whirlpool (strategies in
-ref/temporary_mac_strategy_map.csv), and their mean.
+For now the numbers are static: ref/temporary_emit_cost_diffs_by_subsec.csv of
+the sisepuede_a6 clone (found as in article6_service). For each pathway
+(`strategy_id_stressed`: 6004 NDC, 6005 LEP), transformation and emission
+subsector it has what the transformation changes, from two sets of runs
+(tornado and whirlpool, strategies in ref/temporary_mac_strategy_map.csv):
+- emission_diff_mt_co2e_*: emissions in that subsector (MtCO2e, < 0 = abated);
+- cost_diff_mmm_usd_*: the transformation's net benefit (billion USD, < 0 = net
+  cost), the same in every subsector row.
 
-The file has a row per transformation and emission subsector. Two filters:
-- the subsector of the transformation (TX:TRNS:... -> trns): which rows;
-- the subsector the abatement is measured in (the file's `subsector`; "All"
-  is the whole economy): which values. A transformation barely changes the
-  emissions of most subsectors, so its cost per tonne there can reach
-  10^12 USD/t.
+The page doesn't use the file's own MACs (ref/temporary_mac.csv): there the
+whirlpool MAC has the opposite sign of tornado for the same differences, and
+the "All" rows divide by k times the abatement (k = 1..43, the row order). Here
+the MAC is computed from the differences:
+- abatement = -emission difference, whole economy = sum of the subsectors;
+- MAC (USD/tCO2e) = net cost / whole-economy abatement, > 0 = costs money;
+- mean = both estimates together: (cost T + cost W) / (abatement T + abatement W).
+  An estimate that is zero everywhere (cost and every subsector) was not run
+  for that transformation: the mean is then the other estimate.
+
+A transformation has one MAC (its cost over all it abates); a scope (a
+subsector or a sector) only changes which tonnes are counted: in a subsector
+are the transformations that abate there, with what they abate there, at their
+MAC. The average cost of a subsector weighs their MACs by those tonnes.
 
 When the MAC is computed from the tool's runs, load() is the function to
 replace; the page only needs its columns.
@@ -18,26 +30,23 @@ replace; the page only needs its columns.
 
 import functools
 import math
-from typing import Iterable, List, Optional, Sequence
+import re
+from typing import Dict, Iterable, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 from sisepuede_tool.services.article6_service import A6_REF_DIR
+from sisepuede_tool.services.emissions_service import SECTOR_ORDER, SUBSECTORS
 
-MAC_PATH = A6_REF_DIR / "temporary_mac.csv"
-SUBSECTOR_ALL = "All"
+DIFFS_PATH = A6_REF_DIR / "temporary_emit_cost_diffs_by_subsec.csv"
 
-FIELD_CODE = "transformation_code"
-FIELD_SUBSECTOR = "subsector"
-# measure key -> column of the file; the order is the order on the page
-MEASURE_FIELDS = {
-    "mean": "mac_mean_usd_per_tonne",
-    "tornado": "mac_tornado_usd_per_tonne",
-    "whirlpool": "mac_whirlpool_usd_per_tonne",
-}
-MEASURES = list(MEASURE_FIELDS)
+# strategy_id_stressed -> pathway; the order is the order on the page
+PATHWAYS = {6004: "NDC", 6005: "LEP"}
+MEASURES = ["mean", "tornado", "whirlpool"]
+ESTIMATES = ["tornado", "whirlpool"]
 
-# subsector names in the file -> sisepuede abbreviation (for the translated name)
+# subsector names in the file -> sisepuede abbreviation; "All" is left out (see above)
 SUBSECTOR_ABV = {
     "Agriculture": "agrc",
     "Energy Technology": "entc",
@@ -45,6 +54,8 @@ SUBSECTOR_ABV = {
     "IPPU": "ippu",
     "Industrial Energy": "inen",
     "Land Use": "lndu",
+    "Livestock": "lvst",
+    "Livestock Manure Management": "lsmm",
     "Soil Management": "soil",
     "Solid Waste": "waso",
     "Stationary Combustion and Other Energy": "scoe",
@@ -52,58 +63,196 @@ SUBSECTOR_ABV = {
     "Wastewater Treatment": "trww",
 }
 
-ZERO = 1e-9  # a row with every shown measure below this (in absolute value) has no cost to show
-LOG_RATIO = 100.0  # auto scale: logarithmic when the largest value is this many times the median
+SECTOR_PREFIX = "sector:"  # scope value of a whole sector, e.g. "sector:Energy"; "" = whole economy
+ZERO_MT = 1e-4  # abatement below this (MtCO2e, absolute value) doesn't count: the transformation doesn't touch the scope
 
 
 @functools.lru_cache(maxsize=1)
 def load(path=None) -> pd.DataFrame:
-    """[code, subsector, mean, tornado, whirlpool] (USD/tCO2e); `subsector` is
-    where the abatement is measured ("All" = whole economy)."""
-    df = pd.read_csv(path or MAC_PATH)
-    df = df.rename(columns={FIELD_CODE: "code", **{v: k for k, v in MEASURE_FIELDS.items()}})
-    return df[["code", FIELD_SUBSECTOR, *MEASURES]].reset_index(drop=True)
+    """[pathway, code, subsector, abatement_{tornado,whirlpool}, cost_{tornado,whirlpool}]:
+    one row per pathway, transformation and subsector (abbreviation). Abatement
+    in MtCO2e (> 0 = emissions avoided), cost in billion USD (> 0 = net cost,
+    the transformation's whole cost on each of its rows)."""
+    df = pd.read_csv(path or DIFFS_PATH)
+    df = df[df["strategy_id_stressed"].isin(PATHWAYS) & df["subsector"].isin(SUBSECTOR_ABV)]
+    out = pd.DataFrame({
+        "pathway": df["strategy_id_stressed"].map(PATHWAYS),
+        "code": df["transformation_code"],
+        "subsector": df["subsector"].map(SUBSECTOR_ABV),
+    })
+    for e in ESTIMATES:
+        out[f"abatement_{e}"] = -df[f"emission_diff_mt_co2e_{e}"].astype(float)
+        out[f"cost_{e}"] = -df[f"cost_diff_mmm_usd_{e}"].astype(float)
+    return out.reset_index(drop=True)
 
 
-def transformation_subsectors(df: pd.DataFrame) -> List[str]:
-    """Subsectors of the transformations in `df` (abbreviations, e.g. "trns"), sorted."""
-    return sorted({subsector_of(c) for c in df["code"]} - {""})
+def pathways(df: pd.DataFrame) -> List[str]:
+    """Pathways in `df`, in PATHWAYS order."""
+    have = set(df["pathway"])
+    return [p for p in PATHWAYS.values() if p in have]
 
 
-def measured_subsectors(df: pd.DataFrame) -> List[str]:
-    """Subsectors the abatement is measured in, as in the file: "All" first, then file order."""
-    names = list(dict.fromkeys(df[FIELD_SUBSECTOR]))
-    return ([SUBSECTOR_ALL] if SUBSECTOR_ALL in names else []) + [s for s in names if s != SUBSECTOR_ALL]
+def scopes(df: pd.DataFrame) -> List[Tuple[str, List[str]]]:
+    """[(sector, [subsector abbreviations])] in the file, in SECTOR_ORDER."""
+    have = set(df["subsector"])
+    out = []
+    for sector in SECTOR_ORDER:
+        subs = [abv for abv in SUBSECTOR_ABV.values() if abv in have and SUBSECTORS[abv][0] == sector]
+        if subs:
+            out.append((sector, subs))
+    return out
 
 
-def _select(df: pd.DataFrame, tx_subsector: str, measured_in: str) -> pd.DataFrame:
-    """Transformations of `tx_subsector` ("" = all), values measured in `measured_in`."""
-    d = df[df[FIELD_SUBSECTOR] == (measured_in or SUBSECTOR_ALL)]
-    return d[d["code"].map(subsector_of) == tx_subsector] if tx_subsector else d
+def scope_subsectors(scope: str) -> Optional[List[str]]:
+    """Subsectors counted in `scope`: None = all (whole economy, ""), a sector's
+    ("sector:Energy") or one ("trns")."""
+    if not scope:
+        return None
+    if scope.startswith(SECTOR_PREFIX):
+        sector = scope[len(SECTOR_PREFIX):]
+        return [abv for abv in SUBSECTOR_ABV.values() if SUBSECTORS[abv][0] == sector]
+    return [scope]
 
 
-def sort_measure(measures: Sequence[str]) -> str:
-    """The measure rows are sorted by: the mean, unless a single other measure
-    is shown (the mean is the midpoint of tornado and whirlpool, so it also
-    orders the ranges)."""
-    return measures[0] if len(measures) == 1 else "mean"
+def _measure(a_t, a_w, measure: str, h_t=1.0, h_w=1.0):
+    """Value of `measure` from the tornado and whirlpool values (arrays or
+    numbers); the mean averages the estimates that exist (`h_*`: 1 or 0)."""
+    if measure == "mean":
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return (a_t * h_t + a_w * h_w) / np.maximum(h_t + h_w, 1)
+    return {"tornado": a_t, "whirlpool": a_w}[measure]
 
 
-def rows(df: pd.DataFrame, tx_subsector: str, measured_in: str, measures: Sequence[str]) -> pd.DataFrame:
-    """Transformations of `tx_subsector` ("" = all) with their values measured in
-    `measured_in` ("All" = whole economy) and a non-zero value in at least one
-    of `measures`, cheapest first (by sort_measure)."""
-    d = _select(df, tx_subsector, measured_in)
-    if not measures:
-        return d.iloc[0:0]
-    d = d[(d[list(measures)].abs() > ZERO).any(axis=1)]
-    return d.sort_values(sort_measure(measures)).reset_index(drop=True)
+def _mac(cost, abatement):
+    """USD/tCO2e from billion USD and MtCO2e; NaN when nothing is abated."""
+    cost, abatement = np.asarray(cost, float), np.asarray(abatement, float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(abatement > ZERO_MT, cost * 1e3 / abatement, np.nan)
 
 
-def zero_codes(df: pd.DataFrame, tx_subsector: str, measured_in: str, measures: Sequence[str]) -> List[str]:
-    """Transformations left out by rows() (every shown measure is zero)."""
-    d = _select(df, tx_subsector, measured_in)
-    return list(d.loc[~(d[list(measures)].abs() > ZERO).any(axis=1), "code"]) if measures else []
+def transformations(df: pd.DataFrame, pathway: str) -> pd.DataFrame:
+    """[code, cost_*, abatement_*, mac_*, has_tornado, has_whirlpool] of each
+    transformation of `pathway` (whole economy; * = tornado, whirlpool, mean)."""
+    d = df[df["pathway"] == pathway]
+    t = d.groupby("code", sort=False).agg(
+        **{f"abatement_{e}": (f"abatement_{e}", "sum") for e in ESTIMATES},
+        **{f"cost_{e}": (f"cost_{e}", "first") for e in ESTIMATES},
+        **{f"_abs_{e}": (f"abatement_{e}", lambda s: s.abs().sum()) for e in ESTIMATES},
+    ).reset_index()
+    for e in ESTIMATES:
+        # 1 when the estimate exists (see the module docstring)
+        t[f"has_{e}"] = ((t.pop(f"_abs_{e}") > ZERO_MT) | (t[f"cost_{e}"].abs() > 1e-9)).astype(float)
+    for x in ("abatement", "cost"):
+        t[f"{x}_mean"] = _measure(t[f"{x}_tornado"], t[f"{x}_whirlpool"], "mean", t["has_tornado"], t["has_whirlpool"])
+    for m in MEASURES:
+        t[f"mac_{m}"] = _mac(t[f"cost_{m}"], t[f"abatement_{m}"])
+    return t
+
+
+def curve(df: pd.DataFrame, pathway: str, scope: str, measure: str) -> Tuple[pd.DataFrame, Dict[str, List[str]]]:
+    """The MAC curve of `pathway` in `scope` for `measure`.
+
+    Rows: the transformations that abate in the scope, cheapest first, with
+    [code, mac, abatement (in the scope), share (of the transformation's whole
+    abatement), cost (whole), start (cumulative abatement before it), mac_tornado,
+    mac_whirlpool]. Left out, by reason: "raises" (more emissions in the scope),
+    "no_mac" (abates in the scope but not overall, so it has no cost per tonne)."""
+    t = transformations(df, pathway).set_index("code")
+    d = df[df["pathway"] == pathway]
+    subs = scope_subsectors(scope)
+    if subs is not None:
+        d = d[d["subsector"].isin(subs)]
+    a = d.groupby("code", sort=False)[[f"abatement_{e}" for e in ESTIMATES]].sum().reindex(t.index, fill_value=0.0)
+    here = pd.Series(_measure(a["abatement_tornado"], a["abatement_whirlpool"], measure, t["has_tornado"], t["has_whirlpool"]), index=t.index)
+
+    out = pd.DataFrame({
+        "code": t.index,
+        "mac": t[f"mac_{measure}"].to_numpy(),
+        "abatement": here.to_numpy(),
+        "total": t[f"abatement_{measure}"].to_numpy(),
+        "cost": t[f"cost_{measure}"].to_numpy(),
+        "mac_tornado": t["mac_tornado"].to_numpy(),
+        "mac_whirlpool": t["mac_whirlpool"].to_numpy(),
+    })
+    left = {
+        "raises": list(out.loc[out["abatement"] < -ZERO_MT, "code"]),
+        "no_mac": list(out.loc[(out["abatement"] > ZERO_MT) & out["mac"].isna(), "code"]),
+    }
+    out = out[(out["abatement"] > ZERO_MT) & out["mac"].notna()].sort_values("mac", kind="stable").reset_index(drop=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # above 1 when it raises emissions elsewhere: not a share then
+        share = np.where(out["total"] > ZERO_MT, out["abatement"] / out["total"], np.nan)
+    out["share"] = np.where(share <= 1 + 1e-9, share, np.nan)
+    out["start"] = out["abatement"].cumsum() - out["abatement"]
+    return out.drop(columns="total"), left
+
+
+def summary(rows: pd.DataFrame) -> Dict[str, float]:
+    """{abatement, saving (abated at a net saving, MAC < 0), mac (abatement-weighted
+    average)} of the rows of curve()."""
+    total = float(rows["abatement"].sum())
+    return {
+        "abatement": total,
+        "saving": float(rows.loc[rows["mac"] < 0, "abatement"].sum()),
+        "mac": float((rows["mac"] * rows["abatement"]).sum() / total) if total > 0 else float("nan"),
+    }
+
+
+def pair_key(code: str) -> str:
+    """The same transformation in both pathways: 'TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC'
+    and 'TX:ENTC:TARGET_RENEWABLE_ELEC_LEP' -> 'TX:ENTC:TARGET_RENEWABLE_ELEC'."""
+    return re.sub(r"(_STRATEGY)?_(NDC|LEP)$", "", code)
+
+
+def by_subsector(df: pd.DataFrame, pathways: Iterable[str], measure: str) -> pd.DataFrame:
+    """[pathway, subsector, mac, abatement, n] for each pathway and subsector where
+    some of its transformations abate: the average cost per tonne abated there
+    (abatement-weighted, as summary()), what they abate there and how many."""
+    out = []
+    for p in pathways:
+        for _, subs in scopes(df):
+            for abv in subs:
+                rows, _ = curve(df, p, abv, measure)
+                if not rows.empty:
+                    out.append({"pathway": p, "subsector": abv, "n": len(rows), **{k: v for k, v in summary(rows).items() if k != "saving"}})
+    return pd.DataFrame(out, columns=["pathway", "subsector", "mac", "abatement", "n"])
+
+
+def subsector_order(table: pd.DataFrame, pathways: List[str]) -> List[str]:
+    """Subsectors of by_subsector(), cheapest first: by the first pathway that has
+    a value (so the bars of the first pathway rise from left to right)."""
+    wide = table.pivot(index="subsector", columns="pathway", values="mac")
+    key = pd.Series(np.nan, index=wide.index)
+    for p in pathways:
+        if p in wide:
+            key = key.fillna(wide[p])
+    return list(key.sort_values(kind="stable").index)
+
+
+def by_transformation(df: pd.DataFrame, pathways: List[str], measure: str, scope: str = "",
+                      min_share: float = 0.01) -> Tuple[pd.DataFrame, int]:
+    """The transformations that abate in each subsector of `scope` ("" = all),
+    for each pathway: [subsector, key (pair_key), code, pathway, mac, abatement,
+    share (of the subsector's abatement in that pathway), cost, mac_tornado,
+    mac_whirlpool]. A transformation that abates in several
+    subsectors is under each, with what it abates there. Rows under
+    `min_share` in every pathway are left out; their number is returned."""
+    subs = scope_subsectors(scope) or [abv for _, s in scopes(df) for abv in s]
+    parts = []
+    for p in pathways:
+        for abv in subs:
+            rows, _ = curve(df, p, abv, measure)
+            if rows.empty:
+                continue
+            rows = rows.assign(pathway=p, subsector=abv, key=rows["code"].map(pair_key))
+            rows["share"] = rows["abatement"] / rows["abatement"].sum()
+            parts.append(rows.drop(columns="start"))
+    if not parts:
+        return pd.DataFrame(columns=["subsector", "key", "code", "pathway", "mac", "abatement", "share"]), 0
+    t = pd.concat(parts, ignore_index=True)
+    keep = t.groupby(["subsector", "key"])["share"].transform("max") >= min_share
+    hidden = t.loc[~keep, ["subsector", "key"]].drop_duplicates().shape[0]
+    return t[keep].reset_index(drop=True), hidden
 
 
 def subsector_of(code: str) -> str:
@@ -113,45 +262,14 @@ def subsector_of(code: str) -> str:
 
 
 def _abs_nonzero(values: Iterable[float]) -> List[float]:
-    return sorted((abs(float(v)) for v in values if abs(float(v)) > ZERO), reverse=True)
+    return sorted((abs(float(v)) for v in values if not math.isnan(float(v)) and abs(float(v)) > 1e-9), reverse=True)
 
 
-def wants_log(values: Iterable[float]) -> bool:
-    """Auto scale: logarithmic when the values span too many orders of magnitude
-    for a linear axis (the largest is more than LOG_RATIO times the median). A
-    single outlier doesn't count: a linear axis cuts it (axis_limit)."""
+def axis_limit(values: Iterable[float], ratio: float = 3.0) -> Optional[float]:
+    """Half-width of a linear axis when a few values (at most a fifth, at least
+    one) would flatten all the others: the values above the last gap of more
+    than `ratio` times between two consecutive values (largest first) are cut.
+    None when every value fits."""
     a = _abs_nonzero(values)
-    if axis_limit(a) is not None:
-        a = a[1:]
-    return len(a) > 1 and a[0] > LOG_RATIO * a[len(a) // 2]
-
-
-def axis_limit(values: Iterable[float], ratio: float = 5.0) -> Optional[float]:
-    """Half-width of a linear axis when one value would flatten all the others
-    (it is more than `ratio` times the next largest); None when every value fits."""
-    a = _abs_nonzero(values)
-    if len(a) < 2 or a[0] <= ratio * a[1]:
-        return None
-    return 1.3 * a[1]
-
-
-def signed_log(v: float) -> float:
-    """Position on the logarithmic axis: sign(v) * log10(1 + |v|), so 0 stays at 0
-    and costs and savings are mirrored."""
-    return math.copysign(math.log10(1 + abs(v)), v)
-
-
-def log_ticks(lo: float, hi: float) -> List[float]:
-    """Values for the ticks of a logarithmic axis covering [lo, hi]: 0 and powers
-    of ten on each side that has values, every 2nd or 3rd power when there are many."""
-    def kmax(v):
-        return math.ceil(math.log10(max(abs(v), 1.0)))
-
-    k_lo, k_hi = kmax(lo), kmax(hi)
-    span = (k_lo if lo < 0 else 0) + (k_hi if hi > 0 else 0)
-    step = 1 if span <= 8 else 2 if span <= 16 else 3
-    # 1 and 10 crowd 0 on a wide axis: such a side starts at its first step above 10
-    k0 = step if span > 4 else 0
-    neg = [-(10.0**k) for k in range(k0 if k_lo > k0 else 0, k_lo + 1, step)][::-1] if lo < 0 else []
-    pos = [10.0**k for k in range(k0 if k_hi > k0 else 0, k_hi + 1, step)] if hi > 0 else []
-    return neg + [0.0] + pos
+    gaps = [k for k in range(min(max(1, len(a) // 5), len(a) - 1)) if a[k] > ratio * a[k + 1]]
+    return 1.3 * a[gaps[-1] + 1] if gaps else None

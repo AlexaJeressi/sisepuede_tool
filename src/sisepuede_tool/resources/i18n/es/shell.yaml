@@ -52,7 +52,7 @@ nav:
     description: "En relación con el escenario tendencial."
   mac:
     label: "Costos de abatimiento"
-    description: "Costo por tonelada de CO₂e reducida de cada transformación de la NDC."
+    description: "Costo por tonelada de CO₂e reducida, por subsector y por transformación, para las trayectorias NDC y LEP."
   macroeconomic_impacts:
     label: "Impactos macroeconómicos"
     description: "PIB y empleo en relación con el escenario tendencial."

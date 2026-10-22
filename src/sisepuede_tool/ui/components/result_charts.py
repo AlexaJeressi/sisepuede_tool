@@ -19,7 +19,6 @@ from plotly.subplots import make_subplots
 
 from sisepuede_tool.services import i18n
 from sisepuede_tool.services.emissions_service import SUBSECTORS
-from sisepuede_tool.services.mac_service import log_ticks, signed_log
 
 FONT = "IBM Plex Sans, IBM Plex Sans Arabic, system-ui, sans-serif"
 MONO = "IBM Plex Mono, IBM Plex Sans Arabic, ui-monospace, monospace"
@@ -487,13 +486,26 @@ def item_bars(items: pd.DataFrame, colors: Dict[str, str], unit: str, lang: Opti
     return fig
 
 
-# MAC measures: colour and marker shape, fixed whatever is shown (validated as a set,
-# light surface); the shape keeps them apart without colour
-MAC_MEASURE_STYLE = {
-    "mean": ("#00918A", "circle"),
-    "tornado": ("#C46B2A", "diamond"),
-    "whirlpool": ("#6A5ACD", "square"),
-}
+def item_bars_by_pathway(items: pd.DataFrame, pathway_colors: Dict[str, str], unit: str, lang: Optional[str] = None) -> go.Figure:
+    """item_bars for several pathways (`items`: pathway, display_name, pv): one
+    bar per pathway for each item, in the pathway's colour, items in the order
+    of `items` (largest first, at the top)."""
+    order = list(dict.fromkeys(items["display_name"]))[::-1]
+    fig = go.Figure()
+    for p, color in reversed(pathway_colors.items()):  # horizontal groups fill bottom-up: the first pathway on top
+        d = items[items["pathway"] == p].set_index("display_name")["pv"].reindex(order, fill_value=0.0)
+        fig.add_trace(go.Bar(
+            y=d.index, x=d.values, orientation="h", name=p, marker_color=color,
+            hovertemplate=f"%{{y}}<br>{p}: %{{x:+,.2f}} " + i18n.t("results.busd_short", lang) + "<extra></extra>",
+        ))
+    fig.update_xaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
+    fig = _base_layout(fig, max(240, int((12 + 12 * len(pathway_colors)) * len(order) + 110)), legend_right=False)
+    fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12.5, color=TEXT), automargin=True)
+    fig.update_layout(hovermode="closest", barmode="group", bargap=0.25, legend=dict(y=1.0, yanchor="bottom", x=0, traceorder="reversed"),
+                      margin=dict(t=36))
+    return fig
+
+
 SURFACE = "#FFFDF8"
 
 
@@ -509,7 +521,117 @@ def short_number(v: float) -> str:
             return f"{sign}{a / div:.3g}{suffix}"
 
 
-def mac_chart(
+def _mac_bar_text(abated: float, sep: str = " ") -> str:
+    """Tonnes abated written by a MAC bar: '3,717 Mt' ('0.95 Mt' below 1)."""
+    return (f"{abated:,.0f}" if abs(abated) >= 1 else f"{abated:,.2f}").replace("-", "−") + sep + "Mt"
+
+
+def _mac_cost_hover(lang: Optional[str], **v) -> str:
+    t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
+    lines = [f"<b>{v['title']}</b>", v["pathway"], t("hover_mac", v=f"{v['mac']:+,.1f}"), t("hover_abated", v=f"{v['abatement']:,.1f}")]
+    return "<br>".join(lines + v.get("extra", []))
+
+
+def mac_by_subsector(
+    table: pd.DataFrame,
+    order: List[str],
+    pathways: List[str],
+    colors: Dict[str, str],
+    sub_names: Dict[str, str],
+    unit: str,
+    limit: Optional[float] = None,
+    lang: Optional[str] = None,
+) -> go.Figure:
+    """Average cost per tonne abated in each subsector (`table` of
+    mac_service.by_subsector), one column per subsector in `order` with a bar
+    per pathway, side by side. Above each bar the emissions it abates there
+    (MtCO2e); "no data" where the pathway abates nothing.
+
+    With `limit` (mac_service.axis_limit) a bar beyond ±limit is cut: drawn to
+    the edge with a break and its value written inside."""
+    t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
+    n = len(pathways)
+    w = 0.8 / max(n, 1)
+    vals = table.set_index(["pathway", "subsector"])
+    fig = go.Figure()
+    breaks, notes = [], []
+    for j, p in enumerate(pathways):
+        xs, ys, texts, hover = [], [], [], []
+        for i, sub in enumerate(order):
+            x = i + (j - (n - 1) / 2) * w
+            if (p, sub) not in vals.index:
+                notes.append(dict(x=x, y=0, text=f"<i>{t('no_data')}</i>", yshift=9))
+                continue
+            r = vals.loc[(p, sub)]
+            v = float(r["mac"])
+            y = max(-limit, min(limit, v)) if limit else v
+            xs.append(x)
+            ys.append(y)
+            texts.append(_mac_bar_text(r["abatement"], "<br>"))
+            hover.append(_mac_cost_hover(lang, title=sub_names.get(sub, sub), pathway=p, mac=v, abatement=r["abatement"],
+                                         extra=[i18n.tn("mac.hover_n", int(r["n"]), lang)]))
+            if limit and abs(v) > limit:
+                breaks.append((x, y, v))
+            # the abated tonnes above the bar (above zero for a saving), the value under a saving
+            notes.append(dict(x=x, y=max(y, 0), text=texts[-1], yshift=11, color=TEXT))
+            if v < 0 and not (limit and abs(v) > limit):
+                notes.append(dict(x=x, y=y, text=f"{v:,.0f}".replace("-", "−"), yshift=-9, color=LABEL))
+        fig.add_trace(go.Bar(x=xs, y=ys, width=w * 0.86, name=p, marker=dict(color=colors.get(p, OTHER_COLOR)),
+                             hovertext=hover, hovertemplate="%{hovertext}<extra></extra>"))
+
+    fig = _base_layout(fig, 470, legend=True)
+    # after _base_layout, which sets the font of every annotation
+    for a in notes:
+        fig.add_annotation(x=a["x"], y=a["y"], text=a["text"], showarrow=False, yshift=a["yshift"],
+                           font=dict(family=MONO, size=10, color=a.get("color", LABEL)))
+    _mac_breaks(fig, breaks, w * 0.86, unit, vertical=True)
+    for i in range(1, len(order)):
+        fig.add_vline(x=i - 0.5, line=dict(color=GRID, width=1))
+    fig.update_xaxes(tickvals=list(range(len(order))), ticktext=[_wrap(sub_names.get(s, s), 14) for s in order], side="top",
+                     range=[-0.5, len(order) - 0.5], showgrid=False, ticks="", tickfont=dict(family=FONT, size=11.5, color=TEXT))
+    ys = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in table["mac"]]
+    lo, hi = min(ys), max(ys)
+    span = max(hi - lo, 1e-9)
+    fig.update_yaxes(title_text=t("avg_cost_axis", unit=unit), title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID,
+                     zeroline=True, zerolinecolor=NET, range=[lo - 0.12 * span * (lo < 0) - 0.03 * span, hi + 0.16 * span])
+    fig.update_layout(hovermode="closest", bargap=0, barmode="overlay", margin=dict(l=8, r=8, t=60, b=8),
+                      legend=dict(title_text=t("pathway"), orientation="v", x=0.005, xanchor="left", y=0.98, yanchor="top",
+                                  bgcolor="rgba(255,253,248,0.9)", bordercolor=GRID, borderwidth=1))
+    return fig
+
+
+def _wrap(text: str, width: int) -> str:
+    """Break a label into lines of about `width` characters (<br>)."""
+    lines, cur = [], ""
+    for word in text.split():
+        if cur and len(cur) + 1 + len(word) > width:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = f"{cur} {word}".strip()
+    return "<br>".join(lines + [cur])
+
+
+def _mac_breaks(fig: go.Figure, breaks, size: float, unit: str, vertical: bool) -> None:
+    """A cut bar: two light slashes near its end and its real value written inside
+    (on a narrow column, 'USD/t' rather than 'USD/tCO₂e')."""
+    for x, y, v in breaks:
+        s = 1 if v > 0 else -1
+        for k in (0.86, 0.9):
+            if vertical:
+                fig.add_shape(type="line", x0=x - size / 2, x1=x + size / 2, y0=y * k - s * 0.01 * abs(y), y1=y * k + s * 0.01 * abs(y),
+                              line=dict(color=SURFACE, width=2.5), layer="above")
+            else:
+                fig.add_shape(type="line", y0=y - size / 2, y1=y + size / 2, x0=x * k - s * 0.006 * abs(x), x1=x * k + s * 0.006 * abs(x),
+                              line=dict(color=SURFACE, width=2.5), layer="above")
+        txt = f"<b>{v:,.0f}</b>".replace("-", "−")
+        if vertical:
+            fig.add_annotation(x=x, y=y * 0.6, text=f"{txt}<br>{unit.replace('CO₂e', '')}", showarrow=False, font=dict(family=MONO, size=10, color=SURFACE))
+        else:
+            fig.add_annotation(x=x * 0.6, y=y, text=f"{txt} {unit}", showarrow=False, font=dict(family=MONO, size=10, color=SURFACE))
+
+
+def mac_by_transformation(
     rows: pd.DataFrame,
     measures: Sequence[str],
     names: Dict[str, str],
@@ -518,86 +640,81 @@ def mac_chart(
     limit: Optional[float] = None,
     lang: Optional[str] = None,
 ) -> go.Figure:
-    """Marginal abatement cost, one row per transformation (`rows`: code and a
-    column per measure, cheapest first), cheapest at the top.
-
-    One measure: a lollipop (stem from zero, value written after the dot).
-    Two or three: a dot per measure joined by a line from the lowest to the
-    highest, so the spread between tornado and whirlpool shows. Each measure
-    keeps its colour and shape (MAC_MEASURE_STYLE).
-
-    `log`: signed logarithmic axis (mac_service.signed_log), for values that
-    span many orders of magnitude; ticks show the real values. Otherwise linear,
-    and with `limit` the axis stops at ±limit: a dot beyond it is drawn at the
-    edge as an arrow and the row's cut values are written there."""
-    d = rows.iloc[::-1].reset_index(drop=True)
-    labels = [names.get(c, c) for c in d["code"]]
-    vals = d[list(measures)].astype(float)
-    if log:
-        pos = vals.apply(lambda col: col.map(signed_log))
-    else:
-        pos = vals.clip(-limit, limit) if limit else vals
-    cut = (vals.abs() > limit) if (limit and not log) else vals.astype(bool) & False
+    """Cost per tonne abated of each transformation (`rows` of
+    mac_service.by_transformation), grouped by the subsector it abates in (a
+    light header per subsector, in `order`), cheapest first within each. One
+    bar per pathway (the NDC and LEP versions of a transformation share a row,
+    by `key`); written after it, the emissions it abates in that subsector.
+    `names`: key -> name. `limit`: as in mac_by_subsector."""
+    t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
+    n = len(pathways)
+    h = 0.8 / max(n, 1)
+    tickvals, ticktext, dividers = [], [], []
+    slots: List[Tuple[float, str, str]] = []  # (y, subsector, key)
+    y = 0.0
+    for sub in order:
+        d = rows[rows["subsector"] == sub]
+        if d.empty:
+            continue
+        first = d.sort_values("pathway", key=lambda s: s.map(pathways.index)).drop_duplicates("key")
+        keys = list(first.sort_values("mac", kind="stable")["key"])
+        if slots:
+            y -= 0.35
+            dividers.append(y + 0.15)
+        tickvals.append(y)
+        ticktext.append(f"<b>{sub_names.get(sub, sub).upper()}</b>")
+        y -= 0.9
+        for k in keys:
+            slots.append((y, sub, k))
+            tickvals.append(y)
+            ticktext.append(names.get(k, k))
+            y -= 1.0
+    vals = rows.set_index(["subsector", "key", "pathway"])
 
     fig = go.Figure()
-    # stems (one measure) or ranges (two or more): one trace, rows split by None
-    xs, ys = [], []
-    for i, lab in enumerate(labels):
-        p = pos.iloc[i]
-        a, b = (0.0, float(p.iloc[0])) if len(measures) == 1 else (float(p.min()), float(p.max()))
-        xs += [a, b, None]
-        ys += [lab, lab, None]
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color=ZERO, width=2), hoverinfo="skip", showlegend=False))
+    breaks, notes = [], []
+    for j, p in enumerate(pathways):
+        xs, ys, hover = [], [], []
+        for (ys0, sub, k) in slots:
+            yy = ys0 - (j - (n - 1) / 2) * h
+            if (sub, k, p) not in vals.index:
+                if n > 1:
+                    notes.append(dict(x=0, y=yy, text=f"<i>{t('not_in_pathway')}</i>", xanchor="left", xshift=4))
+                continue
+            r = vals.loc[(sub, k, p)]
+            v = float(r["mac"])
+            x = max(-limit, min(limit, v)) if limit else v
+            xs.append(x)
+            ys.append(yy)
+            extra = [t("hover_share", pct=f"{100 * r['share']:.0f}", sub=sub_names.get(sub, sub))]
+            est = [f"{t(m)} {r[f'mac_{m}']:+,.1f}" for m in ("tornado", "whirlpool") if pd.notna(r[f"mac_{m}"])]
+            if est:
+                extra.append(t("hover_estimates", v=" · ".join(est)))
+            hover.append(_mac_cost_hover(lang, title=names.get(k, k), pathway=p, mac=v, abatement=r["abatement"], extra=extra))
+            if limit and abs(v) > limit:
+                breaks.append((x, yy, v))
+            cost = "" if (limit and abs(v) > limit) else f"{short_number(v)} · "
+            notes.append(dict(x=max(x, 0) if v >= 0 else x, y=yy, text=cost + _mac_bar_text(r["abatement"]),
+                              xanchor="left" if v >= 0 else "right", xshift=5 if v >= 0 else -5))
+        fig.add_trace(go.Bar(x=xs, y=ys, width=h * 0.86, orientation="h", name=p, marker=dict(color=colors.get(p, OTHER_COLOR)),
+                             hovertext=hover, hovertemplate="%{hovertext}<extra></extra>"))
 
-    names_m = {m: i18n.t(f"mac.{m}", lang) for m in measures}
-    hover_all = "<br>".join(f"{i18n.t(f'mac.{m}', lang)}: %{{customdata[{j}]:+,.2f}} {unit}" for j, m in enumerate(measures))
-    custom = vals.to_numpy()
-    for m in measures:
-        color, symbol = MAC_MEASURE_STYLE[m]
-        symbols = [
-            ("triangle-right" if v > 0 else "triangle-left") if c else symbol for v, c in zip(vals[m], cut[m])
-        ]
-        text = None
-        if len(measures) == 1:
-            text = ["" if c else ("≈ 0" if abs(v) < 0.05 else short_number(v)) for v, c in zip(vals[m], cut[m])]
-        fig.add_trace(
-            go.Scatter(
-                x=pos[m], y=labels, mode="markers+text" if text else "markers", name=names_m[m],
-                marker=dict(color=color, symbol=symbols, size=11 if m == "mean" else 10, line=dict(color=SURFACE, width=1.5)),
-                text=text, textposition=["middle right" if v >= 0 else "middle left" for v in vals[m]],
-                textfont=dict(family=MONO, size=11, color=LABEL), cliponaxis=False,
-                customdata=custom, hovertemplate=f"%{{y}}<br>{hover_all}<extra></extra>",
-            )
-        )
-
-    if log:
-        lo, hi = float(vals.min().min()), float(vals.max().max())
-        ticks = log_ticks(min(lo, 0.0), max(hi, 0.0))
-        tpos = [signed_log(t) for t in ticks]
-        x0, x1 = min(signed_log(lo), 0.0), max(signed_log(hi), 0.0)
-        pad = (0.04 if len(measures) > 1 else 0.14) * (x1 - x0)  # room for the value written after a dot
-        fig.update_xaxes(tickvals=tpos, ticktext=[short_number(t) if abs(t) >= 1e4 else (f"{t / 1e3:.0f}k" if abs(t) >= 1e3 else f"{t:.0f}").replace("-", "−") for t in ticks], tickangle=0,
-                         range=[x0 - (pad if lo < 0 else 0.02 * (x1 - x0)), x1 + (pad if hi > 0 else 0.02 * (x1 - x0))])
-    else:
-        lo, hi = float(pos.min().min()), float(pos.max().max())
-        span = max(hi - lo, 1e-9)
-        pad = 0.18 if len(measures) == 1 else 0.06
-        fig.update_xaxes(range=[min(lo, 0.0) - pad * span * (lo < 0) - 0.02 * span, max(hi, 0.0) + pad * span * (hi > 0) + 0.02 * span])
-        # the cut values of a row, written once at the edge it was cut at
-        for i, lab in enumerate(labels):
-            for side in (1, -1):
-                over = [m for m in measures if cut[m].iloc[i] and (vals[m].iloc[i] > 0) == (side > 0)]
-                if over:
-                    txt = " · ".join(f"{vals[m].iloc[i]:,.0f}" for m in over)
-                    fig.add_annotation(x=side * limit, y=lab, text=(txt + " ›") if side > 0 else ("‹ " + txt), showarrow=False,
-                                       xanchor="right" if side > 0 else "left", yshift=12, font=dict(family=MONO, size=10.5, color=TEXT))
-
-    fig.update_xaxes(title_text=unit + (" · " + i18n.t("mac.log_axis", lang) if log else ""), title_font=dict(size=11.5, color=LABEL),
-                     zeroline=True, zerolinecolor=NET, showgrid=True, gridcolor=GRID)
-    fig = _base_layout(fig, max(200, 32 * len(d) + 90), legend=False)
-    fig.update_yaxes(showgrid=False, tickfont=dict(family=FONT, size=12.5, color=TEXT), automargin=True,
-                     type="category", categoryorder="array", categoryarray=labels)
-    fig.update_layout(hovermode="closest")
+    fig = _base_layout(fig, max(240, int(26 * len(slots) * max(n, 1) ** 0.5 + 40 * len(dividers) + 110)), legend=False)
+    for a in notes:
+        fig.add_annotation(x=a["x"], y=a["y"], text=a["text"], showarrow=False, xanchor=a["xanchor"], xshift=a["xshift"],
+                           font=dict(family=MONO, size=10, color=LABEL))
+    _mac_breaks(fig, breaks, h * 0.86, unit, vertical=False)
+    for yd in dividers:
+        fig.add_shape(type="line", xref="paper", x0=0, x1=1, y0=yd, y1=yd, line=dict(color=GRID, width=1))
+    xs = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in rows["mac"]]
+    lo, hi = min(xs), max(xs)
+    span = max(hi - lo, 1e-9)
+    fig.update_xaxes(title_text=t("cost_axis", unit=unit), title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID,
+                     zeroline=True, zerolinecolor=NET, range=[lo - 0.3 * span * (lo < 0) - 0.02 * span, hi + 0.32 * span], side="top")
+    fig.update_yaxes(tickvals=tickvals, ticktext=ticktext, range=[y + 0.4, 0.6], showgrid=False, zeroline=False, automargin=True,
+                     tickfont=dict(family=FONT, size=12, color=TEXT))
+    # no legend: the pathway toggles above (and the chart by subsector) carry the colours
+    fig.update_layout(hovermode="closest", bargap=0, barmode="overlay", margin=dict(l=8, r=8, t=50, b=8), showlegend=False)
     return fig
 
 

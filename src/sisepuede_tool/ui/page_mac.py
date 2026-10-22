@@ -1,22 +1,20 @@
-"""Marginal abatement cost page (results): the cost of each tonne of CO2e a
-transformation abates, cheapest first.
+"""Marginal abatement cost page (results): what each tonne of CO2e abated
+costs, by subsector and by transformation, for the NDC and LEP pathways.
 
-The numbers are static for now (services/mac_service.py reads
-sisepuede_a6 ref/temporary_mac.csv): the page doesn't depend on the runs and
-says so. Filters:
-- transformations: all, or those of one subsector (TX:TRNS:... is transportation);
-- abatement measured in: the whole economy ("All", default) or one emission
-  subsector (the file's `subsector`): the cost of each transformation per
-  tonne it abates in that subsector, with a note on what that means;
-- values: mean, tornado and whirlpool, any combination. The toggles carry
-  each value's colour and shape, so they are also the chart's legend;
-- axis: auto, linear or logarithmic. Auto picks logarithmic when the values
-  span too many orders of magnitude (mac_service.wants_log); on a linear axis
-  a value far beyond the others is cut at the edge.
+The numbers are static for now (services/mac_service.py reads sisepuede_a6
+ref/temporary_emit_cost_diffs_by_subsec.csv): the page doesn't depend on the
+runs and says so. Filters on top, for both charts:
+- pathways: NDC, LEP or both (side by side), toggles that are also the legend;
+- estimate: mean, tornado or whirlpool.
 
-One value is drawn as a lollipop, two or three as dots joined by a line
-(result_charts.mac_chart). Transformations with zero for every value shown are
-listed under the chart instead.
+Charts:
+- by subsector (result_charts.mac_by_subsector): the average cost per tonne
+  abated in each subsector, cheapest first, with the tonnes abated there;
+- by transformation (result_charts.mac_by_transformation): the transformations
+  that abate in each subsector, under a light subsector header in the same
+  order. Its own filter narrows it to a sector or a subsector.
+A bar far beyond the others is cut with a break and its value written inside
+(mac_service.axis_limit).
 """
 
 from shiny import module, render, ui
@@ -29,76 +27,94 @@ from sisepuede_tool.ui.components.chart_export import export_button
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
 
-_SWATCH_SHAPES = {
-    "circle": '<circle cx="6" cy="6" r="5"/>',
-    "diamond": '<path d="M6 0.5 11.5 6 6 11.5 0.5 6z"/>',
-    "square": '<rect x="1" y="1" width="10" height="10"/>',
-}
+
+def _pathway_colors(pathways) -> dict:
+    """NDC and LEP in the order and colours they have on the other results pages
+    (pathway palette by id; the NDC pathway is created before the LEP one)."""
+    return {p: rc.PATHWAY_PALETTE[i % len(rc.PATHWAY_PALETTE)] for i, p in enumerate(pathways)}
+
+
+def _sector_key(sector: str) -> str:
+    return sector.lower().replace(" ", "_")
 
 
 def _subsector_name(abv: str, lang=None) -> str:
-    """Name of a transformation subsector; PFLO (cross-sector policies) is not a sisepuede subsector."""
-    if abv == "pflo":
-        return i18n.t("mac.pflo", lang)
     return i18n.t(f"subsectors.{abv}", lang, default=abv.upper())
 
 
-def _measured_name(subsector: str, lang=None) -> str:
-    """Name of a subsector the abatement is measured in (the file's names, translated)."""
-    if subsector == mac.SUBSECTOR_ALL:
-        return i18n.t("mac.whole_economy", lang)
-    abv = mac.SUBSECTOR_ABV.get(subsector)
-    return i18n.t(f"subsectors.{abv}", lang, default=subsector) if abv else subsector
+def _scope_name(scope: str, lang=None) -> str:
+    """'' -> all subsectors; 'sector:Energy' -> 'Energy (all subsectors)'; 'trns' -> 'Transportation'."""
+    if not scope:
+        return i18n.t("mac.all_subsectors", lang)
+    if scope.startswith(mac.SECTOR_PREFIX):
+        sector = scope[len(mac.SECTOR_PREFIX):]
+        return i18n.t("mac.sector_all", lang, sector=i18n.t(f"sectors.{_sector_key(sector)}", lang, default=sector))
+    return _subsector_name(scope, lang)
 
 
-def _measure_choice(m: str) -> ui.Tag:
-    """Toggle label: the measure's marker (colour and shape, as in the chart) and its name."""
-    color, shape = rc.MAC_MEASURE_STYLE[m]
-    svg = f'<svg width="12" height="12" viewBox="0 0 12 12" fill="{color}" aria-hidden="true">{_SWATCH_SHAPES[shape]}</svg>'
-    return ui.span(ui.HTML(svg), i18n.t(f"mac.{m}"), class_="mac-measure")
+def _scope_choices(data, lang=None) -> dict:
+    """Grouped choices: all subsectors, then per sector the whole sector (when
+    it has more than one subsector) and its subsectors."""
+    out = {"": _scope_name("", lang)}
+    for sector, subs in mac.scopes(data):
+        group = {}
+        if len(subs) > 1:
+            group[mac.SECTOR_PREFIX + sector] = _scope_name(mac.SECTOR_PREFIX + sector, lang)
+        group.update({abv: _subsector_name(abv, lang) for abv in subs})
+        out[i18n.t(f"sectors.{_sector_key(sector)}", lang, default=sector)] = group
+    return out
+
+
+def _pathway_choice(p: str, color: str) -> ui.Tag:
+    """Toggle label: the pathway's colour, as in the charts, and its name."""
+    return ui.span(ui.span(class_="swatch", style=f"background:{color}"), p, class_="mac-pathway")
 
 
 @module.ui
 def page_mac_ui():
     data = mac.load()
+    pathways = mac.pathways(data)
+    colors = _pathway_colors(pathways)
     return ui.div(
         ui.div(i18n.t("mac.static_note"), class_="info-box small"),
+        ui.div(
+            ui.div(
+                ui.input_checkbox_group("pathways", i18n.t("mac.pathways"), {p: _pathway_choice(p, colors[p]) for p in pathways},
+                                        selected=pathways, inline=True),
+                class_="mac-toggles",
+            ),
+            ui.div(
+                ui.input_radio_buttons("measure", i18n.t("mac.estimate"), {m: i18n.t(f"mac.{m}") for m in mac.MEASURES}, inline=True),
+                class_="seg",
+            ),
+            class_="res-controls mac-controls",
+        ),
+        ui.div(
+            ui.div(
+                ui.span(i18n.t("mac.by_subsector"), class_="section-label"),
+                info_tip(i18n.t("mac.by_subsector_tip")),
+                ui.span(i18n.t("mac.unit"), class_="small muted"),
+                export_button("subsector_chart", i18n.t("mac.by_subsector")),
+                class_="box-head",
+            ),
+            output_widget("subsector_chart"),
+            ui.output_ui("subsector_notes"),
+            class_="box",
+        ),
         ui.div(
             ui.div(
                 ui.span(i18n.t("mac.by_transformation"), class_="section-label"),
                 info_tip(i18n.t("mac.by_transformation_tip")),
                 ui.span(i18n.t("mac.unit"), class_="small muted"),
-                export_button("mac_chart", i18n.t("mac.by_transformation")),
+                ui.div(
+                    ui.input_select("scope", None, _scope_choices(data), width="280px"),
+                    export_button("transformation_chart", i18n.t("mac.by_transformation")),
+                    class_="btn-row",
+                ),
                 class_="box-head",
             ),
-            ui.div(
-                ui.input_select(
-                    "subsector", i18n.t("mac.filter_transformations"),
-                    {"": i18n.t("mac.all_subsectors"),
-                     **dict(sorted(((s, _subsector_name(s)) for s in mac.transformation_subsectors(data)), key=lambda kv: kv[1]))},
-                    width="300px",
-                ),
-                ui.input_select(
-                    "measured_in", i18n.t("mac.filter_measured_in"),
-                    {s: _measured_name(s) for s in mac.measured_subsectors(data)},
-                    width="300px",
-                ),
-                ui.div(
-                    ui.input_checkbox_group("measures", None, {m: _measure_choice(m) for m in mac.MEASURES}, selected=["mean"], inline=True),
-                    class_="mac-measures",
-                ),
-                ui.div(
-                    ui.input_radio_buttons(
-                        "scale", None,
-                        {"auto": i18n.t("mac.scale_auto"), "linear": i18n.t("mac.scale_linear"), "log": i18n.t("mac.scale_log")},
-                        inline=True,
-                    ),
-                    class_="seg",
-                ),
-                class_="res-controls mac-controls",
-            ),
-            output_widget("mac_chart"),
-            ui.output_ui("notes"),
+            output_widget("transformation_chart"),
+            ui.output_ui("transformation_notes"),
             class_="box",
         ),
         class_="res-page",
@@ -108,61 +124,82 @@ def page_mac_ui():
 @module.server
 def page_mac_server(input, output, session, state: AppState):
     data = mac.load()
-    english_names = {i.code: i.name for i in library_service.load_library()}
+    colors = _pathway_colors(mac.pathways(data))
+    english_names = {i.code: i.name for i in library_service.load_all_libraries()}
 
     def _t(key, **fmt):
         return i18n.t(f"mac.{key}", state.lang(), **fmt)
 
     def _name(code: str) -> str:
-        """'AGRC: Improve rice management' (NDC library name, translated, without the 'NDC · ' set prefix)."""
+        """'AGRC: Improve rice management' (library name, translated, without the
+        'NDC · ' set prefix); mac.names for the transformations not in the library."""
         name = english_names.get(code)
         if name is None:
-            return code
+            return i18n.t(f"mac.names.{code}", state.lang(), default=code)
         return library_service.strip_set_prefix(i18n.td("library", code, "name", name, state.lang()))
 
-    def _measures() -> list:
-        picked = set(input.measures() or ())
-        return [m for m in mac.MEASURES if m in picked]
+    def _pathways() -> list:
+        picked = set(input.pathways() or ())
+        return [p for p in mac.pathways(data) if p in picked]
 
-    def _view():
-        """(rows, measures, log axis?, linear limit or None)."""
-        measures = _measures()
-        rows = mac.rows(data, input.subsector(), input.measured_in(), measures)
-        values = rows[measures].to_numpy().ravel() if measures else []
-        scale = input.scale()
-        log = scale == "log" or (scale == "auto" and mac.wants_log(values))
-        return rows, measures, log, None if log else mac.axis_limit(values)
+    def _sub_names() -> dict:
+        return {abv: _subsector_name(abv, state.lang()) for _, subs in mac.scopes(data) for abv in subs}
+
+    def _subsectors():
+        """(table, order, limit) of the chart by subsector."""
+        pws = _pathways()
+        table = mac.by_subsector(data, pws, input.measure())
+        return table, mac.subsector_order(table, pws), mac.axis_limit(table["mac"])
+
+    def _transformations():
+        """(rows, hidden, limit) of the chart by transformation."""
+        rows, hidden = mac.by_transformation(data, _pathways(), input.measure(), input.scope())
+        return rows, hidden, mac.axis_limit(rows["mac"])
 
     @render_plotly
     @rc.bidi_for(state.lang)
-    def mac_chart():
-        rows, measures, log, limit = _view()
-        if not measures:
-            return rc.empty_figure(_t("empty_measures"), height=240)
+    def subsector_chart():
+        if not _pathways():
+            return rc.empty_figure(_t("empty_pathways"), height=240)
+        table, order, limit = _subsectors()
+        if table.empty:
+            return rc.empty_figure(_t("empty_scope"), height=240)
+        return rc.mac_by_subsector(table, order, _pathways(), colors, _sub_names(), _t("unit"), limit=limit, lang=state.lang())
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
+    def transformation_chart():
+        if not _pathways():
+            return rc.empty_figure(_t("empty_pathways"), height=240)
+        rows, _, limit = _transformations()
         if rows.empty:
-            return rc.empty_figure(_t("empty_zero"), height=240)
-        lang = state.lang()
-        return rc.mac_chart(rows, measures, {c: _name(c) for c in rows["code"]}, _t("unit"), log=log, limit=limit, lang=lang)
+            return rc.empty_figure(_t("empty_scope"), height=240)
+        _, order, _ = _subsectors()
+        order = order + [s for s in dict.fromkeys(rows["subsector"]) if s not in order]
+        # one name per row: the NDC version's when both pathways have it
+        names = {}
+        for code, key in zip(rows["code"], rows["key"]):
+            names.setdefault(key, _name(code))
+        return rc.mac_by_transformation(rows, order, _pathways(), colors, _sub_names(), names, _t("unit"),
+                                        limit=limit, lang=state.lang())
+
+    def _notes(*texts) -> ui.Tag:
+        out = [x for x in texts if x]
+        return ui.div(*[ui.div(x, class_="small muted") for x in out]) if out else None
 
     @render.ui
-    def notes():
-        rows, measures, log, limit = _view()
-        if not measures:
+    def subsector_notes():
+        if not _pathways():
             return None
-        sep = i18n.t("results.list_sep", state.lang())
-        out = []
-        if input.measured_in() != mac.SUBSECTOR_ALL:
-            out.append(_t("measured_note", subsector=_measured_name(input.measured_in(), state.lang())))
-        if log and input.scale() == "auto":
-            out.append(_t("log_note"))
-        if limit:
-            cut = rows.loc[(rows[measures].abs() > limit).any(axis=1), "code"]
-            out.append(_t("cut", names=sep.join(_name(c) for c in cut)))
-        zero = mac.zero_codes(data, input.subsector(), input.measured_in(), measures)
-        if zero and not rows.empty:
-            # a long list (most transformations, when the abatement is measured in one subsector) becomes a count
-            if len(zero) > 5:
-                out.append(i18n.tn("mac.zero_count", len(zero), state.lang()))
-            else:
-                out.append(_t("zero_rows", names=sep.join(_name(c) for c in zero)))
-        return ui.div(*[ui.div(n, class_="small muted") for n in out]) if out else None
+        table, _, limit = _subsectors()
+        return _notes(_t("cut_note") if limit else None)
+
+    @render.ui
+    def transformation_notes():
+        if not _pathways():
+            return None
+        rows, hidden, limit = _transformations()
+        return _notes(
+            _t("cut_note") if limit else None,
+            i18n.tn("mac.hidden", hidden, state.lang()) if hidden else None,
+        )

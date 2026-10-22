@@ -53,7 +53,7 @@ nav:
     description: "Relative to business as usual."
   mac:
     label: "Abatement costs"
-    description: "Cost per tonne of CO₂e abated by each NDC transformation."
+    description: "Cost per tonne of CO₂e abated, by subsector and by transformation, for the NDC and LEP pathways."
   macroeconomic_impacts:
     label: "Macroeconomic impacts"
     description: "GDP and jobs relative to business as usual."
