@@ -873,3 +873,82 @@ def credit_bars(
     fig.update_xaxes(type="category", categoryorder="array", categoryarray=[str(y) for y in years])
     fig.update_layout(hovermode="closest")
     return fig
+
+
+def _rgba(hex_color: str, alpha: float) -> str:
+    h = hex_color.lstrip("#")
+    return f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)},{alpha})"
+
+
+GAP_BELOW = "#2E8B57"  # a pathway below the reference (emits less)
+GAP_ABOVE = "#C0392B"  # a pathway above the reference (emits more)
+
+
+def _gap_segments(x: Sequence[float], ref: Sequence[float], val: Sequence[float]) -> List[Tuple[bool, List[float], List[float], List[float]]]:
+    """[(below, xs, ref ys, pathway ys)]: the stretches where the pathway stays
+    on one side of the reference, split where the two lines cross (interpolated)."""
+    out: List[Tuple[bool, List[float], List[float], List[float]]] = []
+    for i, (xi, r, v) in enumerate(zip(x, ref, val)):
+        below = v <= r
+        if i and out and out[-1][0] != below:
+            x0, r0, v0 = out[-1][1][-1], out[-1][2][-1], out[-1][3][-1]
+            d0, d1 = v0 - r0, v - r
+            t = d0 / (d0 - d1) if d0 != d1 else 0.0
+            xc, yc = x0 + t * (xi - x0), r0 + t * (r - r0)
+            out[-1][1].append(xc), out[-1][2].append(yc), out[-1][3].append(yc)
+            out.append((below, [xc], [yc], [yc]))
+        if not out:
+            out.append((below, [], [], []))
+        out[-1][1].append(float(xi)), out[-1][2].append(float(r)), out[-1][3].append(float(v))
+    return out
+
+
+def gap_lines(
+    series: Dict[str, pd.Series],
+    colors: Dict[str, str],
+    unit: str,
+    gaps: Sequence[Tuple[str, str]] = (),
+    gap_years: Optional[Tuple[int, int]] = None,
+    gap_label: str = "",
+    above_label: str = "",
+    height: int = 360,
+    years: Years = None,
+) -> go.Figure:
+    """One line per pathway (`series`: {name: Series by year}, BAU first), with
+    the gap between two of them shaded (`gaps`: [(reference, pathway)]): green
+    where the pathway emits less than the reference (`gap_label`), red where it
+    emits more (`above_label`), over `gap_years` (first, last) only when given."""
+    series = {k: s[in_years(s.index, years)] for k, s in series.items()}
+    fig = go.Figure()
+    legend_done = set()
+    # the shading first, so the lines are drawn over it
+    for ref_name, name in gaps:
+        if ref_name not in series or name not in series:
+            continue
+        both = pd.concat([series[ref_name], series[name]], axis=1, join="inner")
+        if gap_years is not None:
+            both = both[in_years(both.index, gap_years)]
+        if both.empty:
+            continue
+        for below, xs, ref_y, val_y in _gap_segments(list(both.index), list(both.iloc[:, 0]), list(both.iloc[:, 1])):
+            label = gap_label if below else above_label
+            fig.add_trace(go.Scatter(x=xs, y=ref_y, mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+            fig.add_trace(
+                go.Scatter(
+                    x=xs, y=val_y, mode="lines", line=dict(width=0), fill="tonexty",
+                    fillcolor=_rgba(GAP_BELOW if below else GAP_ABOVE, 0.32), name=label, legendgroup=label,
+                    showlegend=bool(label) and label not in legend_done, hoverinfo="skip",
+                )
+            )
+            legend_done.add(label)
+    for name, s in series.items():
+        fig.add_trace(
+            go.Scatter(
+                x=s.index, y=s.values, name=name, mode="lines",
+                line=dict(color=colors.get(name, OTHER_COLOR), width=2.2),
+                hovertemplate=f"{name}: %{{y:,.1f}} {unit}<extra></extra>",
+            )
+        )
+    fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
+    fig.update_xaxes(tickvals=year_ticks(years))
+    return _base_layout(fig, height, legend_right=True)

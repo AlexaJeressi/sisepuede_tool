@@ -109,3 +109,12 @@ def test_headline_years_are_the_milestones():
     assert a6.headline_years(range(2026, 2036)) == [2030, 2035]
     assert a6.headline_years([2030, 2035]) == [2030, 2035]
     assert a6.headline_years([2026, 2027, 2028]) == [2028]  # no milestone: the last year
+
+
+def test_emissions_by_year_sums_the_groups_with_a_target(model_attributes):
+    ref = _ref()
+    ref["targets"].loc[ref["targets"]["emission_groups"] == "Waste", "target_mt_co2e_ndc2"] = float("nan")
+    s = a6.emissions_by_year(_output(), model_attributes, ref)
+    assert list(s.index) == [2029, 2030, 2035]  # every year of the run, not only the target years
+    assert s.to_dict() == {2029: 100.0, 2030: 90.0, 2035: 80.0}  # Energy only: Waste has no target
+

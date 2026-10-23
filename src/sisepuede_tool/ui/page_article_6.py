@@ -14,6 +14,9 @@ in its ref/ files. Shows:
 - the carbon price used, as a range and average (each year in the ⓘ); in
   advanced mode it can be set for every year at once or year by year (the
   page recomputes at once, no model run needed);
+- the emissions of every visible pathway (BAU and NDC too), with the gap
+  between the NDC pathway and each pathway that earns credits shaded over the
+  target years (green below the NDC, red above): where the credits come from;
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years.
 
@@ -76,6 +79,17 @@ def page_article_6_ui():
                 ui.div(i18n.t("article_6.instant"), class_="small muted"),
                 class_="adv-only adv-box",
             ),
+            class_="box",
+        ),
+        ui.div(
+            ui.div(
+                ui.span(i18n.t("article_6.pathways_chart"), class_="section-label"),
+                info_tip(i18n.t("article_6.pathways_chart_tip")),
+                ui.span("MtCO₂e", class_="small muted"),
+                export_button("pathways_chart", i18n.t("article_6.pathways_chart")),
+                class_="box-head",
+            ),
+            output_widget("pathways_chart"),
             class_="box",
         ),
         ui.div(
@@ -253,6 +267,28 @@ def page_article_6_server(input, output, session, state: AppState):
         return rc.credit_bars(
             frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+            years=state.results_years.get(),
+        )
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
+    def pathways_chart():
+        """Every visible pathway (BAU and NDC too), with the gap between the NDC
+        pathway (the first visible one that earns no credits, BAU aside) and each
+        pathway that earns credits shaded over the target years, green below the
+        NDC and red above."""
+        bid, rows = results_bar.runs_for_page(state)
+        rows = [(sid, name, rr) for sid, name, rr in rows if rr is not None and rr.ok and rr.df_output is not None]
+        if not rows:
+            return rc.empty_figure(_t("empty_none"), height=360)
+        ma = state.model_attributes.get()
+        series = {name: a6.emissions_by_year(rr.df_output, ma, ref) for _, name, rr in rows}
+        sid_colors = results_bar.colors_for(state, bid)
+        colors = {name: sid_colors.get(sid, rc.OTHER_COLOR) for sid, name, _ in rows}
+        ndc = next((name for sid, name, _ in rows if sid != 0 and not _earns_credits(sid)), None)
+        gaps = [(ndc, name) for sid, name, _ in rows if ndc and _earns_credits(sid)]
+        return rc.gap_lines(
+            series, colors, "MtCO₂e", gaps=gaps, gap_years=(years[0], years[-1]), gap_label=_t("beyond_ndc"), above_label=_t("above_ndc"),
             years=state.results_years.get(),
         )
 

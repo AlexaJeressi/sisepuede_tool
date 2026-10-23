@@ -110,6 +110,30 @@ def credit_estimate(df_output: pd.DataFrame, model_attributes, ref: Optional[Dic
     return df[["year", FIELD_GROUP, "emissions", "target", "diff", "modelled", "price", "credits_mt", "value_musd"]]
 
 
+def _target_groups(targets: pd.DataFrame) -> list:
+    """Emission groups with an NDC target (a group whose target is NaN earns no credits)."""
+    return sorted(targets.loc[targets[FIELD_TARGET].notna(), FIELD_GROUP].unique())
+
+
+def emissions_by_year(df_output: pd.DataFrame, model_attributes, ref: Optional[Dict[str, pd.DataFrame]] = None) -> pd.Series:
+    """Emissions (MtCO2e) by year, every year of the run, summed over the
+    emission groups that have an NDC target: the emissions the credits compare
+    with the targets, summed by ssp_asix.get_emissions_from_target_years()
+    (asked for every year, with a dummy target)."""
+    ref = ref or load_reference()
+    m = asix()
+    tp = _time_periods(model_attributes)
+    years = sorted(tp.tps_to_years(df_output[[tp.field_time_period]])[tp.field_year].unique())
+    every_year = pd.DataFrame(
+        [(y, g, 0.0) for y in years for g in _target_groups(ref["targets"])],
+        columns=[tp.field_year, FIELD_GROUP, m._FIELD_VALUE_NDC2],
+    )
+    em = m.get_emissions_from_target_years(df_output, ref["groupings"], every_year, m._FIELD_VALUE_NDC2, model_attributes, tp)
+    out = em.groupby(tp.field_year)["emission_total_co2e"].sum()
+    out.index = out.index.astype(int)
+    return out
+
+
 def price_by_year(prices: pd.DataFrame, years) -> Dict[int, float]:
     """{year: carbon price (USD/tCO2e)} for `years` (NaN when the table has no price)."""
     p = prices.set_index("year")[FIELD_PRICE]
