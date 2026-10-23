@@ -1,7 +1,7 @@
 # Marginal abatement cost page (ui/page_mac.py).
 
 "mac":
-  "static_note": "Preliminary reference values from sisepuede_a6, computed from its emission and cost differences. They do not change with your runs yet."
+  "static_note": "Preliminary reference values from sisepuede_a6, its cost per tonne of each transformation. They do not change with your runs yet."
   "pathway": "Pathway"
   "pathways": "Pathways"
   "estimate": "Estimate"
@@ -12,7 +12,7 @@
   "all_subsectors": "All subsectors"
   "sector_all": "{sector} (all subsectors)"
   "by_subsector": "Average cost of abatement, by subsector"
-  "by_subsector_tip": "For each subsector, what a tonne of CO₂e abated there costs on average, cheapest on the left: the cost per tonne of each transformation that abates there, weighted by the tonnes it abates there. Below zero, the abatement saves more than it costs. Above each bar, the emissions abated there (MtCO₂e). A transformation has one cost per tonne, its whole net cost over everything it abates. Tornado and whirlpool are two estimates from different sets of runs; the mean puts both together."
+  "by_subsector_tip": "For each subsector, what a tonne of CO₂e abated there costs on average, cheapest on the left: the cost per tonne of each transformation that abates there, weighted by the tonnes it abates there. Below zero, the abatement saves more than it costs. Above each bar, the emissions abated there (MtCO₂e). A transformation has one cost per tonne, its whole net cost over everything it abates. Tornado and whirlpool are two estimates from different sets of runs; the mean is their average."
   "by_transformation": "Cost of abatement, by transformation"
   "by_transformation_tip": "The transformations that abate in each subsector, cheapest first, in the subsector order of the chart above. A transformation that abates in several subsectors appears under each, with the same cost per tonne and what it abates there (after the bar, MtCO₂e). The NDC and LEP versions of a transformation share a row."
   "avg_cost_axis": "Average cost of abatement ({unit})"

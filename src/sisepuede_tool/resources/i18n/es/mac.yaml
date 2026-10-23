@@ -1,7 +1,7 @@
 # Marginal abatement cost page (es). Draft: review before release.
 
 "mac":
-  "static_note": "Valores de referencia preliminares de sisepuede_a6, calculados a partir de sus diferencias de emisiones y costos. Todavía no cambian con sus corridas."
+  "static_note": "Valores de referencia preliminares de sisepuede_a6, su costo por tonelada de cada transformación. Todavía no cambian con sus corridas."
   "pathway": "Trayectoria"
   "pathways": "Trayectorias"
   "estimate": "Estimación"
@@ -12,7 +12,7 @@
   "all_subsectors": "Todos los subsectores"
   "sector_all": "{sector} (todos los subsectores)"
   "by_subsector": "Costo promedio de reducción, por subsector"
-  "by_subsector_tip": "Para cada subsector, lo que cuesta en promedio una tonelada de CO₂e reducida ahí, la más barata a la izquierda: el costo por tonelada de cada transformación que reduce ahí, ponderado por las toneladas que reduce ahí. Por debajo de cero, la reducción ahorra más de lo que cuesta. Sobre cada barra, las emisiones reducidas ahí (MtCO₂e). Una transformación tiene un solo costo por tonelada, su costo neto total entre todo lo que reduce. Tornado y whirlpool son dos estimaciones de conjuntos de corridas distintos; el promedio junta ambas."
+  "by_subsector_tip": "Para cada subsector, lo que cuesta en promedio una tonelada de CO₂e reducida ahí, la más barata a la izquierda: el costo por tonelada de cada transformación que reduce ahí, ponderado por las toneladas que reduce ahí. Por debajo de cero, la reducción ahorra más de lo que cuesta. Sobre cada barra, las emisiones reducidas ahí (MtCO₂e). Una transformación tiene un solo costo por tonelada, su costo neto total entre todo lo que reduce. Tornado y whirlpool son dos estimaciones de conjuntos de corridas distintos; el promedio es la media de ambas."
   "by_transformation": "Costo de reducción, por transformación"
   "by_transformation_tip": "Las transformaciones que reducen en cada subsector, la más barata primero, en el orden de subsectores del gráfico de arriba. Una transformación que reduce en varios subsectores aparece en cada uno, con el mismo costo por tonelada y lo que reduce ahí (después de la barra, MtCO₂e). Las versiones NDC y LEP de una transformación comparten fila."
   "avg_cost_axis": "Costo promedio de reducción ({unit})"

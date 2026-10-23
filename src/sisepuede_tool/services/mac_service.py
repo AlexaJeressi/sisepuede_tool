@@ -1,23 +1,20 @@
 """Marginal abatement cost (MAC) of the transformations of a pathway, from sisepuede_a6.
 
-For now the numbers are static: ref/temporary_emit_cost_diffs_by_subsec.csv of
-the sisepuede_a6 clone (found as in article6_service). For each pathway
-(`strategy_id_stressed`: 6004 NDC, 6005 LEP), transformation and emission
-subsector it has what the transformation changes, from two sets of runs
-(tornado and whirlpool, strategies in ref/temporary_mac_strategy_map.csv):
-- emission_diff_mt_co2e_*: emissions in that subsector (MtCO2e, < 0 = abated);
-- cost_diff_mmm_usd_*: the transformation's net benefit (billion USD, < 0 = net
-  cost), the same in every subsector row.
+For now the numbers are static: ref/temporary_mac.csv of the sisepuede_a6
+clone (found as in article6_service). For each pathway (`strategy_id_stressed`:
+6004 NDC, 6005 LEP), transformation and emission grouping (a subsector, or
+"All" = the sum of the subsectors) it has, from two sets of runs (tornado and
+whirlpool, strategies in ref/temporary_mac_strategy_map.csv):
+- est_transformation_emission_effect_mt_co2e_*: emissions (MtCO2e, < 0 = abated);
+- cost_diff_mmm_usd_*: net benefit (billion USD, < 0 = net cost);
+- mac_{tornado,whirlpool,mean}_usd_per_tonne: the MAC (USD/tCO2e, > 0 = costs
+  money); mean = the average of the two.
 
-The page doesn't use the file's own MACs (ref/temporary_mac.csv): there the
-whirlpool MAC has the opposite sign of tornado for the same differences, and
-the "All" rows divide by k times the abatement (k = 1..43, the row order). Here
-the MAC is computed from the differences:
-- abatement = -emission difference, whole economy = sum of the subsectors;
-- MAC (USD/tCO2e) = net cost / whole-economy abatement, > 0 = costs money;
-- mean = both estimates together: (cost T + cost W) / (abatement T + abatement W).
-  An estimate that is zero everywhere (cost and every subsector) was not run
-  for that transformation: the mean is then the other estimate.
+The page shows the file's values as they are: a transformation's MAC is that
+of its "All" row (the page doesn't compute its own), and the tonnes it abates
+in a subsector are -emissions of that subsector's row. The file has no tonnes
+for the mean: they are the average of the two estimates. A transformation that
+raises emissions overall keeps the file's MAC.
 
 A transformation has one MAC (its cost over all it abates); a scope (a
 subsector or a sector) only changes which tonnes are counted: in a subsector
@@ -39,14 +36,14 @@ import pandas as pd
 from sisepuede_tool.services.article6_service import A6_REF_DIR
 from sisepuede_tool.services.emissions_service import SECTOR_ORDER, SUBSECTORS
 
-DIFFS_PATH = A6_REF_DIR / "temporary_emit_cost_diffs_by_subsec.csv"
+MAC_PATH = A6_REF_DIR / "temporary_mac.csv"
 
 # strategy_id_stressed -> pathway; the order is the order on the page
 PATHWAYS = {6004: "NDC", 6005: "LEP"}
 MEASURES = ["mean", "tornado", "whirlpool"]
 ESTIMATES = ["tornado", "whirlpool"]
 
-# subsector names in the file -> sisepuede abbreviation; "All" is left out (see above)
+# emission groupings in the file -> sisepuede abbreviation; "All" is left out (see above)
 SUBSECTOR_ABV = {
     "Agriculture": "agrc",
     "Energy Technology": "entc",
@@ -69,20 +66,28 @@ ZERO_MT = 1e-4  # abatement below this (MtCO2e, absolute value) doesn't count: t
 
 @functools.lru_cache(maxsize=1)
 def load(path=None) -> pd.DataFrame:
-    """[pathway, code, subsector, abatement_{tornado,whirlpool}, cost_{tornado,whirlpool}]:
-    one row per pathway, transformation and subsector (abbreviation). Abatement
-    in MtCO2e (> 0 = emissions avoided), cost in billion USD (> 0 = net cost,
-    the transformation's whole cost on each of its rows)."""
-    df = pd.read_csv(path or DIFFS_PATH)
-    df = df[df["strategy_id_stressed"].isin(PATHWAYS) & df["subsector"].isin(SUBSECTOR_ABV)]
+    """[pathway, code, subsector, abatement_*, cost_*, mac_*] (* = tornado,
+    whirlpool, mean): one row per pathway, transformation and subsector
+    (abbreviation). abatement: MtCO2e abated in that subsector (> 0 = emissions
+    avoided); cost (billion USD, > 0 = net cost) and mac: the transformation's
+    whole ones (its "All" row), the same on each of its rows."""
+    df = pd.read_csv(path or MAC_PATH)
+    df = df[df["strategy_id_stressed"].isin(PATHWAYS)]
+    whole = df[df["emission_grouping"] == "All"].set_index(["strategy_id_stressed", "transformation_code"])
+    df = df[df["emission_grouping"].isin(SUBSECTOR_ABV)]
+    keys = pd.MultiIndex.from_frame(df[["strategy_id_stressed", "transformation_code"]])
     out = pd.DataFrame({
         "pathway": df["strategy_id_stressed"].map(PATHWAYS),
         "code": df["transformation_code"],
-        "subsector": df["subsector"].map(SUBSECTOR_ABV),
+        "subsector": df["emission_grouping"].map(SUBSECTOR_ABV),
     })
     for e in ESTIMATES:
-        out[f"abatement_{e}"] = -df[f"emission_diff_mt_co2e_{e}"].astype(float)
-        out[f"cost_{e}"] = -df[f"cost_diff_mmm_usd_{e}"].astype(float)
+        out[f"abatement_{e}"] = -df[f"est_transformation_emission_effect_mt_co2e_{e}"].astype(float)
+        out[f"cost_{e}"] = -whole[f"cost_diff_mmm_usd_{e}"].reindex(keys).to_numpy(float)
+    for x in ("abatement", "cost"):
+        out[f"{x}_mean"] = (out[f"{x}_tornado"] + out[f"{x}_whirlpool"]) / 2
+    for m in MEASURES:
+        out[f"mac_{m}"] = whole[f"mac_{m}_usd_per_tonne"].reindex(keys).to_numpy(float)
     return out.reset_index(drop=True)
 
 
@@ -114,56 +119,30 @@ def scope_subsectors(scope: str) -> Optional[List[str]]:
     return [scope]
 
 
-def _measure(a_t, a_w, measure: str, h_t=1.0, h_w=1.0):
-    """Value of `measure` from the tornado and whirlpool values (arrays or
-    numbers); the mean averages the estimates that exist (`h_*`: 1 or 0)."""
-    if measure == "mean":
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return (a_t * h_t + a_w * h_w) / np.maximum(h_t + h_w, 1)
-    return {"tornado": a_t, "whirlpool": a_w}[measure]
-
-
-def _mac(cost, abatement):
-    """USD/tCO2e from billion USD and MtCO2e; NaN when nothing is abated."""
-    cost, abatement = np.asarray(cost, float), np.asarray(abatement, float)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        return np.where(abatement > ZERO_MT, cost * 1e3 / abatement, np.nan)
-
-
 def transformations(df: pd.DataFrame, pathway: str) -> pd.DataFrame:
-    """[code, cost_*, abatement_*, mac_*, has_tornado, has_whirlpool] of each
-    transformation of `pathway` (whole economy; * = tornado, whirlpool, mean)."""
+    """[code, abatement_*, cost_*, mac_*] of each transformation of `pathway`
+    (whole economy; * = tornado, whirlpool, mean)."""
     d = df[df["pathway"] == pathway]
-    t = d.groupby("code", sort=False).agg(
-        **{f"abatement_{e}": (f"abatement_{e}", "sum") for e in ESTIMATES},
-        **{f"cost_{e}": (f"cost_{e}", "first") for e in ESTIMATES},
-        **{f"_abs_{e}": (f"abatement_{e}", lambda s: s.abs().sum()) for e in ESTIMATES},
+    return d.groupby("code", sort=False).agg(
+        **{f"abatement_{m}": (f"abatement_{m}", "sum") for m in MEASURES},
+        **{f"{x}_{m}": (f"{x}_{m}", "first") for x in ("cost", "mac") for m in MEASURES},
     ).reset_index()
-    for e in ESTIMATES:
-        # 1 when the estimate exists (see the module docstring)
-        t[f"has_{e}"] = ((t.pop(f"_abs_{e}") > ZERO_MT) | (t[f"cost_{e}"].abs() > 1e-9)).astype(float)
-    for x in ("abatement", "cost"):
-        t[f"{x}_mean"] = _measure(t[f"{x}_tornado"], t[f"{x}_whirlpool"], "mean", t["has_tornado"], t["has_whirlpool"])
-    for m in MEASURES:
-        t[f"mac_{m}"] = _mac(t[f"cost_{m}"], t[f"abatement_{m}"])
-    return t
 
 
 def curve(df: pd.DataFrame, pathway: str, scope: str, measure: str) -> Tuple[pd.DataFrame, Dict[str, List[str]]]:
     """The MAC curve of `pathway` in `scope` for `measure`.
 
     Rows: the transformations that abate in the scope, cheapest first, with
-    [code, mac, abatement (in the scope), share (of the transformation's whole
-    abatement), cost (whole), start (cumulative abatement before it), mac_tornado,
-    mac_whirlpool]. Left out, by reason: "raises" (more emissions in the scope),
-    "no_mac" (abates in the scope but not overall, so it has no cost per tonne)."""
+    [code, mac (the file's), abatement (in the scope), share (of the
+    transformation's whole abatement), cost (whole), start (cumulative abatement
+    before it), mac_tornado, mac_whirlpool]. Left out: "raises" (more emissions
+    in the scope)."""
     t = transformations(df, pathway).set_index("code")
     d = df[df["pathway"] == pathway]
     subs = scope_subsectors(scope)
     if subs is not None:
         d = d[d["subsector"].isin(subs)]
-    a = d.groupby("code", sort=False)[[f"abatement_{e}" for e in ESTIMATES]].sum().reindex(t.index, fill_value=0.0)
-    here = pd.Series(_measure(a["abatement_tornado"], a["abatement_whirlpool"], measure, t["has_tornado"], t["has_whirlpool"]), index=t.index)
+    here = d.groupby("code", sort=False)[f"abatement_{measure}"].sum().reindex(t.index, fill_value=0.0)
 
     out = pd.DataFrame({
         "code": t.index,
@@ -174,10 +153,7 @@ def curve(df: pd.DataFrame, pathway: str, scope: str, measure: str) -> Tuple[pd.
         "mac_tornado": t["mac_tornado"].to_numpy(),
         "mac_whirlpool": t["mac_whirlpool"].to_numpy(),
     })
-    left = {
-        "raises": list(out.loc[out["abatement"] < -ZERO_MT, "code"]),
-        "no_mac": list(out.loc[(out["abatement"] > ZERO_MT) & out["mac"].isna(), "code"]),
-    }
+    left = {"raises": list(out.loc[out["abatement"] < -ZERO_MT, "code"])}
     out = out[(out["abatement"] > ZERO_MT) & out["mac"].notna()].sort_values("mac", kind="stable").reset_index(drop=True)
     with np.errstate(divide="ignore", invalid="ignore"):
         # above 1 when it raises emissions elsewhere: not a share then

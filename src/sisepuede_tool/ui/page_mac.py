@@ -2,7 +2,7 @@
 costs, by subsector and by transformation, for the NDC and LEP pathways.
 
 The numbers are static for now (services/mac_service.py reads sisepuede_a6
-ref/temporary_emit_cost_diffs_by_subsec.csv): the page doesn't depend on the
+ref/temporary_mac.csv): the page doesn't depend on the
 runs and says so. Filters on top, for both charts:
 - pathways: NDC, LEP or both (side by side), toggles that are also the legend;
 - estimate: mean, tornado or whirlpool.
