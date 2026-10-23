@@ -246,7 +246,7 @@ def page_article_6_server(input, output, session, state: AppState):
             name: est.rename(columns={a6.FIELD_GROUP: "series", "value_musd": "value"})[["year", "series", "value"]]
             for _, name, est in rows
         }
-        if all((f["value"] <= 1e-9).all() for f in frames.values()):
+        if all((f["value"].abs() <= 1e-9).all() for f in frames.values()):
             return rc.empty_figure(_t("empty_zero"), height=360)
         lang = state.lang()
         order = list(ref["groupings"][a6.FIELD_GROUP])
@@ -261,7 +261,7 @@ def page_article_6_server(input, output, session, state: AppState):
         """The chart's legend, as HTML under the chart: it wraps on a narrow
         window instead of covering the bars."""
         _, rows = estimates()
-        shown = {g for _, _, est in rows for g in est.loc[est["value_musd"] > 1e-9, a6.FIELD_GROUP]}
+        shown = {g for _, _, est in rows for g in est.loc[est["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]}
         if not shown:
             return None
         lang = state.lang()

@@ -836,8 +836,9 @@ def credit_bars(
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
     one stacked bar per target year, stacked by emission group in `order`
-    (shown as `labels`, when given). The bar total is written above the bars of
-    `label_years` (default: every year). The years are categories, so the bars
+    (shown as `labels`, when given): groups above their target (negative) below
+    zero, the others above. The bar total is written above the bars of
+    `label_years` (default: every year), under them when it is negative. The years are categories, so the bars
     keep their width whatever the gap between target years and Plotly drops
     tick labels when the chart is narrow."""
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
@@ -858,13 +859,15 @@ def credit_bars(
                        hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
                 row=1, col=j,
             )
-        for xi, v in zip(x, wide.sum(axis=1).to_numpy()):
+        shown = wide[[c for c in order if c in wide.columns]]
+        for xi, v, top, bottom in zip(x, shown.sum(axis=1), shown.clip(lower=0).sum(axis=1), shown.clip(upper=0).sum(axis=1)):
             if int(xi) in label_years:
                 # on a category axis a number is read as a position, and Plotly turns "2030" into 2030
-                fig.add_annotation(x=years.index(int(xi)), y=float(v), text=fmt(float(v)), showarrow=False, yshift=10,
+                y, shift = (float(top), 10) if v >= 0 else (float(bottom), -10)
+                fig.add_annotation(x=years.index(int(xi)), y=y, text=fmt(float(v)), showarrow=False, yshift=shift,
                                    font=dict(family=MONO, size=11.5, color=NET), row=1, col=j)
     # few bars (e.g. only 2030 and 2035) would otherwise be very wide
-    fig.update_layout(barmode="stack", bargap=0.55 if len(years) <= 3 else 0.3)
+    fig.update_layout(barmode="relative", bargap=0.55 if len(years) <= 3 else 0.3)
     fig.update_yaxes(title_text=unit, row=1, col=1, title_font=dict(size=11.5, color=LABEL))
     fig = _base_layout(fig, height, legend=legend)
     fig.update_xaxes(type="category", categoryorder="array", categoryarray=[str(y) for y in years])
