@@ -171,12 +171,12 @@ def page_mac_server(input, output, session, state: AppState):
         """(table, order, limit) of the chart by subsector."""
         pws = _pathways()
         table = mac.by_subsector(data, pws, input.measure())
-        return table, mac.subsector_order(table, pws), mac.axis_limit(table["mac"])
+        return table, mac.subsector_order(table, pws), mac.axis_limit(table["mac"].dropna())
 
     def _transformations():
         """(rows, hidden, limit) of the chart by transformation."""
         rows, hidden = mac.by_transformation(data, _pathways(), input.measure(), input.scope())
-        return rows, hidden, mac.axis_limit(rows["mac"])
+        return rows, hidden, mac.axis_limit(rows.loc[rows["abatement"] > 0, "mac"])
 
     @render_plotly
     @rc.bidi_for(state.lang)

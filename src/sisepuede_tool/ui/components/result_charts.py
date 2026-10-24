@@ -654,7 +654,9 @@ def mac_by_subsector(
     """Average cost per tonne abated in each subsector (`table` of
     mac_service.by_subsector), one column per subsector in `order` with a bar
     per pathway, side by side. Above each bar the emissions it abates there
-    (MtCO2e); "no data" where the pathway abates nothing.
+    (MtCO2e), net; "no data" where the pathway abates nothing, and no bar but
+    the net increase where its transformations raise the subsector's emissions
+    on net (mac NaN).
 
     With `limit` (mac_service.axis_limit) a bar beyond ±limit is cut: drawn to
     the edge with a break and its value written inside."""
@@ -673,6 +675,9 @@ def mac_by_subsector(
                 continue
             r = vals.loc[(p, sub)]
             v = float(r["mac"])
+            if pd.isna(v):
+                notes.append(dict(x=x, y=0, text=f"<i>{t('net_increase', v=_mac_bar_text(-r['abatement']))}</i>", yshift=9))
+                continue
             y = max(-limit, min(limit, v)) if limit else v
             xs.append(x)
             ys.append(y)
@@ -698,7 +703,7 @@ def mac_by_subsector(
         fig.add_vline(x=i - 0.5, line=dict(color=GRID, width=1))
     fig.update_xaxes(tickvals=list(range(len(order))), ticktext=[_wrap(sub_names.get(s, s), 14) for s in order], side="top",
                      range=[-0.5, len(order) - 0.5], showgrid=False, ticks="", tickfont=dict(family=FONT, size=11.5, color=TEXT))
-    ys = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in table["mac"]]
+    ys = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in table["mac"].dropna()]
     lo, hi = min(ys), max(ys)
     span = max(hi - lo, 1e-9)
     fig.update_yaxes(title_text=t("avg_cost_axis", unit=unit), title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID,
@@ -758,7 +763,9 @@ def mac_by_transformation(
     by `key`); written after it, the emissions it abates in that subsector.
     `names`: key -> name. `limit`: as in mac_by_subsector. Each bar is the
     transformation's MAC in that subsector; the hover also gives its whole MAC
-    (mac_all), when `rows` have it."""
+    (mac_all), when `rows` have it. The transformations that raise a
+    subsector's emissions (`raises`) come after the others, with no bar: only
+    what they raise there."""
     t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
     n = len(pathways)
     h = 0.8 / max(n, 1)
@@ -770,7 +777,9 @@ def mac_by_transformation(
         if d.empty:
             continue
         first = d.sort_values("pathway", key=lambda s: s.map(pathways.index)).drop_duplicates("key")
-        keys = list(first.sort_values("mac", kind="stable")["key"])
+        raises = d.groupby("key")["abatement"].max() < 0  # in every pathway
+        first = first.assign(_raises=first["key"].map(raises))
+        keys = list(first.sort_values(["_raises", "mac"], kind="stable")["key"])
         if slots:
             y -= 0.35
             dividers.append(y + 0.15)
@@ -795,6 +804,10 @@ def mac_by_transformation(
                     notes.append(dict(x=0, y=yy, text=f"<i>{t('not_in_pathway')}</i>", xanchor="left", xshift=4))
                 continue
             r = vals.loc[(sub, k, p)]
+            if r["abatement"] < 0:
+                # raises the subsector's emissions: no cost per tonne abated
+                notes.append(dict(x=0, y=yy, text=f"<i>{t('raises_here', v=_mac_bar_text(-r['abatement']))}</i>", xanchor="left", xshift=4))
+                continue
             v = float(r["mac"])
             x = max(-limit, min(limit, v)) if limit else v
             xs.append(x)
@@ -808,7 +821,8 @@ def mac_by_transformation(
             hover.append(_mac_cost_hover(lang, title=names.get(k, k), pathway=p, mac=v, abatement=r["abatement"], extra=extra))
             if limit and abs(v) > limit:
                 breaks.append((x, yy, v))
-            cost = "" if (limit and abs(v) > limit) else f"{short_number(v)} · "
+            # a MAC of a few thousandths of a dollar (e.g. -1.45e-08 in the file) reads as 0
+            cost = "" if (limit and abs(v) > limit) else f"{short_number(v) if abs(v) >= 0.005 else '0'} · "
             notes.append(dict(x=max(x, 0) if v >= 0 else x, y=yy, text=cost + _mac_bar_text(r["abatement"]),
                               xanchor="left" if v >= 0 else "right", xshift=5 if v >= 0 else -5))
         fig.add_trace(go.Bar(x=xs, y=ys, width=h * 0.86, orientation="h", name=p, marker=dict(color=colors.get(p, OTHER_COLOR)),
@@ -821,7 +835,7 @@ def mac_by_transformation(
     _mac_breaks(fig, breaks, h * 0.86, unit, vertical=False)
     for yd in dividers:
         fig.add_shape(type="line", xref="paper", x0=0, x1=1, y0=yd, y1=yd, line=dict(color=GRID, width=1))
-    xs = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in rows["mac"]]
+    xs = [0.0] + [max(-limit, min(limit, v)) if limit else v for v in rows.loc[rows["abatement"] > 0, "mac"]]
     lo, hi = min(xs), max(xs)
     span = max(hi - lo, 1e-9)
     fig.update_xaxes(title_text=t("cost_axis", unit=unit), title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID,

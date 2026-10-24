@@ -20,10 +20,14 @@ raises emissions overall keeps the file's MAC.
 A transformation has one MAC over all it abates (its "All" row) and one in
 each subsector (that subsector's row; the "All" row is the sum of them). The
 charts by subsector and by transformation use the subsector rows: in a
-subsector are the transformations that abate there, with what they abate
-there, at their MAC there; the average cost of a subsector weighs those MACs
-by those tonnes (for tornado and whirlpool, 1000 x the sum of the rows'
-cost_diff_mmm_usd over the sum of their emissions).
+subsector are the transformations that change its emissions, with what they
+abate there (< 0 when they raise them), at their MAC there. The cost of a
+subsector is net: those MACs weighted by those tonnes, the raises too (for
+tornado and whirlpool, 1000 x the sum of every row's cost_diff_mmm_usd over
+the sum of their emissions), so the subsectors add up to the "All" rows.
+Without the raises, tornado (one transformation on BAU) would leave out what
+it raises elsewhere, e.g. more power emissions from transport electrified on
+the BAU grid.
 
 When the MAC is computed from the tool's runs, load() is the function to
 replace; the page only needs its columns.
@@ -188,10 +192,11 @@ def pair_key(code: str) -> str:
 
 
 def by_subsector(df: pd.DataFrame, pathways: Iterable[str], measure: str) -> pd.DataFrame:
-    """[pathway, subsector, mac, abatement, n] for each pathway and subsector where
-    some of its transformations abate: the average of their MACs there (the
-    bars of by_transformation, every one of them) weighted by the tonnes they
-    abate there, those tonnes and how many."""
+    """[pathway, subsector, mac, abatement, n] for each pathway and subsector whose
+    emissions its transformations change: the net cost per tonne there (the
+    MACs of every row of by_transformation there, raises included, weighted by
+    their tonnes), the net tonnes abated and how many transformations. mac is
+    NaN where they raise the subsector's emissions on net (abatement <= 0)."""
     cols = ["pathway", "subsector", "mac", "abatement", "n"]
     rows, _ = by_transformation(df, list(pathways), measure, min_share=0.0)
     if rows.empty:
@@ -199,7 +204,8 @@ def by_subsector(df: pd.DataFrame, pathways: Iterable[str], measure: str) -> pd.
     rows = rows.assign(weighted=rows["mac"] * rows["abatement"])
     out = rows.groupby(["pathway", "subsector"], sort=False).agg(
         weighted=("weighted", "sum"), abatement=("abatement", "sum"), n=("code", "count")).reset_index()
-    out["mac"] = out["weighted"] / out["abatement"]
+    net = out["abatement"].where(out["abatement"] > ZERO_MT)
+    out["mac"] = out["weighted"] / net
     return out[cols]
 
 
@@ -216,18 +222,20 @@ def subsector_order(table: pd.DataFrame, pathways: List[str]) -> List[str]:
 
 def by_transformation(df: pd.DataFrame, pathways: List[str], measure: str, scope: str = "",
                       min_share: float = 0.01) -> Tuple[pd.DataFrame, int]:
-    """The transformations that abate in each subsector of `scope` ("" = all),
-    for each pathway: [subsector, key (pair_key), code, pathway, mac, abatement,
-    share (of the subsector's abatement in that pathway), cost, mac_tornado,
-    mac_whirlpool, mac_all], cheapest first in each subsector. A transformation
-    that abates in several subsectors is under each, with what it abates there
-    and its MAC there (mac, cost, mac_tornado, mac_whirlpool: the file's row for
-    that subsector); mac_all: its whole MAC (the "All" row). Rows under
-    `min_share` in every pathway are left out; their number is returned."""
+    """The transformations that change the emissions of each subsector of
+    `scope` ("" = all), for each pathway: [subsector, key (pair_key), code,
+    pathway, mac, abatement, raises, share (of what the transformations that
+    abate there abate, in that pathway), cost, mac_tornado, mac_whirlpool, mac_all], in each
+    subsector the ones that abate first, cheapest first, then the ones that
+    raise its emissions (raises: abatement < 0). A transformation that changes
+    several subsectors is under each, with what it abates there and its MAC
+    there (mac, cost, mac_tornado, mac_whirlpool: the file's row for that
+    subsector); mac_all: its whole MAC (the "All" row). Rows under `min_share`
+    (absolute) in every pathway are left out; their number is returned."""
     subs = scope_subsectors(scope) or [abv for _, s in scopes(df) for abv in s]
-    cols = ["subsector", "key", "code", "pathway", "mac", "abatement", "share", "cost", "mac_tornado", "mac_whirlpool", "mac_all"]
+    cols = ["subsector", "key", "code", "pathway", "mac", "abatement", "raises", "share", "cost", "mac_tornado", "mac_whirlpool", "mac_all"]
     d = df[df["pathway"].isin(pathways) & df["subsector"].isin(subs)]
-    d = d[(d[f"abatement_{measure}"] > ZERO_MT) & d[f"sub_mac_{measure}"].notna()]
+    d = d[(d[f"abatement_{measure}"].abs() > ZERO_MT) & d[f"sub_mac_{measure}"].notna()]
     if d.empty:
         return pd.DataFrame(columns=cols), 0
     t = pd.DataFrame({
@@ -235,11 +243,13 @@ def by_transformation(df: pd.DataFrame, pathways: List[str], measure: str, scope
         "mac": d[f"sub_mac_{measure}"], "abatement": d[f"abatement_{measure}"], "cost": d[f"sub_cost_{measure}"],
         "mac_tornado": d["sub_mac_tornado"], "mac_whirlpool": d["sub_mac_whirlpool"], "mac_all": d[f"mac_{measure}"],
     })
-    t["share"] = t["abatement"] / t.groupby(["pathway", "subsector"])["abatement"].transform("sum")
+    t["raises"] = t["abatement"] < 0
+    # of what the ones that abate there abate (a raise: < 0)
+    t["share"] = t["abatement"] / t["abatement"].clip(lower=0).groupby([t["pathway"], t["subsector"]]).transform("sum")
     t["_p"] = t["pathway"].map({p: i for i, p in enumerate(pathways)})
     t["_s"] = t["subsector"].map({abv: i for i, abv in enumerate(subs)})
-    t = t.sort_values(["_p", "_s", "mac"], kind="stable").drop(columns=["_p", "_s"])[cols].reset_index(drop=True)
-    keep = t.groupby(["subsector", "key"])["share"].transform("max") >= min_share
+    t = t.sort_values(["_p", "_s", "raises", "mac"], kind="stable").drop(columns=["_p", "_s"])[cols].reset_index(drop=True)
+    keep = t["share"].abs().groupby([t["subsector"], t["key"]]).transform("max") >= min_share
     hidden = t.loc[~keep, ["subsector", "key"]].drop_duplicates().shape[0]
     return t[keep].reset_index(drop=True), hidden
 

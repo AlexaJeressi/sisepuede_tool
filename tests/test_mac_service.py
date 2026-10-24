@@ -14,18 +14,18 @@ def _mac_file(tmp_path):
     B (saves money) and C (raises emissions overall, abates in transport); LEP
     (6005) with A only. Costs and emissions per subsector, "All" = their sum
     with the transformation's MACs; the subsector rows have their own MACs
-    (used by the chart by transformation; 999 where none is checked)."""
+    (1000 x cost / emissions, as in the file; 999 where none is checked)."""
     rows = [
         # strategy, code, grouping, cost T, cost W, emission T, emission W, MAC T, MAC W, MAC mean
         # (cost < 0 = net cost, emission < 0 = abated)
         (6004, "TX:TRNS:A", "Transportation", -1.5, -4.0, -80.0, -100.0, 18.75, 40.0, 29.375),
         (6004, "TX:TRNS:A", "Energy Technology", -0.5, 0.0, -20.0, 0.0, 25.0, None, 25.0),
         (6004, "TX:TRNS:A", "All", -2.0, -4.0, -100.0, -100.0, 20.0, 40.0, 30.0),
-        (6004, "TX:WASO:B", "Solid Waste", 1.0, 1.0, -50.0, -50.0, 999, 999, 999),
+        (6004, "TX:WASO:B", "Solid Waste", 1.0, 1.0, -50.0, -50.0, -20.0, -20.0, -20.0),
         (6004, "TX:WASO:B", "Energy Technology", 0.0, 0.0, 0.0, 0.0, 999, 999, 999),
         (6004, "TX:WASO:B", "All", 1.0, 1.0, -50.0, -50.0, -20.0, -20.0, -20.0),
-        (6004, "TX:ENTC:C", "Energy Technology", -0.5, -0.5, 10.0, 10.0, 999, 999, 999),
-        (6004, "TX:ENTC:C", "Transportation", -0.5, -0.5, -5.0, -5.0, 999, 999, 999),
+        (6004, "TX:ENTC:C", "Energy Technology", -0.5, -0.5, 10.0, 10.0, -50.0, -50.0, -50.0),
+        (6004, "TX:ENTC:C", "Transportation", -0.5, -0.5, -5.0, -5.0, 100.0, 100.0, 100.0),
         (6004, "TX:ENTC:C", "All", -1.0, -1.0, 5.0, 5.0, -200.0, -200.0, -200.0),
         (6005, "TX:TRNS:A", "Transportation", -3.0, -1.0, -60.0, -20.0, 999, 999, 999),
         (6005, "TX:TRNS:A", "Energy Technology", 0.0, 0.0, 0.0, 0.0, 999, 999, 999),
@@ -87,13 +87,17 @@ def test_scope_counts_only_its_tonnes(tmp_path):
 def test_by_subsector(tmp_path):
     df = _mac_file(tmp_path)
     t = mac.by_subsector(df, ["NDC2.0", "LEP"], "tornado").set_index(["pathway", "subsector"])
-    # NDC transport: A (80 Mt at 18.75 USD/t, its transport row) and C (5 Mt at 999, its transport row)
-    assert t.loc[("NDC2.0", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((18.75 * 80 + 999 * 5) / 85), 85.0, 2]
-    assert t.loc[("NDC2.0", "entc"), "mac"] == pytest.approx(25.0)  # A's electricity row, not its whole 20
-    # tornado: 1000 x the rows' cost over their emissions
-    assert t.loc[("NDC2.0", "entc"), "mac"] == pytest.approx(1000 * -0.5 / -20.0)
+    # NDC transport: A (80 Mt at 18.75 USD/t, its transport row, not its whole 20) and C (5 Mt at 100)
+    assert t.loc[("NDC2.0", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((18.75 * 80 + 100 * 5) / 85), 85.0, 2]
+    # net: C raises electricity's emissions by 10 Mt, at a cost; tornado = 1000 x the rows' cost over their emissions
+    assert t.loc[("NDC2.0", "entc"), ["mac", "abatement", "n"]].tolist() == [pytest.approx(1000 * (-0.5 - 0.5) / (-20.0 + 10.0)), 10.0, 2]
+    assert t.loc[("NDC2.0", "waso"), "mac"] == pytest.approx(-20.0)
     assert ("LEP", "waso") not in t.index  # no data
-    assert mac.subsector_order(t.reset_index(), ["NDC2.0", "LEP"]) == ["entc", "trns", "waso"]
+    assert mac.subsector_order(t.reset_index(), ["NDC2.0", "LEP"]) == ["waso", "trns", "entc"]
+    # a subsector whose emissions rise on net has no cost per tonne
+    t = mac.by_subsector(df[~((df["code"] == "TX:TRNS:A") & (df["subsector"] == "entc"))], ["NDC2.0"], "tornado")
+    e = t.set_index("subsector").loc["entc"]
+    assert np.isnan(e["mac"]) and e["abatement"] == -10.0
 
 
 def test_by_transformation(tmp_path):
@@ -104,6 +108,10 @@ def test_by_transformation(tmp_path):
     # under each subsector it abates in, with what it abates there
     assert a.loc[("NDC2.0", "trns"), "abatement"] == 80.0 and a.loc[("NDC2.0", "entc"), "abatement"] == 20.0
     assert a.loc[("LEP", "trns"), "share"] == 1.0
+    # a raise: last in its subsector, flagged, its share < 0 of what the others abate there
+    e = rows[(rows["pathway"] == "NDC2.0") & (rows["subsector"] == "entc")]
+    assert e["code"].tolist() == ["TX:TRNS:A", "TX:ENTC:C"] and e["raises"].tolist() == [False, True]
+    assert e["share"].tolist() == [1.0, -0.5]
     # its MAC in each subsector is the file's row for it; mac_all its whole one
     assert (a.loc[("NDC2.0", "trns"), "mac"], a.loc[("NDC2.0", "entc"), "mac"]) == (18.75, 25.0)
     assert a.loc[("NDC2.0", "entc"), "mac_all"] == 20.0 and a.loc[("NDC2.0", "entc"), "cost"] == 0.5
