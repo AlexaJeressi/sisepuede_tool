@@ -68,9 +68,16 @@ def model_subsector_colors(model_attributes) -> Dict[str, str]:
     return {k[len(_TOTAL_FIELD_PREFIX) :] if k.startswith(_TOTAL_FIELD_PREFIX) else k: v for k, v in cmap.items()}
 
 
+# the tool's own colour where the model's is too close to another subsector's
+# (trns #756BB1 and entc #6B6ECF are both purple)
+SUBSECTOR_COLOR_OVERRIDES: Dict[str, str] = {"trns": "#E6550D"}
+
+
 def use_model_subsector_colors(model_attributes) -> None:
-    """Update SUBSECTOR_COLORS in place with the model's colours (kept for subsectors it has none for)."""
+    """Update SUBSECTOR_COLORS in place with the model's colours (kept for
+    subsectors it has none for), then SUBSECTOR_COLOR_OVERRIDES."""
     SUBSECTOR_COLORS.update(model_subsector_colors(model_attributes))
+    SUBSECTOR_COLORS.update(SUBSECTOR_COLOR_OVERRIDES)
 
 
 PATHWAY_PALETTE = ["#0F6E6E", "#C46B2A", "#6A5ACD", "#B8860B", "#2E8B57", "#A0446E"]

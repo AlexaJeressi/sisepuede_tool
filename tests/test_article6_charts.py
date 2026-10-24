@@ -63,3 +63,14 @@ def test_ranked_hover_lists_the_projects():
     frame = pd.DataFrame({"year": [2030], "series": ["Energy"], "part": ["TFR:A"], "mac": [5.0], "value": [10.0]})
     fig = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_projects={"TFR:A": ["Solar park · Planned"]})
     assert "Solar park · Planned" in fig.data[0].hovertemplate and "1 project" in fig.data[0].hovertemplate
+
+
+def test_transport_not_purple_like_energy_technology(monkeypatch):
+    class MA:
+        def get_subsector_color_map(self):
+            return {"emission_co2e_subsector_total_entc": "#6B6ECF", "emission_co2e_subsector_total_trns": "#756BB1"}
+
+    monkeypatch.setattr(rc, "SUBSECTOR_COLORS", dict(rc.SUBSECTOR_COLORS))
+    rc.use_model_subsector_colors(MA())
+    assert rc.SUBSECTOR_COLORS["entc"] == "#6B6ECF"  # the model's
+    assert rc.SUBSECTOR_COLORS["trns"] == rc.SUBSECTOR_COLOR_OVERRIDES["trns"]
