@@ -80,11 +80,13 @@ def test_transport_not_purple_like_energy_technology(monkeypatch):
     rc.use_model_subsector_colors(MA())
     assert rc.SUBSECTOR_COLORS["entc"] == "#6B6ECF"  # the model's
     assert rc.SUBSECTOR_COLORS["trns"] == rc.SUBSECTOR_COLOR_OVERRIDES["trns"]
+    # wastewater no longer a red next to transport's orange
+    assert rc.SUBSECTOR_COLORS["trww"] == rc.SUBSECTOR_COLOR_OVERRIDES["trww"] != rc.SUBSECTOR_COLORS["trns"]
 
 
 def test_ranked_hover_only_in_the_panel():
     frame = pd.DataFrame({"year": [2030], "series": ["Energy"], "part": ["TFR:A"], "mac": [5.0], "value": [10.0]})
-    tr = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_projects={"TFR:A": ["Solar park\tA 100 MW plant"]},
+    tr = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_projects={"TFR:A": ["Solar park"]},
                         hover_panel=True).data[0]
     assert tr.hoverinfo == "none" and tr.hovertemplate is None  # no label over the bars; the events still fire
-    assert tr.customdata[0][3] == "Solar park\tA 100 MW plant"
+    assert tr.customdata[0][3] == "Solar park"

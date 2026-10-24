@@ -69,8 +69,9 @@ def model_subsector_colors(model_attributes) -> Dict[str, str]:
 
 
 # the tool's own colour where the model's is too close to another subsector's
-# (trns #756BB1 and entc #6B6ECF are both purple)
-SUBSECTOR_COLOR_OVERRIDES: Dict[str, str] = {"trns": "#E6550D"}
+# (trns #756BB1 and entc #6B6ECF are both purple; trww #D6616B, a red, then
+# looked like transport's orange)
+SUBSECTOR_COLOR_OVERRIDES: Dict[str, str] = {"trns": "#E6550D", "trww": "#2A9D8F"}
 
 
 def use_model_subsector_colors(model_attributes) -> None:
