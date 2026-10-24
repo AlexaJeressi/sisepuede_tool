@@ -49,14 +49,8 @@ FIELD_VALUE = "total_value_carbon_credits_mm_usd"
 # the same credits split among the transformers by their whole-economy share (no group)
 AGGREGATE_PATH = A6_REF_DIR / "temporary_a6_ranked_mac_bar_df_all_aggregate.csv"
 
-# sector of a transformer (its code: TFR:<SECTOR>:...) -> the emission group it is shown in
-KERNEL_GROUPS = {
-    "AGRC": "Agriculture", "ENTC": "Energy Technology", "FGTV": "Fugitive Emissions", "FRST": "Forest",
-    "INEN": "Industrial Energy", "IPPU": "IPPU", "LNDU": "Land Use", "LSMM": "Livestock Manure Management",
-    "LVST": "Livestock", "PFLO": "Carbon Capture and Sequestration", "SCOE": "Stationary Combustion and Other Energy",
-    "SOIL": "Soil Management", "TRNS": "Transportation", "TRWW": "Wastewater Treatment", "WALI": "Wastewater Treatment",
-    "WASO": "Solid Waste",
-}
+# the aggregate file has no group: every transformer in one, the whole economy
+WHOLE_ECONOMY = "All"
 
 
 @functools.lru_cache(maxsize=1)
@@ -99,27 +93,19 @@ def load_ranked(path=RANKED_PATH) -> pd.DataFrame:
     return df.sort_values(["year", FIELD_GROUP, "mac"], kind="stable")[cols].reset_index(drop=True)
 
 
-def kernel_group(code: str) -> str:
-    """'TFR:TRNS:SHIFT_FUEL_RAIL' -> 'Transportation' (KERNEL_GROUPS; the code's
-    sector when it has none)."""
-    parts = str(code).split(":")
-    sector = parts[1] if len(parts) > 2 else str(code)
-    return KERNEL_GROUPS.get(sector, sector)
-
-
 def load_ranked_aggregate(path=AGGREGATE_PATH) -> pd.DataFrame:
     """[year, emission_grouping, transformer_kernel_code, mac, value_musd]: the
     sisepuede_a6 aggregate ranked file as it is (static, its own LEP run): each
     year's credits split among the transformers by their share of the whole
-    economy's abatement beyond the NDC2.0, at their whole-economy MAC. The group
-    is the transformer's sector (kernel_group); cheapest first within each."""
+    economy's abatement beyond the NDC2.0, at their whole-economy MAC, all in
+    one group (WHOLE_ECONOMY), cheapest first."""
     cols = ["year", FIELD_GROUP, FIELD_KERNEL, "mac", "value_musd"]
     if not path.exists():
         return pd.DataFrame(columns=cols)
     df = pd.read_csv(path).rename(columns={FIELD_MAC: "mac", FIELD_VALUE: "value_musd"})
     df["year"] = df["year"].astype(int)
-    df[FIELD_GROUP] = df[FIELD_KERNEL].map(kernel_group)
-    return df.sort_values(["year", FIELD_GROUP, "mac"], kind="stable")[cols].reset_index(drop=True)
+    df[FIELD_GROUP] = WHOLE_ECONOMY
+    return df.sort_values(["year", "mac"], kind="stable")[cols].reset_index(drop=True)
 
 
 def target_years(targets: pd.DataFrame) -> list:

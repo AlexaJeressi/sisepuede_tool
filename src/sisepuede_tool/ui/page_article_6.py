@@ -28,9 +28,9 @@ in its ref/ files. Shows:
   and a filter by transformation; with its projects switch on, the strip
   above it shows the transformer under the cursor and the names of the
   projects linked to it (Pathways page), instead of the hover;
-- the sisepuede_a6 aggregate ranked file, the same way: each year's credits
-  split among the transformers by their whole-economy share, grouped by the
-  transformer's sector.
+- the sisepuede_a6 aggregate ranked file, the same way but in one group (the
+  whole economy, one colour): each year's credits split among the
+  transformers by their whole-economy share, cheapest first.
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.
@@ -154,7 +154,7 @@ def page_article_6_ui():
             class_="box",
         ),
         _ranked_box("ranked", "by_transformer", "by_transformer_tip"),
-        _ranked_box("aggregate", "by_sector", "by_sector_tip"),
+        _ranked_box("aggregate", "overall", "overall_tip"),
         class_="res-page",
     )
 
@@ -386,12 +386,13 @@ def page_article_6_server(input, output, session, state: AppState):
         if (df["value_musd"].abs() <= 1e-9).all():
             return rc.empty_figure(_t("empty_hidden"), height=360)
         lang = state.lang()
-        order = list(ref["groupings"][a6.FIELD_GROUP])
-        order += [g for g in dict.fromkeys(df[a6.FIELD_GROUP]) if g not in order]
+        order = list(ref["groupings"][a6.FIELD_GROUP]) + [a6.WHOLE_ECONOMY]
+        colors = {**a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), a6.WHOLE_ECONOMY: rc.PATHWAY_PALETTE[1]}
+        labels = {**{g: group_name(g, lang) for g in order}, a6.WHOLE_ECONOMY: _t("whole_economy")}
         frame = df.rename(columns={a6.FIELD_GROUP: "series", a6.FIELD_KERNEL: "part", "value_musd": "value"})
         return rc.credit_bars(
-            {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
-            lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+            {_t("ranked_panel"): frame}, colors, order, i18n.t("results.million_usd", lang),
+            lang=lang, labels=labels, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
             part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()),
             part_projects=_kernel_projects() if projects else None, hover_panel=projects,
@@ -480,7 +481,7 @@ def page_article_6_server(input, output, session, state: AppState):
 
     @render.ui
     def aggregate_legend():
-        return _ranked_legend("aggregate")
+        return None  # one group: nothing to switch off
 
     @render.ui
     def price_used():

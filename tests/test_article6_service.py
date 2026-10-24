@@ -143,13 +143,14 @@ def test_shipped_ranked_file_groups_are_known():
     assert set(df[a6.FIELD_GROUP]) <= set(ref["groupings"][a6.FIELD_GROUP]) and not df["mac"].isna().any()
 
 
-def test_kernel_group_and_aggregate_file():
-    assert a6.kernel_group("TFR:TRNS:SHIFT_FUEL_RAIL") == "Transportation"
-    assert a6.kernel_group("TFR:PFLO:INC_IND_CCS") == "Carbon Capture and Sequestration"
+def test_aggregate_file_in_one_group():
     df = a6.load_ranked_aggregate()
     if df.empty:
         pytest.skip("no sisepuede_a6 clone")
     assert list(df.columns) == ["year", a6.FIELD_GROUP, a6.FIELD_KERNEL, "mac", "value_musd"]
+    assert set(df[a6.FIELD_GROUP]) == {a6.WHOLE_ECONOMY}
+    y = df[df["year"] == 2050]
+    assert y["mac"].is_monotonic_increasing  # cheapest first, across every sector
     # the same yearly totals as the file by emission group
     by_group = a6.load_ranked().groupby("year")["value_musd"].sum()
     assert df.groupby("year")["value_musd"].sum().loc[2035] == pytest.approx(by_group.loc[2035], rel=1e-3)
