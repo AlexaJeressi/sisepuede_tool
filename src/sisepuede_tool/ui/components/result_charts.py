@@ -822,7 +822,7 @@ def mac_by_transformation(
             if limit and abs(v) > limit:
                 breaks.append((x, yy, v))
             # a MAC of a few thousandths of a dollar (e.g. -1.45e-08 in the file) reads as 0
-            cost = "" if (limit and abs(v) > limit) else f"{short_number(v) if abs(v) >= 0.005 else '0'} · "
+            cost = "" if (limit and abs(v) > limit) else f"<b>{short_number(v) if abs(v) >= 0.005 else '0'}</b> · "
             notes.append(dict(x=max(x, 0) if v >= 0 else x, y=yy, text=cost + _mac_bar_text(r["abatement"]),
                               xanchor="left" if v >= 0 else "right", xshift=5 if v >= 0 else -5))
         fig.add_trace(go.Bar(x=xs, y=ys, width=h * 0.86, orientation="h", name=p, marker=dict(color=colors.get(p, OTHER_COLOR)),
