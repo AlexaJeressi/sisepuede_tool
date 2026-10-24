@@ -59,6 +59,9 @@ nav:
   article_6:
     label: "Artículo 6"
     description: "Mitigación más allá de la meta de la NDC2.0 que podría transferirse."
+  jobs:
+    label: "Empleos"
+    description: "Empleos que demandan las inversiones de las trayectorias, y cómo cambia la LEP los empleos de la línea base de Egipto."
   validation:
     label: "Monitoreo"
     description: "Compare los resultados del modelo con los datos observados del inventario."

@@ -43,6 +43,7 @@ from sisepuede_tool.ui.components import chart_export, hover_panel
 from sisepuede_tool.ui.page_article_6 import page_article_6_server, page_article_6_ui
 from sisepuede_tool.ui.page_cost_benefits import page_cost_benefits_server, page_cost_benefits_ui
 from sisepuede_tool.ui.page_data_input import page_data_input_server, page_data_input_ui
+from sisepuede_tool.ui.page_jobs import page_jobs_server, page_jobs_ui
 from sisepuede_tool.ui.page_mac import page_mac_server, page_mac_ui
 from sisepuede_tool.ui.page_macroeconomic_impacts import (
     page_macroeconomic_impacts_server,
@@ -78,6 +79,7 @@ _PAGE_UI_FNS = {
     "mac": page_mac_ui,
     "macroeconomic_impacts": page_macroeconomic_impacts_ui,
     "article_6": page_article_6_ui,
+    "jobs": page_jobs_ui,
     "persistence": page_save_load_ui,
 }
 
@@ -433,6 +435,7 @@ def server(input, output, session):
     page_mac_server("mac", state)
     page_macroeconomic_impacts_server("macroeconomic_impacts", state)
     page_article_6_server("article_6", state)
+    page_jobs_server("jobs", state)
     page_save_load_server("persistence", state)
 
     @reactive.effect

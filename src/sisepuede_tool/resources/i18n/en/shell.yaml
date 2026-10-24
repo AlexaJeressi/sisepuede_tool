@@ -60,6 +60,9 @@ nav:
   article_6:
     label: "Article 6"
     description: "Mitigation beyond the NDC2.0 target that could be transferred."
+  jobs:
+    label: "Jobs"
+    description: "Jobs demanded by the pathways' investments, and how the LEP changes Egypt's baseline jobs."
   validation:
     label: "Monitoring"
     description: "Compare model output with observed inventory data."

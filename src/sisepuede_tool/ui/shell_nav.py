@@ -30,6 +30,7 @@ _ICON_PERSISTENCE = '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v6h8V4M8 20v-6h8v
 _ICON_COST_BENEFITS = '<path d="M12 3v18M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0zM5 8h14M9 3h6"/>'
 _ICON_MACRO_IMPACTS = '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>'
 _ICON_MAC = '<path d="M3 20h18"/><path d="M4 20v-3h4v3M8 20v-6h4v6M12 20v-9h3v9M15 20V5h5v15"/>'
+_ICON_JOBS = '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2A4.5 4.5 0 0 1 21 18.5"/>'
 _ICON_ARTICLE_6 = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/>'
 
 
@@ -87,6 +88,11 @@ NAV_ITEMS: List[NavItem] = [
         id="article_6",
         group="results",
         icon_svg=_svg(_ICON_ARTICLE_6),
+    ),
+    NavItem(
+        id="jobs",
+        group="results",
+        icon_svg=_svg(_ICON_JOBS),
     ),
     NavItem(
         id="validation",
