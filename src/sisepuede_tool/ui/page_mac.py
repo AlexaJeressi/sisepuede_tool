@@ -2,8 +2,8 @@
 costs, by subsector and by transformation, for the NDC and LEP pathways.
 
 The numbers are static for now (services/mac_service.py reads sisepuede_a6
-ref/temporary_mac.csv): the page doesn't depend on the
-runs and says so. Filters on top, for both charts:
+ref/temporary_mac.csv): the page doesn't depend on the runs. Filters on top,
+for both charts:
 - pathways: NDC, LEP or both (side by side), toggles that are also the legend;
 - estimate: mean, tornado or whirlpool.
 
@@ -83,7 +83,6 @@ def page_mac_ui():
     pathways = mac.pathways(data)
     colors = _pathway_colors(pathways)
     return ui.div(
-        ui.div(i18n.t("mac.static_note"), class_="info-box small"),
         ui.div(
             ui.div(
                 ui.input_checkbox_group("pathways", i18n.t("mac.pathways"), {p: _pathway_choice(p, colors[p]) for p in pathways},

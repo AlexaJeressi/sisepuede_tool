@@ -1,7 +1,6 @@
 # Marginal abatement cost page (ui/page_mac.py).
 
 "mac":
-  "static_note": "Preliminary reference values from sisepuede_a6, its cost per tonne of each transformation. They do not change with your runs yet."
   "pathway": "Pathway"
   "pathways": "Pathways"
   "estimate": "Estimate"

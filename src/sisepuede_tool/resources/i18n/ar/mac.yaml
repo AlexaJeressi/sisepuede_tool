@@ -1,7 +1,6 @@
 # Marginal abatement cost page (ar). Draft: review before release.
 
 "mac":
-  "static_note": "قيم مرجعية أولية من sisepuede_a6، وهي تكلفة الطن لكل تحول. لا تتغير بعد مع عمليات التشغيل الخاصة بك."
   "pathway": "المسار"
   "pathways": "المسارات"
   "estimate": "التقدير"
