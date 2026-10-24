@@ -106,7 +106,6 @@ def _box(chart_id: str, title_key: str, tip_key: str, unit_key: str = "unit_jobs
 @module.ui
 def page_jobs_ui():
     return ui.div(
-        ui.div(i18n.t("jobs.intro"), class_="small muted"),
         _box("multiplier_chart", "multiplier", "multiplier_tip", "unit_multiplier"),
         _box("demand_chart", "demand", "demand_tip"),
         _box("energy_chart", "energy", "energy_tip"),

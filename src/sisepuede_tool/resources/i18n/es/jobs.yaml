@@ -1,7 +1,6 @@
 # Página de empleos (ui/page_jobs.py).
 
 "jobs":
-  "intro": "Empleos que demandan las inversiones de las trayectorias NDC2.0 y LEP, estimados con un modelo insumo-producto (EORA26), y cómo cambia la LEP los empleos de la línea base de Egipto. Los números son los del briefing de Egipto (resources/jobs/data); scripts/build_jobs_data.py los vuelve a generar con corridas nuevas."
   "multiplier": "Empleos por millón de USD invertido"
   "multiplier_tip": "Empleos (directos e indirectos) que se demandan en cada sector económico por cada millón de USD invertido en cada sector SSP, según el modelo insumo-producto: la suma de los empleos de las transformaciones del sector. El color se satura en 10."
   "demand": "Empleos que demandan las inversiones"

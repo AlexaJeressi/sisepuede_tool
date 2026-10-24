@@ -1,7 +1,6 @@
 # Jobs page (ui/page_jobs.py).
 
 "jobs":
-  "intro": "Jobs demanded by the investments of the NDC2.0 and LEP pathways, estimated with an input-output model (EORA26), and how the LEP changes Egypt's baseline jobs. The numbers are the ones of the Egypt briefing (resources/jobs/data); scripts/build_jobs_data.py rebuilds them from new runs."
   "multiplier": "Jobs per million USD invested"
   "multiplier_tip": "Jobs (direct and indirect) demanded in each economic sector per million USD invested in each SSP sector, from the input-output model: the jobs of the sector's transformations, added up. The colour saturates at 10."
   "demand": "Jobs demanded by the investments"
