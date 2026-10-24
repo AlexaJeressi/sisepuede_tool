@@ -17,10 +17,13 @@ tonnes it abates in a subsector are -emissions of that subsector's row. The file
 for the mean: they are the average of the two estimates. A transformation that
 raises emissions overall keeps the file's MAC.
 
-A transformation has one MAC (its cost over all it abates); a scope (a
-subsector or a sector) only changes which tonnes are counted: in a subsector
-are the transformations that abate there, with what they abate there, at their
-MAC. The average cost of a subsector weighs their MACs by those tonnes.
+A transformation has one MAC over all it abates (its "All" row) and one in
+each subsector (that subsector's row; the "All" row is the sum of them). The
+charts by subsector and by transformation use the subsector rows: in a
+subsector are the transformations that abate there, with what they abate
+there, at their MAC there; the average cost of a subsector weighs those MACs
+by those tonnes (for tornado and whirlpool, 1000 x the sum of the rows'
+cost_diff_mmm_usd over the sum of their emissions).
 
 When the MAC is computed from the tool's runs, load() is the function to
 replace; the page only needs its columns.
@@ -186,16 +189,18 @@ def pair_key(code: str) -> str:
 
 def by_subsector(df: pd.DataFrame, pathways: Iterable[str], measure: str) -> pd.DataFrame:
     """[pathway, subsector, mac, abatement, n] for each pathway and subsector where
-    some of its transformations abate: the average cost per tonne abated there
-    (abatement-weighted, as summary()), what they abate there and how many."""
-    out = []
-    for p in pathways:
-        for _, subs in scopes(df):
-            for abv in subs:
-                rows, _ = curve(df, p, abv, measure)
-                if not rows.empty:
-                    out.append({"pathway": p, "subsector": abv, "n": len(rows), **{k: v for k, v in summary(rows).items() if k != "saving"}})
-    return pd.DataFrame(out, columns=["pathway", "subsector", "mac", "abatement", "n"])
+    some of its transformations abate: the average of their MACs there (the
+    bars of by_transformation, every one of them) weighted by the tonnes they
+    abate there, those tonnes and how many."""
+    cols = ["pathway", "subsector", "mac", "abatement", "n"]
+    rows, _ = by_transformation(df, list(pathways), measure, min_share=0.0)
+    if rows.empty:
+        return pd.DataFrame(columns=cols)
+    rows = rows.assign(weighted=rows["mac"] * rows["abatement"])
+    out = rows.groupby(["pathway", "subsector"], sort=False).agg(
+        weighted=("weighted", "sum"), abatement=("abatement", "sum"), n=("code", "count")).reset_index()
+    out["mac"] = out["weighted"] / out["abatement"]
+    return out[cols]
 
 
 def subsector_order(table: pd.DataFrame, pathways: List[str]) -> List[str]:

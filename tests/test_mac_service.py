@@ -87,11 +87,13 @@ def test_scope_counts_only_its_tonnes(tmp_path):
 def test_by_subsector(tmp_path):
     df = _mac_file(tmp_path)
     t = mac.by_subsector(df, ["NDC2.0", "LEP"], "tornado").set_index(["pathway", "subsector"])
-    # NDC transport: A (80 Mt at 20 USD/t) and C (5 Mt at -200 USD/t)
-    assert t.loc[("NDC2.0", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((20 * 80 - 200 * 5) / 85), 85.0, 2]
-    assert t.loc[("NDC2.0", "waso"), "mac"] == pytest.approx(-20.0)
+    # NDC transport: A (80 Mt at 18.75 USD/t, its transport row) and C (5 Mt at 999, its transport row)
+    assert t.loc[("NDC2.0", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((18.75 * 80 + 999 * 5) / 85), 85.0, 2]
+    assert t.loc[("NDC2.0", "entc"), "mac"] == pytest.approx(25.0)  # A's electricity row, not its whole 20
+    # tornado: 1000 x the rows' cost over their emissions
+    assert t.loc[("NDC2.0", "entc"), "mac"] == pytest.approx(1000 * -0.5 / -20.0)
     assert ("LEP", "waso") not in t.index  # no data
-    assert mac.subsector_order(t.reset_index(), ["NDC2.0", "LEP"]) == ["waso", "trns", "entc"]
+    assert mac.subsector_order(t.reset_index(), ["NDC2.0", "LEP"]) == ["entc", "trns", "waso"]
 
 
 def test_by_transformation(tmp_path):
