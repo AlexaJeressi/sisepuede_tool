@@ -1224,3 +1224,10 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .hover-panel ul { margin: 2px 0 0; padding: 0; list-style: none; line-height: 1.4; }
 .hover-panel li { display: inline; color: var(--text); }
 .hover-panel li + li::before { content: " · "; color: var(--text-secondary); }
+
+/* Article 6: the transformations legend, grouped by sector (page_article_6.ranked_legend) */
+.a6-legend-grouped { margin: 6px 0 10px; font-size: 12px; color: var(--text-secondary); }
+.a6-legend-groups { columns: 3 300px; column-gap: 24px; }
+.a6-legend-group { break-inside: avoid; margin-bottom: 8px; }
+.a6-legend-parts { display: flex; flex-direction: column; gap: 2px; padding-inline-start: 22px; }
+.a6-legend-part { display: inline-flex; align-items: center; gap: 6px; }

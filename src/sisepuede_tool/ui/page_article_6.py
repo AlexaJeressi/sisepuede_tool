@@ -22,10 +22,13 @@ in its ref/ files. Shows:
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years; a click on a group in the legend
   under it hides or shows that group (SHOW_GROUPS_CHART);
-- the sisepuede_a6 ranked MAC file as it is (static, its own LEP run): the
-  same credits by group, each group split into its transformers, cheapest
-  first, in the group's colour, with its own legend to hide or show groups
-  and a filter by transformation; with its projects switch on, the strip
+- the sisepuede_a6 ranked MAC file as it is (static, its own LEP run), in two
+  charts: the credits by group (sector), the sectors stacked by their MAC
+  (the file's transformer MACs weighted by their share of the sector's
+  credits), highest first; then each sector split into its transformations,
+  ranked by MAC within it, each in a lighter shade of the sector's colour
+  (closer to it = higher MAC; the sector's own colour stays the strongest). Their legends switch sectors off in both; the second has a
+  filter by transformation; with its projects switch on, the strip
   above it shows the transformer under the cursor and the names of the
   projects linked to it (Pathways page), instead of the hover;
 - the sisepuede_a6 aggregate ranked file, the same way but in one group (the
@@ -153,6 +156,18 @@ def page_article_6_ui():
             ui.output_ui("excluded_note"),
             class_="box",
         ),
+        ui.div(
+            ui.div(
+                ui.span(i18n.t("article_6.by_sector_mac"), class_="section-label"),
+                info_tip(i18n.t("article_6.by_sector_mac_tip", year=a6.NDC_LAST_YEAR)),
+                ui.span(i18n.t("results.million_usd"), class_="small muted"),
+                export_button("sectors_chart", i18n.t("article_6.by_sector_mac")),
+                class_="box-head",
+            ),
+            output_widget("sectors_chart"),
+            ui.output_ui("sectors_legend"),
+            class_="box",
+        ),
         _ranked_box("ranked", "by_transformer", "by_transformer_tip"),
         _ranked_box("aggregate", "overall", "overall_tip"),
         class_="res-page",
@@ -168,6 +183,33 @@ def page_article_6_server(input, output, session, state: AppState):
     hidden_ranked = reactive.value(frozenset())
     hidden_aggregate = reactive.value(frozenset())
     ranked_files = {"ranked": a6.load_ranked(), "aggregate": a6.load_ranked_aggregate()}
+    sector_mac = a6.ranked_group_macs()
+
+    def _sector_order() -> list:
+        """The ranked file's groups by their MAC, highest first (none last)."""
+        groups = list(dict.fromkeys(ranked_files["ranked"][a6.FIELD_GROUP]))
+        return sorted(groups, key=lambda g: (g not in sector_mac, -sector_mac.get(g, 0.0)))
+
+    def _ranked_parts() -> pd.DataFrame:
+        """The ranked file's (group, transformer) rows with a value, in the
+        chart's order: groups by MAC, transformers by MAC within each, highest first."""
+        df = ranked_files["ranked"]
+        rank = {g: i for i, g in enumerate(_sector_order())}
+        live = df.groupby([a6.FIELD_GROUP, a6.FIELD_KERNEL])["value_musd"].transform(lambda v: v.abs().max()) > 1e-9
+        out = df[live].assign(_g=df[a6.FIELD_GROUP].map(rank))
+        return out.sort_values(["_g", "mac"], ascending=[True, False], kind="stable").drop(columns="_g")
+
+    def _part_colors() -> dict:
+        """{(group, transformer): colour}: shades of the group's colour, all
+        lighter than it (the group's own colour stays the strongest), the
+        closest to it for the highest MAC."""
+        colors = a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS)
+        pairs = _ranked_parts().drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL])
+        out = {}
+        for g, d in pairs.groupby(a6.FIELD_GROUP, sort=False):
+            for k, c in zip(d[a6.FIELD_KERNEL], rc.shades(colors.get(g, rc.OTHER_COLOR), len(d))):
+                out[(g, k)] = c
+        return out
     hidden_of = {"group": hidden_groups, "ranked": hidden_ranked, "aggregate": hidden_aggregate}
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
@@ -386,7 +428,13 @@ def page_article_6_server(input, output, session, state: AppState):
         if (df["value_musd"].abs() <= 1e-9).all():
             return rc.empty_figure(_t("empty_hidden"), height=360)
         lang = state.lang()
-        order = list(ref["groupings"][a6.FIELD_GROUP]) + [a6.WHOLE_ECONOMY]
+        part_colors = None
+        if kind == "ranked":
+            # by sector MAC, transformers by MAC within each, in shades of the sector's colour
+            parts = _ranked_parts()
+            df = parts[parts.index.isin(df.index)]
+            part_colors = _part_colors()
+        order = _sector_order() + [g for g in ref["groupings"][a6.FIELD_GROUP] if g not in _sector_order()] + [a6.WHOLE_ECONOMY]
         colors = {**a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), a6.WHOLE_ECONOMY: rc.PATHWAY_PALETTE[1]}
         labels = {**{g: group_name(g, lang) for g in order}, a6.WHOLE_ECONOMY: _t("whole_economy")}
         frame = df.rename(columns={a6.FIELD_GROUP: "series", a6.FIELD_KERNEL: "part", "value_musd": "value"})
@@ -395,8 +443,29 @@ def page_article_6_server(input, output, session, state: AppState):
             lang=lang, labels=labels, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
             part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()),
-            part_projects=_kernel_projects() if projects else None, hover_panel=projects,
+            part_projects=_kernel_projects() if projects else None, hover_panel=projects, part_colors=part_colors,
             years=state.results_years.get(),
+        )
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
+    def sectors_chart():
+        """The ranked file by group only (no transformers), the groups stacked
+        by their MAC, highest first, without the ones switched off."""
+        df = ranked_files["ranked"]
+        if df.empty:
+            return rc.empty_figure(_t("ranked_missing"), height=360)
+        df = df[~df[a6.FIELD_GROUP].isin(hidden_ranked.get())]
+        if (df["value_musd"].abs() <= 1e-9).all():
+            return rc.empty_figure(_t("empty_hidden"), height=360)
+        lang = state.lang()
+        order = _sector_order()
+        frame = df.groupby(["year", a6.FIELD_GROUP], as_index=False)["value_musd"].sum().rename(
+            columns={a6.FIELD_GROUP: "series", "value_musd": "value"})
+        return rc.credit_bars(
+            {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
+            lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
 
     @render_plotly
@@ -431,7 +500,7 @@ def page_article_6_server(input, output, session, state: AppState):
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
 
-    def _legend(shown, hidden, kind):
+    def _legend(shown, hidden, kind, order=None, suffix=None):
         """Legend under a credits chart, as HTML (it wraps on a narrow window
         instead of covering the bars): a click on a group sends a `kind` event
         that hides it from the chart (the bar totals are then those of the
@@ -448,7 +517,7 @@ def page_article_6_server(input, output, session, state: AppState):
         def item(g):
             return ui.tags.button(
                 ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"),
-                group_name(g, lang),
+                group_name(g, lang) + ((suffix or {}).get(g) or ""),
                 type="button",
                 class_="a6-legend-item" + (" off" if g in hidden else ""),
                 **{"aria-pressed": "false" if g in hidden else "true"},
@@ -456,7 +525,7 @@ def page_article_6_server(input, output, session, state: AppState):
             )
 
         reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=click("")) if hidden & shown else None
-        order = list(ref["groupings"][a6.FIELD_GROUP])
+        order = list(order or ref["groupings"][a6.FIELD_GROUP])
         order += sorted(g for g in shown if g not in order)
         return ui.div(
             *[item(g) for g in order if g in shown],
@@ -475,9 +544,52 @@ def page_article_6_server(input, output, session, state: AppState):
         df = ranked_files[kind]
         return _legend(set(df.loc[df["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]), hidden_of[kind].get(), kind)
 
+    def _mac_text(v: float) -> str:
+        return f" · {v:,.1f} $/t".replace("-", "−")
+
+    @render.ui
+    def sectors_legend():
+        df = ranked_files["ranked"]
+        shown = set(df.loc[df["value_musd"].abs() > 1e-9, a6.FIELD_GROUP])
+        return _legend(shown, hidden_ranked.get(), "ranked", order=_sector_order(),
+                       suffix={g: _mac_text(m) for g, m in sector_mac.items()})
+
     @render.ui
     def ranked_legend():
-        return _ranked_legend("ranked")
+        """Under the transformations chart: each sector (a click switches it off
+        here and in the sectors chart) with its transformations, in their shade
+        and with their MAC, in the chart's order."""
+        parts = _ranked_parts()
+        if parts.empty:
+            return None
+        lang = state.lang()
+        hidden = hidden_ranked.get()
+        colors = a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS)
+        part_colors = _part_colors()
+        names = _kernel_names(parts[a6.FIELD_KERNEL].unique())
+        pairs = parts.drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL])
+
+        def click(value):
+            payload = json.dumps({"type": "ranked", "value": value})
+            return f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;"
+
+        blocks = []
+        for g, d in pairs.groupby(a6.FIELD_GROUP, sort=False):
+            off = g in hidden
+            head = ui.tags.button(
+                ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"),
+                ui.tags.b(group_name(g, lang)), _mac_text(sector_mac[g]) if g in sector_mac else "",
+                type="button", class_="a6-legend-item" + (" off" if off else ""),
+                **{"aria-pressed": "false" if off else "true"}, onclick=click(g),
+            )
+            items = [
+                ui.span(ui.span(class_="swatch", style=f"background:{part_colors.get((g, k), rc.OTHER_COLOR)}"),
+                        names.get(k, k) + _mac_text(m), class_="a6-legend-part")
+                for k, m in zip(d[a6.FIELD_KERNEL], d["mac"])
+            ]
+            blocks.append(ui.div(head, None if off else ui.div(*items, class_="a6-legend-parts"), class_="a6-legend-group"))
+        reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=click("")) if hidden else None
+        return ui.div(ui.div(*blocks, class_="a6-legend-groups"), ui.div(reset, ui.span(_t("legend_hint"), class_="small muted")), class_="a6-legend-grouped")
 
     @render.ui
     def aggregate_legend():
