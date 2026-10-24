@@ -25,8 +25,9 @@ in its ref/ files. Shows:
 - the sisepuede_a6 ranked MAC file as it is (static, its own LEP run), in two
   charts: the credits by group (sector), the sectors stacked by their MAC
   (the file's transformer MACs weighted by their share of the sector's
-  credits), highest first; then each sector split into its transformations,
-  ranked by MAC within it, each in a lighter shade of the sector's colour
+  credits), highest first; then the same credits by transformation (one per
+  sector it abates in), all ranked by their MAC whatever their sector, each
+  in a lighter shade of the sector's colour
   (closer to it = higher MAC; the sector's own colour stays the strongest). Their legends switch sectors off in both; the second has a
   filter by transformation; with its projects switch on, the strip
   above it shows the transformer under the cursor and the names of the
@@ -443,15 +444,23 @@ def page_article_6_server(input, output, session, state: AppState):
             return rc.empty_figure(_t("empty_hidden"), height=360)
         lang = state.lang()
         part_colors = None
-        if kind == "ranked":
-            # by sector MAC, transformers by MAC within each, in shades of the sector's colour
-            parts = _ranked_parts()
-            df = parts[parts.index.isin(df.index)]
-            part_colors = _part_colors()
         order = _sector_order() + [g for g in ref["groupings"][a6.FIELD_GROUP] if g not in _sector_order()] + [a6.WHOLE_ECONOMY]
         colors = {**a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), a6.WHOLE_ECONOMY: rc.PATHWAY_PALETTE[1]}
         labels = {**{g: group_name(g, lang) for g in order}, a6.WHOLE_ECONOMY: _t("whole_economy")}
         frame = df.rename(columns={a6.FIELD_GROUP: "series", a6.FIELD_KERNEL: "part", "value_musd": "value"})
+        if kind == "ranked":
+            # every (sector, transformer) on its own, all ranked by their MAC
+            # (highest at the base) whatever their sector, each in its shade of
+            # the sector's colour; the hover still names the sector
+            shade = _part_colors()
+            sector_colors = colors
+            pairs = frame.drop_duplicates(["series", "part"]).sort_values("mac", ascending=False, kind="stable")
+            keys = list(pairs["series"] + "|" + pairs["part"])
+            frame = frame.assign(series=frame["series"] + "|" + frame["part"])
+            order = keys
+            labels = {k: labels.get(k.split("|", 1)[0], k.split("|", 1)[0]) for k in keys}
+            colors = {k: sector_colors.get(k.split("|", 1)[0], rc.OTHER_COLOR) for k in keys}
+            part_colors = {(k, k.split("|", 1)[1]): shade.get(tuple(k.split("|", 1)), colors[k]) for k in keys}
         return rc.credit_bars(
             {_t("ranked_panel"): frame}, colors, order, i18n.t("results.million_usd", lang),
             lang=lang, labels=labels, label_years=headline, legend=False,
