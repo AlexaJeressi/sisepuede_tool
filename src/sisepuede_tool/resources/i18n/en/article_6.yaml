@@ -12,6 +12,7 @@
   "empty_zero": "The pathways are exactly at the NDC2.0 target of every emission group in the target years: no credits."
   "empty_hidden": "Every emission group with credits is switched off: click a group in the legend to show it."
   "legend_hint": "Click a group to hide or show it."
+  "legend_hint_parts": "Click a sector to hide or show it in both charts, or its arrow to see its transformations; click a transformation to hide or show it in this chart."
   "show_all": "Show all"
   "pathways_chart": "Emissions of the pathways"
   "pathways_chart_tip": "Emissions of each pathway, summed over the emission groups that have an NDC2.0 target (the ones the credits count). The shaded band, over the target years, is the gap between the NDC2.0 pathway and a pathway that goes beyond it: green where it emits less than the NDC2.0, red where it emits more. The credit bars below compare each group with its NDC2.0 target, which sisepuede_a6 built from its own NDC2.0 run, so they follow the band only as far as the NDC2.0 pathway matches the targets. The grey area, after {year}, is past the NDC2.0 targets: the targets there carry on sisepuede_a6's NDC2.0 run."

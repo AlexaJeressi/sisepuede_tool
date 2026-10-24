@@ -1228,6 +1228,14 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 /* Article 6: the transformations legend, grouped by sector (page_article_6.ranked_legend) */
 .a6-legend-grouped { margin: 6px 0 10px; font-size: 12px; color: var(--text-secondary); }
 .a6-legend-groups { columns: 3 300px; column-gap: 24px; }
-.a6-legend-group { break-inside: avoid; margin-bottom: 8px; }
-.a6-legend-parts { display: flex; flex-direction: column; gap: 2px; padding-inline-start: 22px; }
-.a6-legend-part { display: inline-flex; align-items: center; gap: 6px; }
+.a6-legend-group { break-inside: avoid; margin-bottom: 2px; }
+/* a sector: its arrow opens the list; its name switches it off */
+.a6-legend-group > summary { list-style: none; display: flex; align-items: center; gap: 2px; cursor: pointer; }
+.a6-legend-group > summary::-webkit-details-marker { display: none; }
+.a6-caret { width: 14px; flex: none; text-align: center; color: var(--text-secondary); }
+.a6-caret::before { content: "▸"; font-size: 13px; }
+.a6-legend-group[open] .a6-caret::before { content: "▾"; }
+[dir="rtl"] .a6-legend-group:not([open]) .a6-caret::before { content: "◂"; }
+.a6-legend-parts { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding-inline-start: 28px; margin: 2px 0 6px; }
+.a6-legend-part { font-size: 11.5px; text-align: start; }
+.a6-legend-grouped > div:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }

@@ -182,6 +182,10 @@ def page_article_6_server(input, output, session, state: AppState):
     hidden_groups = reactive.value(frozenset())
     hidden_ranked = reactive.value(frozenset())
     hidden_aggregate = reactive.value(frozenset())
+    # transformations switched off in the transformations chart ("group|kernel"),
+    # and the sectors opened in its legend (kept across its re-renders)
+    hidden_parts = reactive.value(frozenset())
+    open_sectors = reactive.value(frozenset())
     ranked_files = {"ranked": a6.load_ranked(), "aggregate": a6.load_ranked_aggregate()}
     sector_mac = a6.ranked_group_macs()
 
@@ -309,8 +313,15 @@ def page_article_6_server(input, output, session, state: AppState):
             results_bar.toggle_pathway(state, int(ev["value"]))
         elif ev.get("type") in hidden_of:
             hidden = hidden_of[ev["type"]]
-            # "" = show them all again
+            # "" = show them all again (the ranked charts' transformations too)
             hidden.set(frozenset() if ev["value"] == "" else hidden.get() ^ {ev["value"]})
+            if ev["type"] == "ranked" and ev["value"] == "":
+                hidden_parts.set(frozenset())
+        elif ev.get("type") == "part":
+            hidden_parts.set(hidden_parts.get() ^ {ev["value"]})
+        elif ev.get("type") == "open":
+            opened = open_sectors.get()
+            open_sectors.set(opened | {ev["value"]} if ev.get("open") else opened - {ev["value"]})
 
     @render.ui
     def kpis():
@@ -425,6 +436,9 @@ def page_article_6_server(input, output, session, state: AppState):
         if picked:
             df = df[df[a6.FIELD_KERNEL].isin(picked)]
         df = df[~df[a6.FIELD_GROUP].isin(hidden_of[kind].get())]
+        if kind == "ranked":
+            off = hidden_parts.get()
+            df = df[~(df[a6.FIELD_GROUP] + "|" + df[a6.FIELD_KERNEL]).isin(off)]
         if (df["value_musd"].abs() <= 1e-9).all():
             return rc.empty_figure(_t("empty_hidden"), height=360)
         lang = state.lang()
@@ -556,40 +570,54 @@ def page_article_6_server(input, output, session, state: AppState):
 
     @render.ui
     def ranked_legend():
-        """Under the transformations chart: each sector (a click switches it off
-        here and in the sectors chart) with its transformations, in their shade
-        and with their MAC, in the chart's order."""
+        """Under the transformations chart, one line per sector (its colour, MAC
+        and number of transformations): a click on it switches the sector off
+        here and in the sectors chart; its arrow opens the list of its
+        transformations, in their shade and with their MAC, each switched off
+        or on with a click (this chart only). Closed by default; the sectors
+        opened stay open."""
         parts = _ranked_parts()
         if parts.empty:
             return None
         lang = state.lang()
         hidden = hidden_ranked.get()
+        off_parts = hidden_parts.get()
+        with reactive.isolate():
+            opened = open_sectors.get()
         colors = a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS)
         part_colors = _part_colors()
         names = _kernel_names(parts[a6.FIELD_KERNEL].unique())
         pairs = parts.drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL])
 
-        def click(value):
-            payload = json.dumps({"type": "ranked", "value": value})
-            return f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;"
+        def send(payload) -> str:
+            return f"Shiny.setInputValue({json.dumps(ev_id)}, {json.dumps(payload)}, {{priority: 'event'}}); return false;"
+
+        def button(swatch, text, off, payload, *extra, cls="a6-legend-item"):
+            return ui.tags.button(
+                ui.span(class_="swatch", style=f"background:{swatch}"), *text, *extra, type="button",
+                class_=cls + (" off" if off else ""), **{"aria-pressed": "false" if off else "true"}, onclick=send(payload),
+            )
 
         blocks = []
         for g, d in pairs.groupby(a6.FIELD_GROUP, sort=False):
-            off = g in hidden
-            head = ui.tags.button(
-                ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"),
-                ui.tags.b(group_name(g, lang)), _mac_text(sector_mac[g]) if g in sector_mac else "",
-                type="button", class_="a6-legend-item" + (" off" if off else ""),
-                **{"aria-pressed": "false" if off else "true"}, onclick=click(g),
-            )
+            g_off = g in hidden
+            head = button(colors.get(g, rc.OTHER_COLOR), [ui.tags.b(group_name(g, lang))], g_off, {"type": "ranked", "value": g},
+                          _mac_text(sector_mac[g]) if g in sector_mac else "", ui.span(f" ({len(d)})", class_="muted"))
             items = [
-                ui.span(ui.span(class_="swatch", style=f"background:{part_colors.get((g, k), rc.OTHER_COLOR)}"),
-                        names.get(k, k) + _mac_text(m), class_="a6-legend-part")
+                button(part_colors.get((g, k), rc.OTHER_COLOR), [names.get(k, k) + _mac_text(m)], g_off or f"{g}|{k}" in off_parts,
+                       {"type": "part", "value": f"{g}|{k}"}, cls="a6-legend-item a6-legend-part")
                 for k, m in zip(d[a6.FIELD_KERNEL], d["mac"])
             ]
-            blocks.append(ui.div(head, None if off else ui.div(*items, class_="a6-legend-parts"), class_="a6-legend-group"))
-        reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=click("")) if hidden else None
-        return ui.div(ui.div(*blocks, class_="a6-legend-groups"), ui.div(reset, ui.span(_t("legend_hint"), class_="small muted")), class_="a6-legend-grouped")
+            toggle = f"Shiny.setInputValue({json.dumps(ev_id)}, {{type: 'open', value: {json.dumps(g)}, open: this.open}}, {{priority: 'event'}});"
+            blocks.append(ui.tags.details(
+                ui.tags.summary(ui.span(class_="a6-caret"), head),
+                ui.div(*items, class_="a6-legend-parts"),
+                class_="a6-legend-group", open=g in opened or None, ontoggle=toggle,
+            ))
+        reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=send({"type": "ranked", "value": ""})) \
+            if hidden or off_parts else None
+        return ui.div(ui.div(*blocks, class_="a6-legend-groups"), ui.div(reset, ui.span(_t("legend_hint_parts"), class_="small muted")),
+                      class_="a6-legend-grouped")
 
     @render.ui
     def aggregate_legend():

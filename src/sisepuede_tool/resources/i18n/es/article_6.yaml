@@ -12,6 +12,7 @@
   "empty_zero": "Las trayectorias quedan exactamente en la meta de la NDC2.0 de cada grupo de emisiones en los años meta: no hay créditos."
   "empty_hidden": "Todos los grupos de emisiones con créditos están ocultos: haz clic en un grupo de la leyenda para mostrarlo."
   "legend_hint": "Haz clic en un grupo para ocultarlo o mostrarlo."
+  "legend_hint_parts": "Haga clic en un sector para ocultarlo o mostrarlo en ambas gráficas, o en su flecha para ver sus transformaciones; haga clic en una transformación para ocultarla o mostrarla en esta gráfica."
   "show_all": "Mostrar todos"
   "pathways_chart": "Emisiones de las trayectorias"
   "pathways_chart_tip": "Emisiones de cada trayectoria, sumadas sobre los grupos de emisiones que tienen meta en la NDC2.0 (los que cuentan para los créditos). La banda sombreada, en los años meta, es la diferencia entre la trayectoria NDC2.0 y una trayectoria que va más allá: verde donde emite menos que la NDC2.0, roja donde emite más. Las barras de créditos de abajo comparan cada grupo con su meta NDC2.0, que sisepuede_a6 construyó a partir de su propia corrida NDC2.0, así que siguen a la banda solo en la medida en que la trayectoria NDC2.0 coincide con las metas. La zona gris, después de {year}, va más allá de las metas de la NDC2.0: ahí las metas continúan la corrida NDC2.0 de sisepuede_a6."
