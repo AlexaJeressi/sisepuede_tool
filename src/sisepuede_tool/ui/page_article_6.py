@@ -17,8 +17,6 @@ in its ref/ files. Shows:
 - the emissions of every visible pathway (BAU and NDC too), with the gap
   between the NDC pathway and each pathway that earns credits shaded over the
   target years (green below the NDC, red above): where the credits come from;
-  the years after the NDC2.0 targets (2035) shaded grey, here and in the
-  credit chart;
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years; a click on a group in the legend
   under it hides or shows that group (SHOW_GROUPS_CHART);
@@ -330,7 +328,7 @@ def page_article_6_server(input, output, session, state: AppState):
         return rc.credit_bars(
             frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
-            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
+            years=state.results_years.get(),
         )
 
     def _kernel_names(codes) -> dict:
@@ -393,7 +391,6 @@ def page_article_6_server(input, output, session, state: AppState):
         return rc.credit_bars(
             {_t("ranked_panel"): frame}, colors, order, i18n.t("results.million_usd", lang),
             lang=lang, labels=labels, label_years=headline, legend=False,
-            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
             part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()),
             part_projects=_kernel_projects() if projects else None, hover_panel=projects,
             years=state.results_years.get(),
@@ -428,7 +425,7 @@ def page_article_6_server(input, output, session, state: AppState):
         gaps = [(ndc, name) for sid, name, _ in rows if ndc and _earns_credits(sid)]
         return rc.gap_lines(
             series, colors, "MtCO₂e", gaps=gaps, gap_years=(years[0], years[-1]), gap_label=_t("beyond_ndc"), above_label=_t("above_ndc"),
-            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
+            years=state.results_years.get(),
         )
 
     def _legend(shown, hidden, kind):
