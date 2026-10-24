@@ -17,7 +17,7 @@ project as project_links.csv. Users can also add their own projects
 import functools
 import pathlib
 import re
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
@@ -168,3 +168,20 @@ def links_from_dataframe(df: pd.DataFrame):
 
 def projects_for_transformation(code: str, links: Dict[str, Optional[str]]) -> List[str]:
     return [name for name, linked in links.items() if linked == code]
+
+
+def projects_by(
+    links: Dict[str, Optional[str]], projects: pd.DataFrame, key: Callable[[str], Optional[str]]
+) -> Dict[str, List[dict]]:
+    """{key(linked transformation code): [project record]}: the projects as they
+    are linked now (links, as on the Pathways page), grouped by `key` of their
+    transformation, e.g. mac_service.pair_key (NDC and LEP versions together)
+    or its transformer. Unlinked projects, and codes `key` maps to None, are
+    left out; in each group the projects keep the order of `projects`."""
+    out: Dict[str, List[dict]] = {}
+    for rec in projects.to_dict("records"):
+        code = links.get(rec["name"])
+        k = key(code) if code else None
+        if k:
+            out.setdefault(k, []).append(rec)
+    return out

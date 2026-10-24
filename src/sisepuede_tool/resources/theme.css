@@ -1172,6 +1172,12 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .mac-toggles label.checkbox-inline input:checked + span { opacity: 1; color: var(--text); background: var(--surface); border-color: var(--text-secondary); }
 .mac-toggles label.checkbox-inline input:focus-visible + span { box-shadow: 0 0 0 2px var(--focus-ring); }
 .mac-pathway { display: inline-flex; align-items: center; gap: 6px; }
+/* projects behind each transformation */
+.mac-projects-table td { vertical-align: top; }
+.mac-cell { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mac-projects-table summary { cursor: pointer; color: var(--accent); }
+.mac-projects { margin: 6px 0 0; padding-inline-start: 18px; }
+.mac-projects li { margin-bottom: 4px; }
 
 /* ---------- results: year range in the results bar, chart export (ui/components/chart_export.py) ---------- */
 .res-years { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: 10px; }

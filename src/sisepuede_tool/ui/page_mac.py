@@ -12,7 +12,13 @@ Charts:
   abated in each subsector, cheapest first, with the tonnes abated there;
 - by transformation (result_charts.mac_by_transformation): the transformations
   that abate in each subsector, under a light subsector header in the same
-  order. Its own filter narrows it to a sector or a subsector.
+  order. Its own filter narrows it to a sector or a subsector. Next to each
+  transformation, how many projects are linked to it (as on the Pathways
+  page), listed in the hover;
+- projects behind each transformation: the same transformations, in the same
+  order and filter, with their cost per tonne, the tonnes they abate and the
+  projects linked to them (investment and start as the project list gives
+  them).
 A bar far beyond the others is cut with a break and its value written inside
 (mac_service.axis_limit).
 """
@@ -20,7 +26,8 @@ A bar far beyond the others is cut with a break and its value written inside
 from shiny import module, render, ui
 from shinywidgets import output_widget, render_plotly
 
-from sisepuede_tool.services import i18n, library_service
+from sisepuede_tool import config
+from sisepuede_tool.services import i18n, library_service, projects_service
 from sisepuede_tool.services import mac_service as mac
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components.chart_export import export_button
@@ -117,6 +124,16 @@ def page_mac_ui():
             ui.output_ui("transformation_notes"),
             class_="box",
         ),
+        ui.div(
+            ui.div(
+                ui.span(i18n.t("mac.projects_box"), class_="section-label"),
+                info_tip(i18n.t("mac.projects_box_tip")),
+                ui.input_switch("only_projects", i18n.t("mac.only_with_projects"), value=False),
+                class_="box-head",
+            ),
+            ui.output_ui("projects_table"),
+            class_="box",
+        ),
         class_="res-page",
     )
 
@@ -137,6 +154,14 @@ def page_mac_server(input, output, session, state: AppState):
         if name is None:
             return i18n.t(f"mac.names.{code}", state.lang(), default=code)
         return library_service.strip_set_prefix(i18n.td("library", code, "name", name, state.lang()))
+
+    workbook = projects_service.load_project_records_cached(config.PROJECTS_XLSX_PATH)
+
+    def _projects() -> dict:
+        """{key: [project record]}: the projects linked to each transformation
+        now (Pathways page links), the NDC2.0 and LEP versions together."""
+        records = projects_service.all_projects(workbook, state.custom_projects.get())
+        return projects_service.projects_by(state.project_links.get(), records, mac.pair_key)
 
     def _pathways() -> list:
         picked = set(input.pathways() or ())
@@ -180,8 +205,9 @@ def page_mac_server(input, output, session, state: AppState):
         names = {}
         for code, key in zip(rows["code"], rows["key"]):
             names.setdefault(key, _name(code))
+        projects = {k: [r["name"] for r in recs] for k, recs in _projects().items()}
         return rc.mac_by_transformation(rows, order, _pathways(), colors, _sub_names(), names, _t("unit"),
-                                        limit=limit, lang=state.lang())
+                                        limit=limit, lang=state.lang(), projects=projects)
 
     def _notes(*texts) -> ui.Tag:
         out = [x for x in texts if x]
@@ -203,3 +229,68 @@ def page_mac_server(input, output, session, state: AppState):
             _t("cut_note") if limit else None,
             i18n.tn("mac.hidden", hidden, state.lang()) if hidden else None,
         )
+
+    @render.ui
+    def projects_table():
+        """One row per transformation of the chart above (same filter, same
+        order), with its cost per tonne and tonnes in each pathway and its
+        projects, opened on a click."""
+        pws = _pathways()
+        if not pws:
+            return ui.div(_t("empty_pathways"), class_="small muted")
+        rows, _, _ = _transformations()
+        if rows.empty:
+            return ui.div(_t("empty_scope"), class_="small muted")
+        lang = state.lang()
+        sub_names = _sub_names()
+        projects = _projects()
+        _, order, _ = _subsectors()
+        rank = {sub: i for i, sub in enumerate(order)}
+        # chart order: subsector, then cheapest first; a transformation appears once, at its first subsector
+        rows = rows.assign(_r=rows["subsector"].map(rank).fillna(len(rank))).sort_values(["_r", "mac"], kind="stable")
+        keys = list(dict.fromkeys(rows["key"]))
+        if input.only_projects():
+            keys = [k for k in keys if projects.get(k)]
+        if not keys:
+            return ui.div(_t("no_projects_here"), class_="small muted")
+
+        def mac_cell(k):
+            out = []
+            for p in pws:
+                d = rows[(rows["key"] == k) & (rows["pathway"] == p)]
+                if d.empty:
+                    continue
+                v = float(d["mac"].iloc[0])
+                out.append(ui.div(ui.span(class_="swatch", style=f"background:{colors.get(p)}"),
+                                  f"{v:+,.1f}" if abs(v) < 1000 else f"{v:+,.0f}", class_="mono mac-cell"))
+            return ui.tags.td(*out)
+
+        def mt_cell(k):
+            out = []
+            for p in pws:
+                d = rows[(rows["key"] == k) & (rows["pathway"] == p)]
+                if not d.empty:
+                    out.append(ui.div(ui.span(class_="swatch", style=f"background:{colors.get(p)}"), f"{d['abatement'].sum():,.0f}",
+                                      class_="mono mac-cell"))
+            return ui.tags.td(*out)
+
+        def projects_cell(k):
+            recs = projects.get(k) or []
+            if not recs:
+                return ui.tags.td(ui.span(_t("no_projects"), class_="muted small"))
+            items = []
+            for r in recs:
+                facts = [x for x in (r.get("investment"), r.get("start")) if isinstance(x, str) and x.strip()]
+                items.append(ui.tags.li(ui.tags.b(r["name"]), ui.div(" · ".join(facts), class_="small muted") if facts else None))
+            return ui.tags.td(ui.tags.details(ui.tags.summary(i18n.tn("mac.n_projects", len(recs), lang)), ui.tags.ul(*items, class_="mac-projects")))
+
+        body = []
+        for k in keys:
+            first = rows[rows["key"] == k].iloc[0]
+            subs = ", ".join(sub_names.get(x, x) for x in dict.fromkeys(rows.loc[rows["key"] == k, "subsector"]))
+            body.append(ui.tags.tr(
+                ui.tags.td(ui.div(_name(first["code"])), ui.div(subs, class_="small muted")),
+                mac_cell(k), mt_cell(k), projects_cell(k),
+            ))
+        head = ui.tags.tr(*[ui.tags.th(_t(c)) for c in ("col_transformation", "col_mac", "col_abated", "col_projects")])
+        return ui.div(ui.tags.table(ui.tags.thead(head), ui.tags.tbody(*body), class_="history mac-projects-table"), class_="table-wrap")

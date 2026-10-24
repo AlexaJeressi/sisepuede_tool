@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from sisepuede_tool import config
@@ -91,3 +92,12 @@ def test_links_round_trip_and_custom_projects():
     with pytest.raises(ValueError):
         projects_service.make_custom_project("  ")
     assert projects_service.projects_for_transformation("TX:X", links) == ["A"]
+
+
+def test_projects_by_groups_the_linked_projects():
+    projects = pd.DataFrame({"name": ["A", "B", "C", "D"], "status": ["Planned"] * 4})
+    links = {"A": "TX:X:ONE_STRATEGY_NDC", "B": "TX:X:ONE_LEP", "C": None, "D": "TX:Y:TWO_STRATEGY_NDC"}
+    by = projects_service.projects_by(links, projects, lambda c: c.rsplit("_", 1)[0].replace("_STRATEGY", ""))
+    assert {k: [r["name"] for r in v] for k, v in by.items()} == {"TX:X:ONE": ["A", "B"], "TX:Y:TWO": ["D"]}
+    # a code the key maps to None is left out
+    assert projects_service.projects_by(links, projects, lambda c: None) == {}
