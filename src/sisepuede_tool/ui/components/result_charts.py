@@ -862,6 +862,7 @@ def credit_bars(
     part_labels: Optional[Dict[str, str]] = None,
     part_projects: Optional[Dict[str, List[str]]] = None,
     hover_panel: bool = False,
+    part_colors: Optional[Dict[Tuple[str, str], str]] = None,
     years: Years = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
@@ -875,7 +876,8 @@ def credit_bars(
 
     A frame with [part, mac] columns splits each group into its parts (the
     transformers), stacked in the frame's order, in the group's colour with a
-    white edge between them; the hover (light, see-through) names the part
+    white edge between them (`part_colors`: (group, part) -> its own colour,
+    e.g. a shade of the group's); the hover (light, see-through) names the part
     (`part_labels`), its MAC (USD/tCO2e) and, with `part_projects` (part ->
     one line each), how many projects it has. Each segment's customdata,
     [name, group · year · value · MAC, project count, projects one per line],
@@ -920,7 +922,7 @@ def credit_bars(
                           for xi, v in zip(x, values)]
                 fig.add_trace(
                     go.Bar(x=x, y=values, name=label, legendgroup=name, customdata=custom,
-                           showlegend=False, marker=dict(color=color, line=dict(color="white", width=0.6)),
+                           showlegend=False, marker=dict(color=(part_colors or {}).get((name, part), color), line=dict(color="white", width=0.6)),
                            hoverlabel=dict(bgcolor="rgba(255,255,255,0.72)", bordercolor=color, font=dict(color=TEXT, size=11)),
                            # "none", not "skip": the hover events still reach the panel
                            hoverinfo="none" if hover_panel else None,
@@ -953,6 +955,46 @@ def credit_bars(
         for j in range(1, len(titles) + 1):
             _shade_outside(fig, after[0] - 0.5, len(years) - 0.5, label, "bottom left", row=1, col=j)
     return fig
+
+
+def shade(hex_color: str, k: float) -> str:
+    """`hex_color` lighter (k > 0, towards white) or darker (k < 0, towards black)."""
+    h = hex_color.lstrip("#")
+    rgb = [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+    out = [v + (255 - v) * k if k >= 0 else v * (1 + k) for v in rgb]
+    return "#" + "".join(f"{round(min(255, max(0, v))):02X}" for v in out)
+
+
+_D65 = np.array([0.95047, 1.0, 1.08883])
+_RGB_XYZ = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
+
+
+def _hex_lab(hex_color: str) -> np.ndarray:
+    h = hex_color.lstrip("#")
+    rgb = np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)]) / 255
+    lin = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
+    xyz = _RGB_XYZ @ lin / _D65
+    f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
+
+
+def _lab_hex(lab: np.ndarray) -> str:
+    fy = (lab[0] + 16) / 116
+    f = np.array([fy + lab[1] / 500, fy, fy - lab[2] / 200])
+    xyz = np.where(f ** 3 > 0.008856, f ** 3, (f - 16 / 116) / 7.787) * _D65
+    lin = np.clip(np.linalg.solve(_RGB_XYZ, xyz), 0, None)
+    rgb = np.where(lin > 0.0031308, 1.055 * lin ** (1 / 2.4) - 0.055, 12.92 * lin)
+    return "#" + "".join(f"{int(round(min(1.0, max(0.0, v)) * 255)):02X}" for v in rgb)
+
+
+def shades(hex_color: str, n: int, first: float = 0.1, last: float = 0.5) -> List[str]:
+    """`n` shades of `hex_color`, all lighter than it (`hex_color` stays the
+    strongest), from `first` (the closest to it) to `last` (the lightest) of
+    the way to white in lightness. They keep its hue and colourfulness (CIELAB
+    a, b), so each still reads as `hex_color`, not as a pale neighbour."""
+    lab = _hex_lab(hex_color)
+    steps = [first] if n <= 1 else [first + (last - first) * i / (n - 1) for i in range(n)]
+    return [_lab_hex(np.array([lab[0] + (97 - lab[0]) * t, lab[1], lab[2]])) for t in steps[:max(n, 0)]]
 
 
 def _rgba(hex_color: str, alpha: float) -> str:

@@ -107,3 +107,18 @@ def test_total_outside_bars_of_both_signs():
     total = fig.layout.annotations[-1]
     assert total.text == "−30.0" or total.text == "-30.0"
     assert total.y == -50.0 and total.yshift < 0
+
+
+def test_shades_and_part_colours():
+    assert rc.shade("#808080", 0.5) == "#C0C0C0" and rc.shade("#808080", -0.5) == "#404040"
+    s = rc.shades("#808080", 3)
+    # all lighter than the colour, the first closest to it
+    assert all(int(c[1:3], 16) > 0x80 for c in s) and int(s[0][1:3], 16) < int(s[-1][1:3], 16)
+    assert len(rc.shades("#808080", 1)) == 1
+    # they keep the colour's hue: an orange stays orange (red > green > blue)
+    for c in rc.shades("#E6550D", 4):
+        r, g, b = (int(c[i:i + 2], 16) for i in (1, 3, 5))
+        assert r > g > b
+    frame = pd.DataFrame({"year": [2030, 2030], "series": ["T", "T"], "part": ["TFR:A", "TFR:B"], "mac": [9.0, 1.0], "value": [5.0, 5.0]})
+    fig = rc.credit_bars({"LEP": frame}, {"T": "#E6550D"}, ["T"], "M USD", part_colors={("T", "TFR:A"): "#111111"})
+    assert fig.data[0].marker.color == "#111111" and fig.data[1].marker.color == "#E6550D"  # the group's colour without one
