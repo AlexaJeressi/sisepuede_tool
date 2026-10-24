@@ -34,7 +34,6 @@
   "n_projects":
     "one": "{n} proyecto"
     "other": "{n} proyectos"
-  "more_projects": "+ {n} más"
   "projects_box": "Proyectos detrás de cada transformación"
   "projects_box_tip": "Las transformaciones de la gráfica de arriba, en el mismo orden y con el mismo filtro, con su costo por tonelada y las emisiones que reducen en los subsectores mostrados (MtCO₂e), en cada trayectoria, y los proyectos vinculados a ellas. Los vínculos son los de la página Pathways: un proyecto se vincula a una transformación de su transformador, y las versiones NDC2.0 y LEP de una transformación comparten sus proyectos. La inversión y el inicio son los de la lista de proyectos. Haga clic en un conteo para ver los proyectos."
   "only_with_projects": "Solo transformaciones con proyectos"

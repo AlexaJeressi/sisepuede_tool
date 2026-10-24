@@ -635,20 +635,6 @@ def _mac_bar_text(abated: float, sep: str = " ") -> str:
     return (f"{abated:,.0f}" if abs(abated) >= 1 else f"{abated:,.2f}").replace("-", "−") + sep + "Mt"
 
 
-PROJECTS_IN_HOVER = 6
-
-
-def _projects_hover(lines: Optional[List[str]], lang: Optional[str]) -> List[str]:
-    """Hover lines listing a transformation's projects (at most PROJECTS_IN_HOVER, then "+ n more")."""
-    if not lines:
-        return []
-    out = [f"<b>{i18n.tn('mac.n_projects', len(lines), lang)}</b>"]
-    out += [f"• {x}" for x in lines[:PROJECTS_IN_HOVER]]
-    if len(lines) > PROJECTS_IN_HOVER:
-        out.append(i18n.t("mac.more_projects", lang, n=len(lines) - PROJECTS_IN_HOVER))
-    return out
-
-
 def _mac_cost_hover(lang: Optional[str], **v) -> str:
     t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
     lines = [f"<b>{v['title']}</b>", v["pathway"], t("hover_mac", v=f"{v['mac']:+,.1f}"), t("hover_abated", v=f"{v['abatement']:,.1f}")]
@@ -869,8 +855,11 @@ def credit_bars(
 
     A frame with [part, mac] columns splits each group into its parts (the
     transformers), stacked in the frame's order, in the group's colour with a
-    white edge between them; the hover names the part (`part_labels`), its
-    MAC (USD/tCO2e) and its projects (`part_projects`: part -> one line each)."""
+    white edge between them; the hover (light, see-through) names the part
+    (`part_labels`), its MAC (USD/tCO2e) and how many projects it has
+    (`part_projects`: part -> one line each). Each segment's customdata,
+    [name, group · year · value · MAC, project count, projects one per line],
+    is what hover_panel shows above the chart."""
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -902,11 +891,17 @@ def credit_bars(
                 # a part with no name or MAC: the group not split
                 head = f"<b>{(part_labels or {}).get(part, part)}</b><br>{label}" if part else f"<b>{label}</b>"
                 mac = f" · MAC {float(macs.iloc[0]):,.1f} USD/tCO₂e" if len(macs) else ""
-                proj = "".join(f"<br>{x}" for x in _projects_hover((part_projects or {}).get(part), lang))
+                projects = (part_projects or {}).get(part) or []
+                count = i18n.tn("mac.n_projects", len(projects), lang) if projects else i18n.t("mac.no_projects", lang)
+                values = rows["value"].fillna(0).to_numpy()
+                name_ = (part_labels or {}).get(part, part) if part else label
+                custom = [[name_, f"{label + ' · ' if part else ''}{xi} · {v:,.1f} {unit}{mac}", count, "\n".join(projects)]
+                          for xi, v in zip(x, values)]
                 fig.add_trace(
-                    go.Bar(x=x, y=rows["value"].fillna(0).to_numpy(), name=label, legendgroup=name,
+                    go.Bar(x=x, y=values, name=label, legendgroup=name, customdata=custom,
                            showlegend=False, marker=dict(color=color, line=dict(color="white", width=0.6)),
-                           hovertemplate=f"{head}<br>%{{y:,.1f}} {unit}{mac}{proj}<extra></extra>"),
+                           hoverlabel=dict(bgcolor="rgba(255,255,255,0.72)", bordercolor=color, font=dict(color=TEXT, size=11)),
+                           hovertemplate=f"{head}<br>%{{y:,.1f}} {unit}{mac}<br><i>{count}</i><extra></extra>"),
                     row=1, col=j,
                 )
         shown = wide[[c for c in order if c in wide.columns]]

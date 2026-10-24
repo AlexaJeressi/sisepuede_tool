@@ -1213,3 +1213,12 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .exp-actions #mrv-export-go:disabled { opacity: .6; cursor: wait; }
 
 .pw-base-year { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* Hover panel (hover_panel.py): the details of the bar under the cursor, above the chart */
+.hover-panel { min-height: 3.2em; margin: 2px 0 6px; padding: 6px 10px; border-left: 3px solid var(--border-strong); border-radius: 4px; background: var(--track); color: var(--text-secondary); }
+.hover-panel .hover-panel-body:empty { display: none; }
+.hover-panel.on .hover-panel-hint { display: none; }
+.hover-panel-head b { color: var(--text); }
+.hover-panel-count { font-style: italic; margin-top: 2px; }
+.hover-panel ul { margin: 3px 0 0; padding-inline-start: 18px; columns: 2 220px; column-gap: 24px; }
+.hover-panel li { break-inside: avoid; }

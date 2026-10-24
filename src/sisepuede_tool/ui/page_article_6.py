@@ -45,6 +45,7 @@ from sisepuede_tool.services import download_service, i18n, library_service, pat
 from sisepuede_tool.services import transformer_metadata_service as tms
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components.chart_export import export_button
+from sisepuede_tool.ui.components.hover_panel import hover_panel
 from sisepuede_tool.ui.components import results_bar
 from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
@@ -124,6 +125,7 @@ def page_article_6_ui():
                 export_button("ranked_chart", i18n.t("article_6.by_transformer")),
                 class_="box-head",
             ),
+            hover_panel("ranked_chart", i18n.t("article_6.ranked_hover_hint")),
             output_widget("ranked_chart"),
             ui.output_ui("ranked_legend"),
             class_="box",

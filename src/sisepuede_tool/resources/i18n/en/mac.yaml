@@ -34,7 +34,6 @@
   "n_projects":
     "one": "{n} project"
     "other": "{n} projects"
-  "more_projects": "+ {n} more"
   "projects_box": "Projects behind each transformation"
   "projects_box_tip": "The transformations of the chart above, in the same order and with the same filter, with their cost per tonne and the emissions they abate in the subsectors shown (MtCO₂e), in each pathway, and the projects linked to them. The links are the ones on the Pathways page: a project is linked to a transformation on its transformer, and the NDC2.0 and LEP versions of a transformation share its projects. Investment and start are as the project list gives them. Click a count to see the projects."
   "only_with_projects": "Only transformations with projects"

@@ -39,7 +39,7 @@ from sisepuede_tool.services import (
     transformer_metadata_service,
 )
 from sisepuede_tool.ui.components import result_charts
-from sisepuede_tool.ui.components import chart_export
+from sisepuede_tool.ui.components import chart_export, hover_panel
 from sisepuede_tool.ui.page_article_6 import page_article_6_server, page_article_6_ui
 from sisepuede_tool.ui.page_cost_benefits import page_cost_benefits_server, page_cost_benefits_ui
 from sisepuede_tool.ui.page_data_input import page_data_input_server, page_data_input_ui
@@ -330,6 +330,7 @@ def _head(lang: str) -> ui.Tag:
         ui.include_css(_THEME_RTL_CSS_PATH),  # every rule is scoped to dir="rtl"
         ui.tags.script(ui.HTML(_SHELL_JS)),
         ui.tags.script(ui.HTML(chart_export.JS)),
+        ui.tags.script(ui.HTML(hover_panel.JS)),
     )
 
 

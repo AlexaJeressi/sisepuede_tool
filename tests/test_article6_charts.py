@@ -59,10 +59,16 @@ def test_credit_bars_split_a_group_into_its_parts():
     assert fig.layout.annotations[-1].text == "40.0"  # the group total
 
 
-def test_ranked_hover_lists_the_projects():
+def test_ranked_projects_for_the_panel_not_the_hover():
     frame = pd.DataFrame({"year": [2030], "series": ["Energy"], "part": ["TFR:A"], "mac": [5.0], "value": [10.0]})
-    fig = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_projects={"TFR:A": ["Solar park · Planned"]})
-    assert "Solar park · Planned" in fig.data[0].hovertemplate and "1 project" in fig.data[0].hovertemplate
+    fig = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_labels={"TFR:A": "Alpha"},
+                         part_projects={"TFR:A": ["Solar park", "Wind farm"]})
+    tr = fig.data[0]
+    assert "2 projects" in tr.hovertemplate and "Solar park" not in tr.hovertemplate
+    assert tr.hoverlabel.bgcolor.startswith("rgba(")  # see-through
+    name, detail, count, projects = tr.customdata[0]
+    assert name == "Alpha" and detail.startswith("Energy · 2030 · 10.0 M USD · MAC 5.0")
+    assert count == "2 projects" and projects == "Solar park\nWind farm"
 
 
 def test_transport_not_purple_like_energy_technology(monkeypatch):
