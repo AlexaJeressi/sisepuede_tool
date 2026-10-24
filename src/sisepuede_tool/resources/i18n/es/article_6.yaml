@@ -6,7 +6,7 @@
   "change_price": "Cambiar el precio del carbono"
   "reset": "Restablecer los precios de referencia"
   "instant": "Los recuadros, el gráfico y la descarga se actualizan de inmediato; no hace falta una nueva ejecución."
-  "by_group": "Créditos por grupo de emisiones"
+  "by_group": "Créditos (reducción de emisiones) por grupo de emisiones"
   "by_group_tip": "Para cada año meta de la NDC2.0, el valor de las emisiones que una trayectoria mantiene por debajo de la meta de cada grupo de emisiones. Un grupo por encima de su meta resta créditos: su barra queda por debajo de cero. La zona gris, después de {year}, va más allá de las metas de la NDC2.0."
   "empty_none": "Ejecute una trayectoria que vaya más allá de la NDC2.0 (p. ej., LEP) para ver sus créditos."
   "empty_zero": "Las trayectorias quedan exactamente en la meta de la NDC2.0 de cada grupo de emisiones en los años meta: no hay créditos."

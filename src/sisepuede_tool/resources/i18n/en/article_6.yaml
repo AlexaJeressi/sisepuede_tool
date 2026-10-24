@@ -6,7 +6,7 @@
   "change_price": "Change the carbon price"
   "reset": "Reset to reference prices"
   "instant": "The tiles, the chart and the download update right away; no new run is needed."
-  "by_group": "Credits by emission group"
+  "by_group": "Credits (emissions reduction) by emissions group"
   "by_group_tip": "For each NDC2.0 target year, the value of the emissions a pathway keeps below the target of each emission group. A group above its target counts against the credits: its bar is below zero. The grey area, after {year}, is past the NDC2.0 targets."
   "empty_none": "Run a pathway that goes beyond the NDC2.0 (e.g. LEP) to see its credits."
   "empty_zero": "The pathways are exactly at the NDC2.0 target of every emission group in the target years: no credits."
