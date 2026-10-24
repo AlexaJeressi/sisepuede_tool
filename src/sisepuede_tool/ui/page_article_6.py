@@ -21,11 +21,16 @@ in its ref/ files. Shows:
   credit chart;
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years; a click on a group in the legend
-  under it hides or shows that group;
+  under it hides or shows that group (hidden for now, SHOW_GROUPS_CHART);
 - the sisepuede_a6 ranked MAC file as it is (static, its own LEP run): the
   same credits by group, each group split into its transformers, cheapest
-  first, in the group's colour, with its own legend to hide or show groups;
-  the hover of a transformer lists the projects linked to it (Pathways page).
+  first, in the group's colour, with its own legend to hide or show groups
+  and a filter by transformation; the strip above it shows the transformer
+  under the cursor and the projects linked to it (Pathways page), with their
+  descriptions;
+- the sisepuede_a6 aggregate ranked file, the same way: each year's credits
+  split among the transformers by their whole-economy share, grouped by the
+  transformer's sector.
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.
@@ -51,9 +56,32 @@ from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
 
 
+SHOW_GROUPS_CHART = False  # credits by emission group, hidden for now (2026-10-24)
+
+
 def group_name(group: str, lang=None) -> str:
     """An emission group (sisepuede_a6 ref/emission_groupings_example.csv) in `lang`."""
     return i18n.td("article6", re.sub(r"[^a-z0-9]+", "_", group.lower()).strip("_"), "name", group, lang)
+
+
+def _ranked_box(kind: str, title_key: str, tip_key: str) -> ui.Tag:
+    """A box for one of sisepuede_a6's ranked files (`kind`: ranked, aggregate):
+    its filter by transformation, the strip with the transformer under the
+    cursor, the chart and its legend."""
+    title = i18n.t(f"article_6.{title_key}")
+    return ui.div(
+        ui.div(
+            ui.span(title, class_="section-label"),
+            info_tip(i18n.t(f"article_6.{tip_key}", year=a6.NDC_LAST_YEAR)),
+            ui.span(i18n.t("results.million_usd"), class_="small muted"),
+            ui.div(ui.output_ui(f"{kind}_filter_ui"), export_button(f"{kind}_chart", title), class_="btn-row"),
+            class_="box-head",
+        ),
+        hover_panel(f"{kind}_chart", i18n.t("article_6.ranked_hover_hint")),
+        output_widget(f"{kind}_chart"),
+        ui.output_ui(f"{kind}_legend"),
+        class_="box",
+    )
 
 
 @module.ui
@@ -61,6 +89,7 @@ def page_article_6_ui():
     return ui.div(
         results_bar.bar_ui("download_xlsx"),
         ui.output_ui("kpis"),
+        None if SHOW_GROUPS_CHART else ui.div(ui.output_ui("modelled_note"), ui.output_ui("excluded_note")),
         ui.div(
             ui.div(
                 ui.span(i18n.t("article_6.carbon_price"), class_="section-label"),
@@ -103,7 +132,7 @@ def page_article_6_ui():
             output_widget("pathways_chart"),
             class_="box",
         ),
-        ui.div(
+        None if not SHOW_GROUPS_CHART else ui.div(
             ui.div(
                 ui.span(i18n.t("article_6.by_group"), class_="section-label"),
                 info_tip(i18n.t("article_6.by_group_tip", year=a6.NDC_LAST_YEAR)),
@@ -117,19 +146,8 @@ def page_article_6_ui():
             ui.output_ui("excluded_note"),
             class_="box",
         ),
-        ui.div(
-            ui.div(
-                ui.span(i18n.t("article_6.by_transformer"), class_="section-label"),
-                info_tip(i18n.t("article_6.by_transformer_tip", year=a6.NDC_LAST_YEAR)),
-                ui.span(i18n.t("results.million_usd"), class_="small muted"),
-                export_button("ranked_chart", i18n.t("article_6.by_transformer")),
-                class_="box-head",
-            ),
-            hover_panel("ranked_chart", i18n.t("article_6.ranked_hover_hint")),
-            output_widget("ranked_chart"),
-            ui.output_ui("ranked_legend"),
-            class_="box",
-        ),
+        _ranked_box("ranked", "by_transformer", "by_transformer_tip"),
+        _ranked_box("aggregate", "by_sector", "by_sector_tip"),
         class_="res-page",
     )
 
@@ -141,6 +159,9 @@ def page_article_6_server(input, output, session, state: AppState):
     # emission groups switched off in each credits chart (its legend toggles them)
     hidden_groups = reactive.value(frozenset())
     hidden_ranked = reactive.value(frozenset())
+    hidden_aggregate = reactive.value(frozenset())
+    ranked_files = {"ranked": a6.load_ranked(), "aggregate": a6.load_ranked_aggregate()}
+    hidden_of = {"group": hidden_groups, "ranked": hidden_ranked, "aggregate": hidden_aggregate}
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
     headline = a6.headline_years(years)
@@ -237,8 +258,8 @@ def page_article_6_server(input, output, session, state: AppState):
         ev = input.ui_event() or {}
         if ev.get("type") == "chip":
             results_bar.toggle_pathway(state, int(ev["value"]))
-        elif ev.get("type") in ("group", "ranked"):
-            hidden = hidden_groups if ev["type"] == "group" else hidden_ranked
+        elif ev.get("type") in hidden_of:
+            hidden = hidden_of[ev["type"]]
             # "" = show them all again
             hidden.set(frozenset() if ev["value"] == "" else hidden.get() ^ {ev["value"]})
 
@@ -305,37 +326,76 @@ def page_article_6_server(input, output, session, state: AppState):
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
 
-    @render_plotly
-    @rc.bidi_for(state.lang)
-    def ranked_chart():
-        """The sisepuede_a6 ranked MAC file as it is (its own LEP run, static):
-        credit value by year and emission group, each group split into its
-        transformers, cheapest first, without the groups switched off in its
-        own legend (ranked_legend)."""
-        df = a6.load_ranked()
-        if df.empty:
-            return rc.empty_figure(_t("ranked_missing"), height=360)
-        df = df[~df[a6.FIELD_GROUP].isin(hidden_ranked.get())]
-        if (df["value_musd"].abs() <= 1e-9).all():
-            return rc.empty_figure(_t("empty_hidden"), height=360)
+    def _kernel_names(codes) -> dict:
         lang = state.lang()
         meta = state.transformer_metadata.get() or {}
-        names = {c: i18n.td("transformers", c, "name", tms.get_card(c, meta)["name"], lang) for c in df[a6.FIELD_KERNEL].unique()}
-        # the projects linked now (Pathways page) to a transformation on each transformer
+        return {c: i18n.td("transformers", c, "name", tms.get_card(c, meta)["name"], lang) for c in codes}
+
+    def _kernel_projects() -> dict:
+        """{transformer: ["name<tab>description"]}: the projects linked now
+        (Pathways page) to a transformation on each transformer."""
         transformer_of = {i.code: i.transformer_code for i in state.library_items.get() or []}
         records = projects_service.all_projects(
             projects_service.load_project_records_cached(config.PROJECTS_XLSX_PATH), state.custom_projects.get()
         )
         by_transformer = projects_service.projects_by(state.project_links.get(), records, transformer_of.get)
-        part_projects = {c: [r["name"] for r in recs] for c, recs in by_transformer.items()}
+        return {c: [f"{r['name']}\t{' '.join(str(r.get('description') or '').split())}" for r in recs] for c, recs in by_transformer.items()}
+
+    def _filter_ui(kind: str):
+        df = ranked_files[kind]
+        if df.empty:
+            return None
+        names = _kernel_names(df[a6.FIELD_KERNEL].unique())
+        choices = dict(sorted(names.items(), key=lambda kv: kv[1]))
+        with reactive.isolate():
+            selected = input[f"{kind}_filter"]() if f"{kind}_filter" in input else []
+        return ui.input_selectize(f"{kind}_filter", None, choices, selected=list(selected or []), multiple=True, width="320px",
+                                  options={"placeholder": _t("all_transformations"), "plugins": ["remove_button"]})
+
+    @render.ui
+    def ranked_filter_ui():
+        return _filter_ui("ranked")
+
+    @render.ui
+    def aggregate_filter_ui():
+        return _filter_ui("aggregate")
+
+    def _ranked_figure(kind: str):
+        """One of sisepuede_a6's ranked files as it is (its own LEP run,
+        static): credit value by year and group, each group split into its
+        transformers, cheapest first, without the groups switched off in its
+        legend and only the transformations picked in its filter (all when
+        none); the strip above it shows the transformer under the cursor."""
+        df = ranked_files[kind]
+        if df.empty:
+            return rc.empty_figure(_t("ranked_missing"), height=360)
+        picked = list(input[f"{kind}_filter"]() or []) if f"{kind}_filter" in input else []
+        if picked:
+            df = df[df[a6.FIELD_KERNEL].isin(picked)]
+        df = df[~df[a6.FIELD_GROUP].isin(hidden_of[kind].get())]
+        if (df["value_musd"].abs() <= 1e-9).all():
+            return rc.empty_figure(_t("empty_hidden"), height=360)
+        lang = state.lang()
         order = list(ref["groupings"][a6.FIELD_GROUP])
+        order += [g for g in dict.fromkeys(df[a6.FIELD_GROUP]) if g not in order]
         frame = df.rename(columns={a6.FIELD_GROUP: "series", a6.FIELD_KERNEL: "part", "value_musd": "value"})
         return rc.credit_bars(
             {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
-            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), part_labels=names, part_projects=part_projects,
+            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
+            part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()), part_projects=_kernel_projects(), hover_panel=True,
             years=state.results_years.get(),
         )
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
+    def ranked_chart():
+        return _ranked_figure("ranked")
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
+    def aggregate_chart():
+        return _ranked_figure("aggregate")
 
     @render_plotly
     @rc.bidi_for(state.lang)
@@ -384,8 +444,10 @@ def page_article_6_server(input, output, session, state: AppState):
             )
 
         reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=click("")) if hidden & shown else None
+        order = list(ref["groupings"][a6.FIELD_GROUP])
+        order += sorted(g for g in shown if g not in order)
         return ui.div(
-            *[item(g) for g in ref["groupings"][a6.FIELD_GROUP] if g in shown],
+            *[item(g) for g in order if g in shown],
             reset,
             ui.span(_t("legend_hint"), class_="small muted"),
             class_="a6-legend",
@@ -397,10 +459,17 @@ def page_article_6_server(input, output, session, state: AppState):
         shown = {g for _, _, est in rows for g in est.loc[est["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]}
         return _legend(shown, hidden_groups.get(), "group")
 
+    def _ranked_legend(kind: str):
+        df = ranked_files[kind]
+        return _legend(set(df.loc[df["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]), hidden_of[kind].get(), kind)
+
     @render.ui
     def ranked_legend():
-        df = a6.load_ranked()
-        return _legend(set(df.loc[df["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]), hidden_ranked.get(), "ranked")
+        return _ranked_legend("ranked")
+
+    @render.ui
+    def aggregate_legend():
+        return _ranked_legend("aggregate")
 
     @render.ui
     def price_used():

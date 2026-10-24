@@ -1220,5 +1220,7 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .hover-panel.on .hover-panel-hint { display: none; }
 .hover-panel-head b { color: var(--text); }
 .hover-panel-count { font-style: italic; margin-top: 2px; }
-.hover-panel ul { margin: 3px 0 0; padding-inline-start: 18px; columns: 2 220px; column-gap: 24px; }
-.hover-panel li { break-inside: avoid; }
+.hover-panel ul { margin: 3px 0 0; padding-inline-start: 18px; columns: 2 320px; column-gap: 28px; }
+.hover-panel li { break-inside: avoid; margin-bottom: 5px; }
+.hover-panel li b { color: var(--text); font-weight: 600; }
+.hover-panel-desc { font-size: 11.5px; line-height: 1.35; color: var(--text-secondary); }

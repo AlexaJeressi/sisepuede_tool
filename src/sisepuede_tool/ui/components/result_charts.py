@@ -860,6 +860,7 @@ def credit_bars(
     outside: Optional[Tuple[int, str]] = None,
     part_labels: Optional[Dict[str, str]] = None,
     part_projects: Optional[Dict[str, List[str]]] = None,
+    hover_panel: bool = False,
     years: Years = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
@@ -877,7 +878,8 @@ def credit_bars(
     (`part_labels`), its MAC (USD/tCO2e) and how many projects it has
     (`part_projects`: part -> one line each). Each segment's customdata,
     [name, group · year · value · MAC, project count, projects one per line],
-    is what hover_panel shows above the chart."""
+    is what hover_panel shows above the chart; with `hover_panel` only there
+    (no hover label over the bars)."""
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -919,7 +921,9 @@ def credit_bars(
                     go.Bar(x=x, y=values, name=label, legendgroup=name, customdata=custom,
                            showlegend=False, marker=dict(color=color, line=dict(color="white", width=0.6)),
                            hoverlabel=dict(bgcolor="rgba(255,255,255,0.72)", bordercolor=color, font=dict(color=TEXT, size=11)),
-                           hovertemplate=f"{head}<br>%{{y:,.1f}} {unit}{mac}<br><i>{count}</i><extra></extra>"),
+                           # "none", not "skip": the hover events still reach the panel
+                           hoverinfo="none" if hover_panel else None,
+                           hovertemplate=None if hover_panel else f"{head}<br>%{{y:,.1f}} {unit}{mac}<br><i>{count}</i><extra></extra>"),
                     row=1, col=j,
                 )
         shown = wide[[c for c in order if c in wide.columns]]
