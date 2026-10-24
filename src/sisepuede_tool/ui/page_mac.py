@@ -132,7 +132,7 @@ def page_mac_server(input, output, session, state: AppState):
 
     def _name(code: str) -> str:
         """'AGRC: Improve rice management' (library name, translated, without the
-        'NDC · ' set prefix); mac.names for the transformations not in the library."""
+        'NDC2.0 · ' set prefix); mac.names for the transformations not in the library."""
         name = english_names.get(code)
         if name is None:
             return i18n.t(f"mac.names.{code}", state.lang(), default=code)

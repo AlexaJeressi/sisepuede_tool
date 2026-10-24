@@ -4,7 +4,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
   Changed from the tool (2026-10-22): magnitude 0.8 -> 0.86, calibrated to the BTR1 2030 target for associated gas: 1.68 Mt abated by this transformation alone vs BAU (target 1.682 Mt; 0.8 gave 1.56).'
 identifiers:
   transformation_code: TX:FGTV:DEC_LEAKS_STRATEGY_NDC
-  transformation_name: 'NDC · FGTV: Reduce leaks'
+  transformation_name: 'NDC2.0 · FGTV: Reduce leaks'
 parameters:
   magnitude: 0.86
   vec_implementation_ramp:

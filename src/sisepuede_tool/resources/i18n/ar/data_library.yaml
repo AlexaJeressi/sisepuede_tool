@@ -1,61 +1,61 @@
 # NDC/LEP library transformations from resources/library/egypt_ndc and egypt_lep (ar). Draft: needs review by an Egyptian reviewer.
-# data.library.<transformation code>.{name,description}; names keep the "NDC · " / "LEP · " set prefix.
+# data.library.<transformation code>.{name,description}; names keep the "NDC2.0 · " / "LEP · " set prefix.
 
 data:
   library:
     "TX:AGRC:DEC_CH4_RICE_STRATEGY_NDC":
-      name: "NDC · AGRC: تحسين إدارة زراعة الأرز"
+      name: "NDC2.0 · AGRC: تحسين إدارة زراعة الأرز"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nخفض انبعاثات CH₄ من زراعة الأرز بنسبة 45% بفضل تحسين الإدارة وتقليل الغمر بالمياه."
     "TX:AGRC:DEC_LOSSES_SUPPLY_CHAIN_STRATEGY_NDC":
-      name: "NDC · AGRC: خفض الفاقد في سلسلة الإمداد"
+      name: "NDC2.0 · AGRC: خفض الفاقد في سلسلة الإمداد"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nخفض هدر الغذاء في سلسلة الإمداد الزراعية (المحاصيل) قبل وصوله إلى المستهلك"
     "TX:ENTC:DEC_LOSSES_STRATEGY_NDC":
-      name: "NDC · ENTC: خفض فواقد نقل الكهرباء"
+      name: "NDC2.0 · ENTC: خفض فواقد نقل الكهرباء"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nخفض فواقد نقل الكهرباء من خلال تطوير البنية التحتية لشبكات النقل."
     "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_NDC":
-      name: "NDC · ENTC: الهيدروجين النظيف"
+      name: "NDC2.0 · ENTC: الهيدروجين النظيف"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nتحديد هدف لإنتاج الهيدروجين النظيف."
     "TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC":
-      name: "NDC · ENTC: هدف الكهرباء المتجددة"
+      name: "NDC2.0 · ENTC: هدف الكهرباء المتجددة"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent. حدّث jcsyme مزيج الطاقة المتجددة في الإيداع 802be90 (2026-10-06)، وهو المزيج المستخدم في أهداف العرض التوضيحي للمادة 6.\nتحديد هدف للكهرباء المتجددة، يشمل أهدافًا دنيا لتقنيات طاقة متجددة بعينها."
     "TX:FGTV:DEC_LEAKS_STRATEGY_NDC":
-      name: "NDC · FGTV: خفض التسربات"
+      name: "NDC2.0 · FGTV: خفض التسربات"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:IPPU:DEC_CLINKER_STRATEGY_NDC":
-      name: "NDC · IPPU: خفض نسبة الكلنكر في الأسمنت"
+      name: "NDC2.0 · IPPU: خفض نسبة الكلنكر في الأسمنت"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nخفض استخدام الكلنكر في إنتاج الأسمنت"
     "TX:IPPU:DEC_HFCS_STRATEGY_NDC":
-      name: "NDC · IPPU: خفض استخدام مركبات HFC"
+      name: "NDC2.0 · IPPU: خفض استخدام مركبات HFC"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:LNDU:DEC_SOC_LOSS_PASTURES_STRATEGY_NDC":
-      name: "NDC · LNDU: التوسع في ممارسات الرعي المستدام"
+      name: "NDC2.0 · LNDU: التوسع في ممارسات الرعي المستدام"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nخفض فقدان الكربون العضوي في تربة المراعي من خلال ممارسات الرعي المستدام.\nالمراعي: رفع المعامل F_MG لـ «grasslands» إلى 1.157 (انظر الهيئة الحكومية الدولية المعنية بتغير المناخ، المجلد 4، الفصل 6، الجدول 6.2 [2019R] لمعاملات إدارة المراعي F_MG في نظم الإدارة المختلفة؛ متوسط «Improved Grassland»)"
     "TX:LNDU:INC_REFORESTATION_STRATEGY_NDC":
-      name: "NDC · LNDU: زيادة إعادة التشجير"
+      name: "NDC2.0 · LNDU: زيادة إعادة التشجير"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nزيادة احتمال تحوّل فئات استخدام الأراضي المحددة إلى غابات ثانوية. يمكن تحديد هذا التحوّل لفئات بعينها، مثل تحويل الأراضي الشجيرية والزراعية فقط إلى"
     "TX:LSMM:INC_CAPTURE_BIOGAS_STRATEGY_NDC":
-      name: "NDC · LSMM: زيادة التقاط الغاز الحيوي في منشآت التحلل اللاهوائي"
+      name: "NDC2.0 · LSMM: زيادة التقاط الغاز الحيوي في منشآت التحلل اللاهوائي"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nزيادة نسبة الغاز الحيوي الملتقط من السماد الحيواني المعالَج في منشآت المعالجة اللاهوائية للسماد الحيواني"
     "TX:PFLO:INC_IND_CCS_STRATEGY_NDC":
-      name: "NDC · PFLO: احتجاز الكربون وتخزينه في الصناعة"
+      name: "NDC2.0 · PFLO: احتجاز الكربون وتخزينه في الصناعة"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent.\nتطبيق احتجاز الكربون في المنشآت الصناعية، بما يؤثر في انبعاثات INEN وIPPU. حدد الحد الأدنى المستهدف لنسبة المنشآت الصناعية التي تستخدم احتجاز الكربون (مدى الانتشار) والفعالية المستهدفة للاحتجاز في تلك المنشآت."
     "TX:SCOE:SHIFT_FUEL_HEAT_STRATEGY_NDC":
-      name: "NDC · SCOE: كهربة التدفئة والطهي (المضخات الحرارية والمواقد الكهربائية وغيرها)"
+      name: "NDC2.0 · SCOE: كهربة التدفئة والطهي (المضخات الحرارية والمواقد الكهربائية وغيرها)"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:TRNS:SHIFT_FUEL_LIGHT_DUTY_STRATEGY_NDC":
-      name: "NDC · TRNS: كهربة النقل البري الخفيف"
+      name: "NDC2.0 · TRNS: كهربة النقل البري الخفيف"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_NDC":
-      name: "NDC · TRNS: كهربة السكك الحديدية"
+      name: "NDC2.0 · TRNS: كهربة السكك الحديدية"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:WALI:INC_TREATMENT_RURAL_STRATEGY_NDC":
-      name: "NDC · WALI: تحسين معالجة مياه الصرف في الريف"
+      name: "NDC2.0 · WALI: تحسين معالجة مياه الصرف في الريف"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:WALI:INC_TREATMENT_URBAN_STRATEGY_NDC":
-      name: "NDC · WALI: تحسين معالجة مياه الصرف في الحضر"
+      name: "NDC2.0 · WALI: تحسين معالجة مياه الصرف في الحضر"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:WASO:INC_RECYCLING_STRATEGY_NDC":
-      name: "NDC · WASO: زيادة إعادة التدوير"
+      name: "NDC2.0 · WASO: زيادة إعادة التدوير"
       description: "مأخوذ من استراتيجية المساهمة المحددة وطنيًا لمصر (6003 PFLO:NDC)، المستودع ssp_egypt، الفرع btr_invent."
     "TX:ENTC:TARGET_CLEAN_HYDROGEN_STRATEGY_LEP":
       name: "LEP · ENTC: الهيدروجين النظيف"

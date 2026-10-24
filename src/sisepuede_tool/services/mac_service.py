@@ -39,7 +39,7 @@ from sisepuede_tool.services.emissions_service import SECTOR_ORDER, SUBSECTORS
 MAC_PATH = A6_REF_DIR / "temporary_mac.csv"
 
 # strategy_id_stressed -> pathway; the order is the order on the page
-PATHWAYS = {6004: "NDC", 6005: "LEP"}
+PATHWAYS = {6004: "NDC2.0", 6005: "LEP"}
 MEASURES = ["mean", "tornado", "whirlpool"]
 ESTIMATES = ["tornado", "whirlpool"]
 

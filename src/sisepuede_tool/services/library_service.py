@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 SOURCE_USER = "user"
 SOURCE_NDC = "ndc"
 SOURCE_LEP = "lep"
-SOURCE_LABELS = {SOURCE_NDC: "NDC", SOURCE_LEP: "LEP"}
+SOURCE_LABELS = {SOURCE_NDC: "NDC2.0", SOURCE_LEP: "LEP"}
 # Last historical year of each ready-made pathway (StrategyEntry.base_year):
 # the NDC is a policy from about 2018, the LEP one adopted now (2026 the last
 # fixed year). NemoMod keeps the years up to it as history.
@@ -116,7 +116,7 @@ def lep_pathway_codes() -> List[str]:
 
 
 def strip_set_prefix(name: str) -> str:
-    """'NDC · ENTC: Clean hydrogen' -> 'ENTC: Clean hydrogen' (same for 'LEP · ')."""
+    """'NDC2.0 · ENTC: Clean hydrogen' -> 'ENTC: Clean hydrogen' (same for 'LEP · ')."""
     for label in SOURCE_LABELS.values():
         prefix = f"{label} · "
         if name and name.startswith(prefix):

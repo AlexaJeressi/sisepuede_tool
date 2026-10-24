@@ -747,7 +747,7 @@ def page_pathways_server(input, output, session, state: AppState):
                             ui.div(
                                 ui.span(class_="dot" if t_code in in_pathway else "dot off"),
                                 ui.span(tx_label(t_code), class_="label", title=t_code),
-                                ui.span(library_service.SOURCE_LABELS.get(lib.source, "NDC"), class_="tx-src") if lib else None,
+                                ui.span(library_service.SOURCE_LABELS.get(lib.source, "NDC2.0"), class_="tx-src") if lib else None,
                                 ui.span(tx_summary(t_code).split(" · ")[0], class_="spec"),
                                 class_="tx-item active" if t_code == open_code else "tx-item",
                                 onclick=_ev("tx", t_code),

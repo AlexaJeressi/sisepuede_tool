@@ -6,7 +6,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
   only shrublands and croplands to'
 identifiers:
   transformation_code: TX:LNDU:INC_REFORESTATION_STRATEGY_NDC
-  transformation_name: 'NDC · LNDU: Increase Reforestation'
+  transformation_name: 'NDC2.0 · LNDU: Increase Reforestation'
 parameters:
   cats_inflow_restriction:
   - croplands

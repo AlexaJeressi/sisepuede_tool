@@ -2,7 +2,7 @@ citations: null
 description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
 identifiers:
   transformation_code: TX:WASO:INC_RECYCLING_STRATEGY_NDC
-  transformation_name: 'NDC · WASO: Increase recycling'
+  transformation_name: 'NDC2.0 · WASO: Increase recycling'
 parameters:
   magnitude: 0.95
   vec_implementation_ramp:

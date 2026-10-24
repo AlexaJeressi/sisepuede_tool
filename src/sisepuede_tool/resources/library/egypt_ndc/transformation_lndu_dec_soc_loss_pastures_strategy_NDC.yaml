@@ -6,7 +6,7 @@ description: "Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.\nDecreas
   \ under different management regimes--mean of *Improved Grassland*)"
 identifiers:
   transformation_code: TX:LNDU:DEC_SOC_LOSS_PASTURES_STRATEGY_NDC
-  transformation_name: 'NDC · LNDU: Expand sustainable grazing practices'
+  transformation_name: 'NDC2.0 · LNDU: Expand sustainable grazing practices'
 parameters:
   magnitude: 0.95
   vec_implementation_ramp:

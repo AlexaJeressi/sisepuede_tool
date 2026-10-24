@@ -2,7 +2,7 @@ citations: null
 description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
 identifiers:
   transformation_code: TX:SCOE:SHIFT_FUEL_HEAT_STRATEGY_NDC
-  transformation_name: 'NDC · SCOE: Switch to electricity for heat using heat pumps,
+  transformation_name: 'NDC2.0 · SCOE: Switch to electricity for heat using heat pumps,
     electric stoves, etc.'
 parameters:
   cat_enfu_target: null

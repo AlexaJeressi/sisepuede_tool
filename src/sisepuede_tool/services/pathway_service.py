@@ -108,7 +108,7 @@ def add_library_pathway(
     pathways: PathwayMap,
     transformations_obj,
     library_items,
-    name: str = "NDC",
+    name: str = "NDC2.0",
     description: str = "",
     codes: Optional[Iterable[str]] = None,
     base_year: Optional[int] = None,

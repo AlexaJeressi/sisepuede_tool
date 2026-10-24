@@ -4,7 +4,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
   Reduces use of clinker in cement production'
 identifiers:
   transformation_code: TX:IPPU:DEC_CLINKER_STRATEGY_NDC
-  transformation_name: 'NDC · IPPU: Reduce cement clinker'
+  transformation_name: 'NDC2.0 · IPPU: Reduce cement clinker'
 parameters:
   magnitude: 0.5
   vec_implementation_ramp:

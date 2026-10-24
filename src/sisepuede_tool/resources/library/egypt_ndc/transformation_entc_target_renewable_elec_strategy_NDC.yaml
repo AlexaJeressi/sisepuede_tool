@@ -16,7 +16,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent. Renewabl
   energy technologies.'
 identifiers:
   transformation_code: TX:ENTC:TARGET_RENEWABLE_ELEC_STRATEGY_NDC
-  transformation_name: 'NDC · ENTC: Renewable electricity target'
+  transformation_name: 'NDC2.0 · ENTC: Renewable electricity target'
 parameters:
   categories_entc_max_investment_ramp: null
   categories_entc_renewable:

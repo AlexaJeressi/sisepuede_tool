@@ -6,7 +6,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
   capture (prevalence) and target effectiveness of carbon capture at those faciltiies.'
 identifiers:
   transformation_code: TX:PFLO:INC_IND_CCS_STRATEGY_NDC
-  transformation_name: 'NDC · PFLO: Industrial carbon capture and sequestration'
+  transformation_name: 'NDC2.0 · PFLO: Industrial carbon capture and sequestration'
 parameters:
   dict_magnitude_eff: 0.9
   dict_magnitude_prev: null

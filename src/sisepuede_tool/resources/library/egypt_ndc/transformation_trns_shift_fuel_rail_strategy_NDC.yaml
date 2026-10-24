@@ -2,7 +2,7 @@ citations: null
 description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
 identifiers:
   transformation_code: TX:TRNS:SHIFT_FUEL_RAIL_STRATEGY_NDC
-  transformation_name: 'NDC · TRNS: Electrify rail'
+  transformation_name: 'NDC2.0 · TRNS: Electrify rail'
 parameters:
   categories:
   - rail_freight

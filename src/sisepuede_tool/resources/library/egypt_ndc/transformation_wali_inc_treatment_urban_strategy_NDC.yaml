@@ -2,7 +2,7 @@ citations: null
 description: Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
 identifiers:
   transformation_code: TX:WALI:INC_TREATMENT_URBAN_STRATEGY_NDC
-  transformation_name: 'NDC · WALI: Improved urban wastewater treatment'
+  transformation_name: 'NDC2.0 · WALI: Improved urban wastewater treatment'
 parameters:
   dict_magnitude: null
   return_pathways: false

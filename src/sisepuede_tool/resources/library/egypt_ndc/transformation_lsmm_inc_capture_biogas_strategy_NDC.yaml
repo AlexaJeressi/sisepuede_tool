@@ -5,7 +5,7 @@ description: 'Egypt NDC strategy (6003 PFLO:NDC), ssp_egypt btr_invent.
   livestock manure treatment facilities'
 identifiers:
   transformation_code: TX:LSMM:INC_CAPTURE_BIOGAS_STRATEGY_NDC
-  transformation_name: 'NDC · LSMM: Increase biogas capture at anaerobic decomposition
+  transformation_name: 'NDC2.0 · LSMM: Increase biogas capture at anaerobic decomposition
     facilities'
 parameters:
   magnitude: 0.9

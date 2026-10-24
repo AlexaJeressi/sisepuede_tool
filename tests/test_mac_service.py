@@ -41,8 +41,8 @@ def _mac_file(tmp_path):
 
 def test_load_signs_and_scopes(tmp_path):
     df = _mac_file(tmp_path)
-    assert "All" not in set(df["subsector"]) and mac.pathways(df) == ["NDC", "LEP"]
-    a = df[(df["pathway"] == "NDC") & (df["code"] == "TX:TRNS:A") & (df["subsector"] == "trns")].iloc[0]
+    assert "All" not in set(df["subsector"]) and mac.pathways(df) == ["NDC2.0", "LEP"]
+    a = df[(df["pathway"] == "NDC2.0") & (df["code"] == "TX:TRNS:A") & (df["subsector"] == "trns")].iloc[0]
     # tonnes of the subsector; cost and MAC of the whole transformation ("All")
     assert (a["abatement_tornado"], a["cost_tornado"], a["mac_tornado"], a["mac_mean"]) == (80.0, 2.0, 20.0, 30.0)
     assert mac.scopes(df) == [("Energy", ["entc", "trns"]), ("Circular Economy", ["waso"])]
@@ -51,7 +51,7 @@ def test_load_signs_and_scopes(tmp_path):
 
 
 def test_whole_economy_curve(tmp_path):
-    rows, left = mac.curve(_mac_file(tmp_path), "NDC", "", "tornado")
+    rows, left = mac.curve(_mac_file(tmp_path), "NDC2.0", "", "tornado")
     assert list(rows["code"]) == ["TX:WASO:B", "TX:TRNS:A"]  # cheapest first
     b, a = rows.iloc[0], rows.iloc[1]
     assert b["mac"] == -20.0 and a["mac"] == 20.0 and a["abatement"] == 100.0  # the file's MACs; 80 + 20 Mt
@@ -62,7 +62,7 @@ def test_whole_economy_curve(tmp_path):
 
 def test_mean_is_the_files(tmp_path):
     df = _mac_file(tmp_path)
-    t = mac.transformations(df, "NDC").set_index("code")
+    t = mac.transformations(df, "NDC2.0").set_index("code")
     assert (t.loc["TX:TRNS:A", "mac_whirlpool"], t.loc["TX:TRNS:A", "mac_mean"]) == (40.0, 30.0)
     t = mac.transformations(df, "LEP").set_index("code")
     assert (t.loc["TX:TRNS:A", "abatement_mean"], t.loc["TX:TRNS:A", "mac_mean"]) == (40.0, 50.0)  # tonnes: (60 + 20) / 2
@@ -70,41 +70,41 @@ def test_mean_is_the_files(tmp_path):
 
 def test_scope_counts_only_its_tonnes(tmp_path):
     df = _mac_file(tmp_path)
-    rows, left = mac.curve(df, "NDC", "trns", "tornado")
+    rows, left = mac.curve(df, "NDC2.0", "trns", "tornado")
     # A abates 80 of its 100 Mt here; C abates 5 here (raising emissions overall), at the file's MAC
     assert list(rows["code"]) == ["TX:ENTC:C", "TX:TRNS:A"]
     assert (rows["abatement"].iloc[1], rows["share"].iloc[1], rows["mac"].iloc[1]) == (80.0, 0.8, 20.0)
     assert rows["mac"].iloc[0] == -200.0 and np.isnan(rows["share"].iloc[0])
     assert left == {"raises": []}
-    rows, left = mac.curve(df, "NDC", "entc", "tornado")
+    rows, left = mac.curve(df, "NDC2.0", "entc", "tornado")
     assert list(rows["code"]) == ["TX:TRNS:A"] and left["raises"] == ["TX:ENTC:C"]
-    assert mac.curve(df, "NDC", "waso", "tornado")[0]["code"].tolist() == ["TX:WASO:B"]
-    assert len(mac.curve(df, "NDC", "sector:Energy", "tornado")[0]) == 1
+    assert mac.curve(df, "NDC2.0", "waso", "tornado")[0]["code"].tolist() == ["TX:WASO:B"]
+    assert len(mac.curve(df, "NDC2.0", "sector:Energy", "tornado")[0]) == 1
     assert mac.curve(df, "LEP", "waso", "mean")[0].empty
 
 
 def test_by_subsector(tmp_path):
     df = _mac_file(tmp_path)
-    t = mac.by_subsector(df, ["NDC", "LEP"], "tornado").set_index(["pathway", "subsector"])
+    t = mac.by_subsector(df, ["NDC2.0", "LEP"], "tornado").set_index(["pathway", "subsector"])
     # NDC transport: A (80 Mt at 20 USD/t) and C (5 Mt at -200 USD/t)
-    assert t.loc[("NDC", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((20 * 80 - 200 * 5) / 85), 85.0, 2]
-    assert t.loc[("NDC", "waso"), "mac"] == pytest.approx(-20.0)
+    assert t.loc[("NDC2.0", "trns"), ["mac", "abatement", "n"]].tolist() == [pytest.approx((20 * 80 - 200 * 5) / 85), 85.0, 2]
+    assert t.loc[("NDC2.0", "waso"), "mac"] == pytest.approx(-20.0)
     assert ("LEP", "waso") not in t.index  # no data
-    assert mac.subsector_order(t.reset_index(), ["NDC", "LEP"]) == ["waso", "trns", "entc"]
+    assert mac.subsector_order(t.reset_index(), ["NDC2.0", "LEP"]) == ["waso", "trns", "entc"]
 
 
 def test_by_transformation(tmp_path):
     df = _mac_file(tmp_path)
-    rows, hidden = mac.by_transformation(df, ["NDC", "LEP"], "tornado")
+    rows, hidden = mac.by_transformation(df, ["NDC2.0", "LEP"], "tornado")
     assert hidden == 0
     a = rows[rows["code"] == "TX:TRNS:A"].set_index(["pathway", "subsector"])
     # under each subsector it abates in, with what it abates there
-    assert a.loc[("NDC", "trns"), "abatement"] == 80.0 and a.loc[("NDC", "entc"), "abatement"] == 20.0
+    assert a.loc[("NDC2.0", "trns"), "abatement"] == 80.0 and a.loc[("NDC2.0", "entc"), "abatement"] == 20.0
     assert a.loc[("LEP", "trns"), "share"] == 1.0
-    rows, _ = mac.by_transformation(df, ["NDC"], "tornado", "waso")
+    rows, _ = mac.by_transformation(df, ["NDC2.0"], "tornado", "waso")
     assert rows["code"].tolist() == ["TX:WASO:B"]
     # a sector: its subsectors, each with its own rows; C is 5 of transport's 85 Mt
-    rows, hidden = mac.by_transformation(df, ["NDC"], "tornado", "sector:Energy", min_share=0.5)
+    rows, hidden = mac.by_transformation(df, ["NDC2.0"], "tornado", "sector:Energy", min_share=0.5)
     assert hidden == 1 and set(rows["subsector"]) == {"trns", "entc"}
 
 
@@ -127,7 +127,7 @@ def test_subsector_of():
 @pytest.mark.skipif(not mac.MAC_PATH.exists(), reason=f"{mac.MAC_PATH} not found")
 def test_load_file():
     df = mac.load()
-    assert mac.pathways(df) == ["NDC", "LEP"]
+    assert mac.pathways(df) == ["NDC2.0", "LEP"]
     assert not df.duplicated(["pathway", "code", "subsector"]).any()
     assert not df["subsector"].isna().any()  # every subsector of the file is in SUBSECTOR_ABV
     for p in mac.pathways(df):
