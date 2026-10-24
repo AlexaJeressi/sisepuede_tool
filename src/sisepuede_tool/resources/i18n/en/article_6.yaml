@@ -35,7 +35,7 @@
   "ranked_panel": "LEP"
   "ranked_missing": "The ranked MAC file of sisepuede_a6 (ref/temporary_a6_ranked_mac_bar_df.csv) was not found."
   "overall": "Credits (emission reductions) by transformation, ranked by MAC, whole economy"
-  "overall_tip": "sisepuede_a6's aggregate file (ref/temporary_a6_ranked_mac_bar_df_all_aggregate.csv), as it is: each year's credit value split among the transformations by their share of what the whole economy abates beyond the NDC2.0, ranked by their whole-economy MAC, cheapest at the base, with no subsectors. The yearly totals are those of the chart above. The grey area, after {year}, is past the NDC2.0 targets."
+  "overall_tip": "sisepuede_a6's aggregate file (ref/temporary_a6_ranked_mac_bar_df_all_aggregate.csv), as it is: each year's credit value split among the transformations by their share of what the whole economy abates beyond the NDC2.0, ranked by their whole-economy MAC, highest at the base (as in the charts above), with no subsectors. The yearly totals are those of the chart above. The grey area, after {year}, is past the NDC2.0 targets."
   "whole_economy": "Whole economy"
   "all_transformations": "All transformations"
   "show_projects": "Projects"

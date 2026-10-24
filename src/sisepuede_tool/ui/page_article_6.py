@@ -34,7 +34,8 @@ in its ref/ files. Shows:
   projects linked to it (Pathways page), instead of the hover;
 - the sisepuede_a6 aggregate ranked file, the same way but in one group (the
   whole economy, one colour): each year's credits split among the
-  transformers by their whole-economy share, cheapest first.
+  transformers by their whole-economy share, the highest MAC at the base, as
+  in the two charts above.
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.

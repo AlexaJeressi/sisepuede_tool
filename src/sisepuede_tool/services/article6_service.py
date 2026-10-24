@@ -114,14 +114,14 @@ def load_ranked_aggregate(path=AGGREGATE_PATH) -> pd.DataFrame:
     sisepuede_a6 aggregate ranked file as it is (static, its own LEP run): each
     year's credits split among the transformers by their share of the whole
     economy's abatement beyond the NDC2.0, at their whole-economy MAC, all in
-    one group (WHOLE_ECONOMY), cheapest first."""
+    one group (WHOLE_ECONOMY), the highest MAC first (as the ranked charts)."""
     cols = ["year", FIELD_GROUP, FIELD_KERNEL, "mac", "value_musd"]
     if not path.exists():
         return pd.DataFrame(columns=cols)
     df = pd.read_csv(path).rename(columns={FIELD_MAC: "mac", FIELD_VALUE: "value_musd"})
     df["year"] = df["year"].astype(int)
     df[FIELD_GROUP] = WHOLE_ECONOMY
-    return df.sort_values(["year", "mac"], kind="stable")[cols].reset_index(drop=True)
+    return df.sort_values(["year", "mac"], ascending=[True, False], kind="stable")[cols].reset_index(drop=True)
 
 
 def target_years(targets: pd.DataFrame) -> list:
