@@ -7,9 +7,9 @@ the tool's results. The clone is found at $SISEPUEDE_A6_DIR, or next to this
 repo (../sisepuede_a6) when the variable is not set.
 
 Reference data, read from the clone's ref/ folder:
-- emission_groupings_example.csv: emission_groups, sisepuede_fields
+- emission_groupings_example.csv: emission_grouping, sisepuede_fields
   ("|"-separated output fields summed into the group);
-- ndc_targets_for_a6_demo.csv: year, emission_groups, target_mt_co2e_ndc2;
+- ndc_targets_for_a6_demo.csv: year, emission_grouping, target_mt_co2e_ndc2;
 - carbon_prices_example.csv: year, price_mm_usd_carbon_per_mt (million USD per
   MtCO2e = USD per tCO2e).
 """
@@ -26,7 +26,7 @@ from sisepuede.core.support_classes import TimePeriods
 from sisepuede_tool import config
 
 DELIM_SSP_FIELDS = "|"
-FIELD_GROUP = "emission_groups"
+FIELD_GROUP = "emission_grouping"
 FIELD_SSP_FIELDS = "sisepuede_fields"
 FIELD_TARGET = "target_mt_co2e_ndc2"
 FIELD_PRICE = "price_mm_usd_carbon_per_mt"
@@ -78,7 +78,7 @@ def _time_periods(model_attributes) -> TimePeriods:
 
 
 def credit_estimate(df_output: pd.DataFrame, model_attributes, ref: Optional[Dict[str, pd.DataFrame]] = None) -> pd.DataFrame:
-    """[year, emission_groups, emissions, target, diff, modelled, price, credits_mt, value_musd].
+    """[year, emission_grouping, emissions, target, diff, modelled, price, credits_mt, value_musd].
 
     value_musd is ssp_asix.get_credit_estimate(). The other columns come from
     the same module, so they follow it: emissions, target and diff (as
@@ -91,7 +91,7 @@ def credit_estimate(df_output: pd.DataFrame, model_attributes, ref: Optional[Dic
     m = asix()
     tp = _time_periods(model_attributes)
     groupings, targets, prices = ref["groupings"], ref["targets"], ref["prices"]
-    keys = [tp.field_year, m._FIELD_EMISSION_GROUPS]
+    keys = [tp.field_year, m._FIELD_EMISSION_GROUPING]
 
     diff = m.get_emissions_from_target_years(df_output, groupings, targets, m._FIELD_VALUE_NDC2, model_attributes, tp)
     value = m.get_credit_estimate(df_output, prices, groupings, targets, m._FIELD_VALUE_NDC2, model_attributes, tp)

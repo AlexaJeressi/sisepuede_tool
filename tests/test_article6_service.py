@@ -20,12 +20,12 @@ def _ref():
     return {
         "groupings": pd.DataFrame(
             {
-                "emission_groups": ["Energy", "Waste"],
+                "emission_grouping": ["Energy", "Waste"],
                 "sisepuede_fields": ["emission_co2e_subsector_total_entc|emission_co2e_subsector_total_trns", "emission_co2e_subsector_total_waso"],
             }
         ),
         "targets": pd.DataFrame(
-            {"year": [2030, 2030, 2035, 2035], "emission_groups": ["Energy", "Waste", "Energy", "Waste"], "target_mt_co2e_ndc2": [100.0, 10.0, 90.0, 10.0]}
+            {"year": [2030, 2030, 2035, 2035], "emission_grouping": ["Energy", "Waste", "Energy", "Waste"], "target_mt_co2e_ndc2": [100.0, 10.0, 90.0, 10.0]}
         ),
         "prices": pd.DataFrame({"year": [2030, 2035], "price_mm_usd_carbon_per_mt": [10.0, 20.0]}),
     }
@@ -48,14 +48,14 @@ def test_value_is_sisepuede_a6_get_credit_estimate(model_attributes):
     m = a6.asix()
     expected = m.get_credit_estimate(
         _output(), ref["prices"], ref["groupings"], ref["targets"], m._FIELD_VALUE_NDC2, model_attributes, a6._time_periods(model_attributes)
-    ).set_index(["year", "emission_groups"])[m._FIELD_CREDIT_VALUE]
-    est = a6.credit_estimate(_output(), model_attributes, ref).set_index(["year", "emission_groups"])
+    ).set_index(["year", "emission_grouping"])[m._FIELD_CREDIT_VALUE]
+    est = a6.credit_estimate(_output(), model_attributes, ref).set_index(["year", "emission_grouping"])
     assert sorted(est.index.get_level_values("year").unique()) == [2030, 2035]
     pd.testing.assert_series_equal(est["value_musd"], expected.reindex(est.index), check_names=False)
 
 
 def test_breakdown_columns(model_attributes):
-    est = a6.credit_estimate(_output(), model_attributes, _ref()).set_index(["year", "emission_groups"])
+    est = a6.credit_estimate(_output(), model_attributes, _ref()).set_index(["year", "emission_grouping"])
     assert est.loc[(2030, "Energy"), "emissions"] == pytest.approx(90.0)  # entc + trns
     assert est.loc[(2030, "Energy"), "target"] == pytest.approx(100.0)
     assert est.loc[(2035, "Waste"), "price"] == pytest.approx(20.0)
@@ -74,8 +74,8 @@ def test_groups_without_emissions_are_flagged(model_attributes):
 
 def test_shipped_reference_is_consistent():
     ref = a6.load_reference()
-    groups = set(ref["groupings"]["emission_groups"])
-    assert set(ref["targets"]["emission_groups"]) <= groups
+    groups = set(ref["groupings"]["emission_grouping"])
+    assert set(ref["targets"]["emission_grouping"]) <= groups
     assert set(a6.target_years(ref["targets"])) <= set(ref["prices"]["year"])
 
 
@@ -96,8 +96,8 @@ def test_changed_prices_change_the_value_only_in_their_year(model_attributes):
     ref = _ref()
     assert a6.price_by_year(ref["prices"], [2030, 2035]) == {2030: 10.0, 2035: 20.0}
     edited = {**ref, "prices": a6.with_prices(ref["prices"], {2030: 25.0})}
-    base = a6.credit_estimate(_output(), model_attributes, ref).set_index(["year", "emission_groups"])
-    est = a6.credit_estimate(_output(), model_attributes, edited).set_index(["year", "emission_groups"])
+    base = a6.credit_estimate(_output(), model_attributes, ref).set_index(["year", "emission_grouping"])
+    est = a6.credit_estimate(_output(), model_attributes, edited).set_index(["year", "emission_grouping"])
     assert est.loc[2030, "value_musd"].to_numpy() == pytest.approx(base.loc[2030, "value_musd"].to_numpy() * 2.5)
     assert est.loc[2035, "value_musd"].to_numpy() == pytest.approx(base.loc[2035, "value_musd"].to_numpy())  # unchanged
     assert ref["prices"].set_index("year").loc[2030].iloc[0] == 10.0  # the reference table is not modified
@@ -113,7 +113,7 @@ def test_headline_years_are_the_milestones():
 
 def test_emissions_by_year_sums_the_groups_with_a_target(model_attributes):
     ref = _ref()
-    ref["targets"].loc[ref["targets"]["emission_groups"] == "Waste", "target_mt_co2e_ndc2"] = float("nan")
+    ref["targets"].loc[ref["targets"]["emission_grouping"] == "Waste", "target_mt_co2e_ndc2"] = float("nan")
     s = a6.emissions_by_year(_output(), model_attributes, ref)
     assert list(s.index) == [2029, 2030, 2035]  # every year of the run, not only the target years
     assert s.to_dict() == {2029: 100.0, 2030: 90.0, 2035: 80.0}  # Energy only: Waste has no target

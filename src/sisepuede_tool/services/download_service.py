@@ -10,7 +10,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
-from sisepuede_tool.services import cb_summary_service, emissions_service, results_groups_service
+from sisepuede_tool.services import article6_service, cb_summary_service, emissions_service, results_groups_service
 
 
 def _xlsx(sheets: Dict[str, pd.DataFrame]) -> bytes:
@@ -139,7 +139,7 @@ def article6_workbook(
     for name, est in runs:
         d = est.rename(
             columns={
-                "emission_groups": "emission_group",
+                article6_service.FIELD_GROUP: "emission_group",
                 "emissions": "emissions_mt",
                 "target": "target_mt",
                 "diff": "diff_mt",
