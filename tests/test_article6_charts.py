@@ -98,3 +98,12 @@ def test_ranked_hover_without_projects():
     # the hover by the bar, with no project count
     assert "Alpha" in tr.hovertemplate and "MAC 5.0" in tr.hovertemplate and "project" not in tr.hovertemplate
     assert tr.hoverinfo is None
+
+
+def test_total_outside_bars_of_both_signs():
+    # one group with a positive and a negative part: the net (-30) under the negative end (-50)
+    frame = pd.DataFrame({"year": [2030, 2030], "series": ["All", "All"], "part": ["TFR:A", "TFR:B"], "mac": [1.0, 2.0], "value": [20.0, -50.0]})
+    fig = rc.credit_bars({"LEP": frame}, {}, ["All"], "M USD")
+    total = fig.layout.annotations[-1]
+    assert total.text == "−30.0" or total.text == "-30.0"
+    assert total.y == -50.0 and total.yshift < 0

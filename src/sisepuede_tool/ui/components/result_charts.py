@@ -928,7 +928,12 @@ def credit_bars(
                     row=1, col=j,
                 )
         shown = wide[[c for c in order if c in wide.columns]]
-        for xi, v, top, bottom in zip(x, shown.sum(axis=1), shown.clip(lower=0).sum(axis=1), shown.clip(upper=0).sum(axis=1)):
+        # where the bars end: by segment (a group split into parts can have both signs)
+        cells = frames[title][frames[title]["series"].isin(shown.columns)]
+        cells = cells.assign(_k=cells["part"] if split else cells["series"]).groupby(["year", "_k"])["value"].sum()
+        tops = cells.clip(lower=0).groupby(level=0).sum().reindex(wide.index, fill_value=0.0)
+        bottoms = cells.clip(upper=0).groupby(level=0).sum().reindex(wide.index, fill_value=0.0)
+        for xi, v, top, bottom in zip(x, shown.sum(axis=1), tops, bottoms):
             if int(xi) in label_years:
                 # on a category axis a number is read as a position, and Plotly turns "2030" into 2030
                 y, shift = (float(top), 10) if v >= 0 else (float(bottom), -10)
