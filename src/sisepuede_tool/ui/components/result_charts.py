@@ -756,7 +756,9 @@ def mac_by_transformation(
     light header per subsector, in `order`), cheapest first within each. One
     bar per pathway (the NDC and LEP versions of a transformation share a row,
     by `key`); written after it, the emissions it abates in that subsector.
-    `names`: key -> name. `limit`: as in mac_by_subsector."""
+    `names`: key -> name. `limit`: as in mac_by_subsector. Each bar is the
+    transformation's MAC in that subsector; the hover also gives its whole MAC
+    (mac_all), when `rows` have it."""
     t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
     n = len(pathways)
     h = 0.8 / max(n, 1)
@@ -801,6 +803,8 @@ def mac_by_transformation(
             est = [f"{t(m)} {r[f'mac_{m}']:+,.1f}" for m in ("tornado", "whirlpool") if pd.notna(r[f"mac_{m}"])]
             if est:
                 extra.append(t("hover_estimates", v=" · ".join(est)))
+            if "mac_all" in r and pd.notna(r["mac_all"]):
+                extra.append(t("hover_all", v=f"{r['mac_all']:+,.1f}"))
             hover.append(_mac_cost_hover(lang, title=names.get(k, k), pathway=p, mac=v, abatement=r["abatement"], extra=extra))
             if limit and abs(v) > limit:
                 breaks.append((x, yy, v))

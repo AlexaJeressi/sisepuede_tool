@@ -10,9 +10,10 @@ whirlpool, strategies in ref/temporary_mac_strategy_map.csv):
 - mac_{tornado,whirlpool,mean}_usd_per_tonne: the MAC (USD/tCO2e, > 0 = costs
   money); mean = the average of the two.
 
-The page shows the file's values as they are: a transformation's MAC is that
-of its "All" row (the page doesn't compute its own), and the tonnes it abates
-in a subsector are -emissions of that subsector's row. The file has no tonnes
+The page shows the file's values as they are (it doesn't compute its own
+MACs): a transformation's MAC is that of its "All" row, its MAC in a
+subsector that of the subsector's row (the chart by transformation), and the
+tonnes it abates in a subsector are -emissions of that subsector's row. The file has no tonnes
 for the mean: they are the average of the two estimates. A transformation that
 raises emissions overall keeps the file's MAC.
 
@@ -70,7 +71,8 @@ def load(path=None) -> pd.DataFrame:
     whirlpool, mean): one row per pathway, transformation and subsector
     (abbreviation). abatement: MtCO2e abated in that subsector (> 0 = emissions
     avoided); cost (billion USD, > 0 = net cost) and mac: the transformation's
-    whole ones (its "All" row), the same on each of its rows."""
+    whole ones (its "All" row), the same on each of its rows; sub_cost and
+    sub_mac: those of the subsector's own row."""
     df = pd.read_csv(path or MAC_PATH)
     df = df[df["strategy_id_stressed"].isin(PATHWAYS)]
     whole = df[df["emission_grouping"] == "All"].set_index(["strategy_id_stressed", "transformation_code"])
@@ -84,10 +86,12 @@ def load(path=None) -> pd.DataFrame:
     for e in ESTIMATES:
         out[f"abatement_{e}"] = -df[f"est_transformation_emission_effect_mt_co2e_{e}"].astype(float)
         out[f"cost_{e}"] = -whole[f"cost_diff_mmm_usd_{e}"].reindex(keys).to_numpy(float)
-    for x in ("abatement", "cost"):
+        out[f"sub_cost_{e}"] = -df[f"cost_diff_mmm_usd_{e}"].astype(float)
+    for x in ("abatement", "cost", "sub_cost"):
         out[f"{x}_mean"] = (out[f"{x}_tornado"] + out[f"{x}_whirlpool"]) / 2
     for m in MEASURES:
         out[f"mac_{m}"] = whole[f"mac_{m}_usd_per_tonne"].reindex(keys).to_numpy(float)
+        out[f"sub_mac_{m}"] = df[f"mac_{m}_usd_per_tonne"].astype(float)
     return out.reset_index(drop=True)
 
 
@@ -210,22 +214,26 @@ def by_transformation(df: pd.DataFrame, pathways: List[str], measure: str, scope
     """The transformations that abate in each subsector of `scope` ("" = all),
     for each pathway: [subsector, key (pair_key), code, pathway, mac, abatement,
     share (of the subsector's abatement in that pathway), cost, mac_tornado,
-    mac_whirlpool]. A transformation that abates in several
-    subsectors is under each, with what it abates there. Rows under
+    mac_whirlpool, mac_all], cheapest first in each subsector. A transformation
+    that abates in several subsectors is under each, with what it abates there
+    and its MAC there (mac, cost, mac_tornado, mac_whirlpool: the file's row for
+    that subsector); mac_all: its whole MAC (the "All" row). Rows under
     `min_share` in every pathway are left out; their number is returned."""
     subs = scope_subsectors(scope) or [abv for _, s in scopes(df) for abv in s]
-    parts = []
-    for p in pathways:
-        for abv in subs:
-            rows, _ = curve(df, p, abv, measure)
-            if rows.empty:
-                continue
-            rows = rows.assign(pathway=p, subsector=abv, key=rows["code"].map(pair_key))
-            rows["share"] = rows["abatement"] / rows["abatement"].sum()
-            parts.append(rows.drop(columns="start"))
-    if not parts:
-        return pd.DataFrame(columns=["subsector", "key", "code", "pathway", "mac", "abatement", "share"]), 0
-    t = pd.concat(parts, ignore_index=True)
+    cols = ["subsector", "key", "code", "pathway", "mac", "abatement", "share", "cost", "mac_tornado", "mac_whirlpool", "mac_all"]
+    d = df[df["pathway"].isin(pathways) & df["subsector"].isin(subs)]
+    d = d[(d[f"abatement_{measure}"] > ZERO_MT) & d[f"sub_mac_{measure}"].notna()]
+    if d.empty:
+        return pd.DataFrame(columns=cols), 0
+    t = pd.DataFrame({
+        "subsector": d["subsector"], "key": d["code"].map(pair_key), "code": d["code"], "pathway": d["pathway"],
+        "mac": d[f"sub_mac_{measure}"], "abatement": d[f"abatement_{measure}"], "cost": d[f"sub_cost_{measure}"],
+        "mac_tornado": d["sub_mac_tornado"], "mac_whirlpool": d["sub_mac_whirlpool"], "mac_all": d[f"mac_{measure}"],
+    })
+    t["share"] = t["abatement"] / t.groupby(["pathway", "subsector"])["abatement"].transform("sum")
+    t["_p"] = t["pathway"].map({p: i for i, p in enumerate(pathways)})
+    t["_s"] = t["subsector"].map({abv: i for i, abv in enumerate(subs)})
+    t = t.sort_values(["_p", "_s", "mac"], kind="stable").drop(columns=["_p", "_s"])[cols].reset_index(drop=True)
     keep = t.groupby(["subsector", "key"])["share"].transform("max") >= min_share
     hidden = t.loc[~keep, ["subsector", "key"]].drop_duplicates().shape[0]
     return t[keep].reset_index(drop=True), hidden

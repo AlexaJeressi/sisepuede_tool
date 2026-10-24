@@ -256,7 +256,7 @@ def page_mac_server(input, output, session, state: AppState):
                 d = rows[(rows["key"] == k) & (rows["pathway"] == p)]
                 if d.empty:
                     continue
-                v = float(d["mac"].iloc[0])
+                v = float(d["mac_all"].iloc[0])  # its whole MAC: a row may span several subsectors
                 out.append(ui.div(ui.span(class_="swatch", style=f"background:{colors.get(p)}"),
                                   f"{v:+,.1f}" if abs(v) < 1000 else f"{v:+,.0f}", class_="mono mac-cell"))
             return ui.tags.td(*out)

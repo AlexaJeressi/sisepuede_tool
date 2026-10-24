@@ -13,7 +13,7 @@
   "by_subsector": "Average cost of abatement, by subsector"
   "by_subsector_tip": "For each subsector, what a tonne of CO₂e abated there costs on average, cheapest on the left: the cost per tonne of each transformation that abates there, weighted by the tonnes it abates there. Below zero, the abatement saves more than it costs. Above each bar, the emissions abated there (MtCO₂e). A transformation has one cost per tonne, its whole net cost over everything it abates. Tornado and whirlpool are two estimates from different sets of runs; the mean is their average."
   "by_transformation": "Cost of abatement, by transformation"
-  "by_transformation_tip": "The transformations that abate in each subsector, cheapest first, in the subsector order of the chart above. A transformation that abates in several subsectors appears under each, with the same cost per tonne and what it abates there (after the bar, MtCO₂e). The NDC2.0 and LEP versions of a transformation share a row."
+  "by_transformation_tip": "The transformations that abate in each subsector, cheapest first, in the subsector order of the chart above. A transformation that abates in several subsectors appears under each, with its cost per tonne in that subsector (as sisepuede_a6's file gives it for the subsector) and what it abates there (after the bar, MtCO₂e). The NDC2.0 and LEP versions of a transformation share a row."
   "avg_cost_axis": "Average cost of abatement ({unit})"
   "cost_axis": "Cost per tonne abated ({unit})"
   "no_data": "no data"
@@ -22,6 +22,7 @@
   "hover_abated": "Abated here: {v} MtCO₂e"
   "hover_share": "{pct}% of what this pathway abates in {sub}"
   "hover_estimates": "Estimates: {v}"
+  "hover_all": "Over all the subsectors: {v} USD/tCO₂e"
   "hover_n":
     "one": "{n} transformation abates here"
     "other": "{n} transformations abate here"

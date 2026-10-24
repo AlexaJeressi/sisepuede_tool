@@ -13,12 +13,13 @@ def _mac_file(tmp_path):
     """A temporary_mac file: NDC (6004) with A (transport, also cuts electricity),
     B (saves money) and C (raises emissions overall, abates in transport); LEP
     (6005) with A only. Costs and emissions per subsector, "All" = their sum
-    with the transformation's MACs; the subsector rows' MACs (999) are not used."""
+    with the transformation's MACs; the subsector rows have their own MACs
+    (used by the chart by transformation; 999 where none is checked)."""
     rows = [
         # strategy, code, grouping, cost T, cost W, emission T, emission W, MAC T, MAC W, MAC mean
         # (cost < 0 = net cost, emission < 0 = abated)
-        (6004, "TX:TRNS:A", "Transportation", -1.5, -4.0, -80.0, -100.0, 999, 999, 999),
-        (6004, "TX:TRNS:A", "Energy Technology", -0.5, 0.0, -20.0, 0.0, 999, 999, 999),
+        (6004, "TX:TRNS:A", "Transportation", -1.5, -4.0, -80.0, -100.0, 18.75, 40.0, 29.375),
+        (6004, "TX:TRNS:A", "Energy Technology", -0.5, 0.0, -20.0, 0.0, 25.0, None, 25.0),
         (6004, "TX:TRNS:A", "All", -2.0, -4.0, -100.0, -100.0, 20.0, 40.0, 30.0),
         (6004, "TX:WASO:B", "Solid Waste", 1.0, 1.0, -50.0, -50.0, 999, 999, 999),
         (6004, "TX:WASO:B", "Energy Technology", 0.0, 0.0, 0.0, 0.0, 999, 999, 999),
@@ -101,6 +102,9 @@ def test_by_transformation(tmp_path):
     # under each subsector it abates in, with what it abates there
     assert a.loc[("NDC2.0", "trns"), "abatement"] == 80.0 and a.loc[("NDC2.0", "entc"), "abatement"] == 20.0
     assert a.loc[("LEP", "trns"), "share"] == 1.0
+    # its MAC in each subsector is the file's row for it; mac_all its whole one
+    assert (a.loc[("NDC2.0", "trns"), "mac"], a.loc[("NDC2.0", "entc"), "mac"]) == (18.75, 25.0)
+    assert a.loc[("NDC2.0", "entc"), "mac_all"] == 20.0 and a.loc[("NDC2.0", "entc"), "cost"] == 0.5
     rows, _ = mac.by_transformation(df, ["NDC2.0"], "tornado", "waso")
     assert rows["code"].tolist() == ["TX:WASO:B"]
     # a sector: its subsectors, each with its own rows; C is 5 of transport's 85 Mt
