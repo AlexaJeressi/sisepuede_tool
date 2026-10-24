@@ -24,6 +24,15 @@ def test_gap_band_colours_and_legend():
     assert "192,57,43" in fills[0].fillcolor and "46,139,87" in fills[1].fillcolor
 
 
+def test_years_after_the_ndc_targets_are_grey():
+    s = {"NDC": pd.Series([10.0, 10.0, 10.0], index=[2034, 2035, 2036])}
+    fig = rc.gap_lines(s, {}, "Mt", outside=(2035, "after 2035"))
+    (rect,) = fig.layout.shapes
+    assert (rect.x0, rect.x1) == (2035, 2036) and fig.layout.annotations[-1].text == "after 2035"
+    # no shading when the shown years end before it
+    assert not rc.gap_lines(s, {}, "Mt", outside=(2036, "after 2036")).layout.shapes
+
+
 def test_credit_bars_put_negative_groups_below_zero():
     frame = pd.DataFrame({"year": [2030, 2030], "series": ["Energy", "Transport"], "value": [-500.0, 200.0]})
     fig = rc.credit_bars({"LEP": frame}, {}, ["Energy", "Transport"], "M USD")
@@ -31,3 +40,11 @@ def test_credit_bars_put_negative_groups_below_zero():
     (label,) = fig.layout.annotations[1:]  # [0] is the panel title
     # the total (-300) is written under the negative part of the bar
     assert (label.text, label.y, label.yshift) == ("-300", -500.0, -10)
+
+
+def test_credit_bars_grey_after_the_ndc_targets():
+    frame = pd.DataFrame({"year": [2034, 2035, 2036, 2037], "series": ["Energy"] * 4, "value": [1.0, 2.0, 3.0, 4.0]})
+    fig = rc.credit_bars({"NDC": frame, "LEP": frame}, {}, ["Energy"], "M USD", outside=(2035, "after 2035"))
+    # one band per panel, on the category positions of 2036 and 2037
+    assert [(r.x0, r.x1) for r in fig.layout.shapes] == [(1.5, 3.5), (1.5, 3.5)]
+    assert not rc.credit_bars({"NDC": frame}, {}, ["Energy"], "M USD", outside=(2037, "x")).layout.shapes

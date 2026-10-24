@@ -31,6 +31,10 @@ FIELD_SSP_FIELDS = "sisepuede_fields"
 FIELD_TARGET = "target_mt_co2e_ndc2"
 FIELD_PRICE = "price_mm_usd_carbon_per_mt"
 
+# last year of the NDC2.0 targets; the a6 targets after it carry on its NDC run,
+# they are not part of the NDC2.0
+NDC_LAST_YEAR = 2035
+
 A6_DIR = pathlib.Path(os.environ.get("SISEPUEDE_A6_DIR", config.REPO_ROOT.parent / "sisepuede_a6"))
 A6_MODULE_PATH = A6_DIR / "sisepuede_a6" / "src" / "ssp_asix.py"
 A6_REF_DIR = A6_DIR / "ref"

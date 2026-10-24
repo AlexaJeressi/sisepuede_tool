@@ -10,20 +10,24 @@ The credits are computed by sisepuede_a6 (ssp_asix.get_credit_estimate, called
 from services/article6_service.py) for each NDC target year and emission group
 in its ref/ files. Shows:
 - one tile per pathway: credits (MtCO2e) and their value (million USD) over
-  all the target years and in the milestone years (2030, 2035);
+  all the target years and in the milestone years (every fifth year);
 - the carbon price used, as a range and average (each year in the ⓘ); in
   advanced mode it can be set for every year at once or year by year (the
   page recomputes at once, no model run needed);
 - the emissions of every visible pathway (BAU and NDC too), with the gap
   between the NDC pathway and each pathway that earns credits shaded over the
   target years (green below the NDC, red above): where the credits come from;
+  the years after the NDC2.0 targets (2035) shaded grey, here and in the
+  credit chart;
 - credit value per target year, stacked by emission group (subsector colours),
-  totals written above the milestone years.
+  totals written above the milestone years; a click on a group in the legend
+  under it hides or shows that group.
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.
 """
 
+import json
 import re
 
 import pandas as pd
@@ -84,7 +88,7 @@ def page_article_6_ui():
         ui.div(
             ui.div(
                 ui.span(i18n.t("article_6.pathways_chart"), class_="section-label"),
-                info_tip(i18n.t("article_6.pathways_chart_tip")),
+                info_tip(i18n.t("article_6.pathways_chart_tip", year=a6.NDC_LAST_YEAR)),
                 ui.span("MtCO₂e", class_="small muted"),
                 export_button("pathways_chart", i18n.t("article_6.pathways_chart")),
                 class_="box-head",
@@ -95,7 +99,7 @@ def page_article_6_ui():
         ui.div(
             ui.div(
                 ui.span(i18n.t("article_6.by_group"), class_="section-label"),
-                info_tip(i18n.t("article_6.by_group_tip")),
+                info_tip(i18n.t("article_6.by_group_tip", year=a6.NDC_LAST_YEAR)),
                 ui.span(i18n.t("results.million_usd"), class_="small muted"),
                 export_button("groups_chart", i18n.t("article_6.by_group")),
                 class_="box-head",
@@ -114,6 +118,8 @@ def page_article_6_ui():
 def page_article_6_server(input, output, session, state: AppState):
     ev_id = resolve_id("ui_event")
     results_bar.bar_server(input, state, ev_id)
+    # emission groups switched off in the credits chart (its legend toggles them)
+    hidden_groups = reactive.value(frozenset())
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
     headline = a6.headline_years(years)
@@ -210,6 +216,9 @@ def page_article_6_server(input, output, session, state: AppState):
         ev = input.ui_event() or {}
         if ev.get("type") == "chip":
             results_bar.toggle_pathway(state, int(ev["value"]))
+        elif ev.get("type") == "group":
+            # "" = show them all again
+            hidden_groups.set(frozenset() if ev["value"] == "" else hidden_groups.get() ^ {ev["value"]})
 
     @render.ui
     def kpis():
@@ -262,12 +271,16 @@ def page_article_6_server(input, output, session, state: AppState):
         }
         if all((f["value"].abs() <= 1e-9).all() for f in frames.values()):
             return rc.empty_figure(_t("empty_zero"), height=360)
+        hidden = hidden_groups.get()
+        frames = {name: f[~f["series"].isin(hidden)] for name, f in frames.items()}
+        if all((f["value"].abs() <= 1e-9).all() for f in frames.values()):
+            return rc.empty_figure(_t("empty_hidden"), height=360)
         lang = state.lang()
         order = list(ref["groupings"][a6.FIELD_GROUP])
         return rc.credit_bars(
             frames, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
-            years=state.results_years.get(),
+            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
 
     @render_plotly
@@ -289,27 +302,46 @@ def page_article_6_server(input, output, session, state: AppState):
         gaps = [(ndc, name) for sid, name, _ in rows if ndc and _earns_credits(sid)]
         return rc.gap_lines(
             series, colors, "MtCO₂e", gaps=gaps, gap_years=(years[0], years[-1]), gap_label=_t("beyond_ndc"), above_label=_t("above_ndc"),
-            years=state.results_years.get(),
+            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
 
-    @render.ui
-    def groups_legend():
-        """The chart's legend, as HTML under the chart: it wraps on a narrow
-        window instead of covering the bars."""
-        _, rows = estimates()
-        shown = {g for _, _, est in rows for g in est.loc[est["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]}
+    def _legend(shown, hidden, kind):
+        """Legend under a credits chart, as HTML (it wraps on a narrow window
+        instead of covering the bars): a click on a group sends a `kind` event
+        that hides it from the chart (the bar totals are then those of the
+        groups shown), another brings it back; "show all" when some are off."""
         if not shown:
             return None
         lang = state.lang()
         colors = a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS)
+
+        def click(value):
+            payload = json.dumps({"type": kind, "value": value})
+            return f"Shiny.setInputValue({json.dumps(ev_id)}, {payload}, {{priority: 'event'}}); return false;"
+
+        def item(g):
+            return ui.tags.button(
+                ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"),
+                group_name(g, lang),
+                type="button",
+                class_="a6-legend-item" + (" off" if g in hidden else ""),
+                **{"aria-pressed": "false" if g in hidden else "true"},
+                onclick=click(g),
+            )
+
+        reset = ui.tags.button(_t("show_all"), type="button", class_="link-btn small", onclick=click("")) if hidden & shown else None
         return ui.div(
-            *[
-                ui.span(ui.span(class_="swatch", style=f"background:{colors.get(g, rc.OTHER_COLOR)}"), group_name(g, lang), class_="a6-legend-item")
-                for g in ref["groupings"][a6.FIELD_GROUP]
-                if g in shown
-            ],
+            *[item(g) for g in ref["groupings"][a6.FIELD_GROUP] if g in shown],
+            reset,
+            ui.span(_t("legend_hint"), class_="small muted"),
             class_="a6-legend",
         )
+
+    @render.ui
+    def groups_legend():
+        _, rows = estimates()
+        shown = {g for _, _, est in rows for g in est.loc[est["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]}
+        return _legend(shown, hidden_groups.get(), "group")
 
     @render.ui
     def price_used():

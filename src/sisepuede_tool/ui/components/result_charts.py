@@ -832,6 +832,7 @@ def credit_bars(
     labels: Optional[Dict[str, str]] = None,
     label_years: Optional[Iterable[int]] = None,
     legend: bool = True,
+    outside: Optional[Tuple[int, str]] = None,
     years: Years = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
@@ -840,7 +841,8 @@ def credit_bars(
     zero, the others above. The bar total is written above the bars of
     `label_years` (default: every year), under them when it is negative. The years are categories, so the bars
     keep their width whatever the gap between target years and Plotly drops
-    tick labels when the chart is narrow."""
+    tick labels when the chart is narrow. `outside` (year, label): the bars
+    after `year` shaded grey, with the label."""
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -872,6 +874,13 @@ def credit_bars(
     fig = _base_layout(fig, height, legend=legend)
     fig.update_xaxes(type="category", categoryorder="array", categoryarray=[str(y) for y in years])
     fig.update_layout(hovermode="closest")
+    after = [i for i, y in enumerate(years) if outside is not None and y > outside[0]]
+    if after:
+        # category positions: from between the last year in and the first one out;
+        # the label at the bottom, in two lines, clear of the bar totals over the tallest bars
+        label = outside[1].replace(": ", ":<br>", 1)
+        for j in range(1, len(titles) + 1):
+            _shade_outside(fig, after[0] - 0.5, len(years) - 0.5, label, "bottom left", row=1, col=j)
     return fig
 
 
@@ -882,6 +891,17 @@ def _rgba(hex_color: str, alpha: float) -> str:
 
 GAP_BELOW = "#2E8B57"  # a pathway below the reference (emits less)
 GAP_ABOVE = "#C0392B"  # a pathway above the reference (emits more)
+OUTSIDE_SHADE = "#8A8F8E"  # years past the reference's own targets
+
+
+def _shade_outside(fig: go.Figure, x0, x1, label: str, position: str = "top left", **where) -> None:
+    """Grey band from x0 to x1 with `label` at its `position` (after _base_layout,
+    which restyles the annotations); `where`: row/col of a subplot."""
+    fig.add_vrect(
+        x0=x0, x1=x1, fillcolor=_rgba(OUTSIDE_SHADE, 0.08), line_width=0, layer="below",
+        annotation_text=label, annotation_position=position, annotation_align="left",
+        annotation_font=dict(family=FONT, size=11.5, color=LABEL), **where,
+    )
 
 
 def _gap_segments(x: Sequence[float], ref: Sequence[float], val: Sequence[float]) -> List[Tuple[bool, List[float], List[float], List[float]]]:
@@ -911,13 +931,15 @@ def gap_lines(
     gap_years: Optional[Tuple[int, int]] = None,
     gap_label: str = "",
     above_label: str = "",
+    outside: Optional[Tuple[int, str]] = None,
     height: int = 360,
     years: Years = None,
 ) -> go.Figure:
     """One line per pathway (`series`: {name: Series by year}, BAU first), with
     the gap between two of them shaded (`gaps`: [(reference, pathway)]): green
     where the pathway emits less than the reference (`gap_label`), red where it
-    emits more (`above_label`), over `gap_years` (first, last) only when given."""
+    emits more (`above_label`), over `gap_years` (first, last) only when given.
+    `outside` (year, label): the years from `year` on shaded grey, with the label."""
     series = {k: s[in_years(s.index, years)] for k, s in series.items()}
     fig = go.Figure()
     legend_done = set()
@@ -951,4 +973,8 @@ def gap_lines(
         )
     fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL))
     fig.update_xaxes(tickvals=year_ticks(years))
-    return _base_layout(fig, height, legend_right=True)
+    fig = _base_layout(fig, height, legend_right=True)
+    last = max((int(s.index.max()) for s in series.values() if len(s)), default=None)
+    if outside is not None and last is not None and outside[0] < last:
+        _shade_outside(fig, outside[0], last, outside[1])
+    return fig
