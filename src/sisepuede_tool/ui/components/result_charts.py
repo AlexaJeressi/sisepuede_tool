@@ -653,8 +653,8 @@ def mac_by_subsector(
 ) -> go.Figure:
     """Average cost per tonne abated in each subsector (`table` of
     mac_service.by_subsector), one column per subsector in `order` with a bar
-    per pathway, side by side. Above each bar the emissions it abates there
-    (MtCO2e), net; "no data" where the pathway abates nothing, and no bar but
+    per pathway, side by side. At the end of each bar (above it, under it for
+    a saving) its cost per tonne and the emissions abated there (MtCO2e), net; "no data" where the pathway abates nothing, and no bar but
     the net increase where its transformations raise the subsector's emissions
     on net (mac NaN).
 
@@ -681,15 +681,15 @@ def mac_by_subsector(
             y = max(-limit, min(limit, v)) if limit else v
             xs.append(x)
             ys.append(y)
-            texts.append(_mac_bar_text(r["abatement"], "<br>"))
+            # its cost, as in the chart by transformation, then its tonnes
+            cost = "" if (limit and abs(v) > limit) else f"<b>{short_number(v) if abs(v) >= 0.005 else '0'}</b><br>"
+            texts.append(cost + _mac_bar_text(r["abatement"], "<br>"))
             hover.append(_mac_cost_hover(lang, title=sub_names.get(sub, sub), pathway=p, mac=v, abatement=r["abatement"],
                                          extra=[i18n.tn("mac.hover_n", int(r["n"]), lang)]))
             if limit and abs(v) > limit:
                 breaks.append((x, y, v))
-            # the abated tonnes above the bar (above zero for a saving), the value under a saving
-            notes.append(dict(x=x, y=max(y, 0), text=texts[-1], yshift=11, color=TEXT))
-            if v < 0 and not (limit and abs(v) > limit):
-                notes.append(dict(x=x, y=y, text=f"{v:,.0f}".replace("-", "−"), yshift=-9, color=LABEL))
+            # at the end of the bar: above it, under it for a saving
+            notes.append(dict(x=x, y=y, text=texts[-1], yshift=24 if v >= 0 else -24, color=TEXT))
         fig.add_trace(go.Bar(x=xs, y=ys, width=w * 0.86, name=p, marker=dict(color=colors.get(p, OTHER_COLOR)),
                              hovertext=hover, hovertemplate="%{hovertext}<extra></extra>"))
 
@@ -707,7 +707,7 @@ def mac_by_subsector(
     lo, hi = min(ys), max(ys)
     span = max(hi - lo, 1e-9)
     fig.update_yaxes(title_text=t("avg_cost_axis", unit=unit), title_font=dict(size=11.5, color=LABEL), showgrid=True, gridcolor=GRID,
-                     zeroline=True, zerolinecolor=NET, range=[lo - 0.12 * span * (lo < 0) - 0.03 * span, hi + 0.16 * span])
+                     zeroline=True, zerolinecolor=NET, range=[lo - 0.22 * span * (lo < 0) - 0.03 * span, hi + 0.22 * span])
     fig.update_layout(hovermode="closest", bargap=0, barmode="overlay", margin=dict(l=8, r=8, t=60, b=8),
                       legend=dict(title_text=t("pathway"), orientation="v", x=0.005, xanchor="left", y=0.98, yanchor="top",
                                   bgcolor="rgba(255,253,248,0.9)", bordercolor=GRID, borderwidth=1))
