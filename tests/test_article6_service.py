@@ -118,3 +118,26 @@ def test_emissions_by_year_sums_the_groups_with_a_target(model_attributes):
     assert list(s.index) == [2029, 2030, 2035]  # every year of the run, not only the target years
     assert s.to_dict() == {2029: 100.0, 2030: 90.0, 2035: 80.0}  # Energy only: Waste has no target
 
+
+
+def test_ranked_mac_file_is_shown_as_it_is(tmp_path):
+    p = tmp_path / "ranked.csv"
+    pd.DataFrame({
+        "emission_grouping": ["Energy", "Energy", "Waste"],
+        "proportional_a6_excess_allocation": [0.75, 0.25, 1.0],
+        "transformer_kernel_code": ["TFR:B", "TFR:A", "TFR:C"],
+        "mac_aggregate_usd_per_tonne": [10.0, -5.0, 3.0],
+        "year": [2030, 2030, 2030],
+        "total_value_carbon_credits_mm_usd": [30.0, 10.0, -2.0],
+    }).to_csv(p, index=False)
+    df = a6.load_ranked.__wrapped__(p)
+    # the file's values, cheapest transformer first in each group
+    assert df[a6.FIELD_KERNEL].tolist() == ["TFR:A", "TFR:B", "TFR:C"]
+    assert df["value_musd"].tolist() == [10.0, 30.0, -2.0] and df["mac"].tolist() == [-5.0, 10.0, 3.0]
+    assert a6.load_ranked.__wrapped__(tmp_path / "missing.csv").empty
+
+
+@pytest.mark.skipif(not a6.RANKED_PATH.exists(), reason=f"{a6.RANKED_PATH} not found")
+def test_shipped_ranked_file_groups_are_known():
+    df, ref = a6.load_ranked(), a6.load_reference()
+    assert set(df[a6.FIELD_GROUP]) <= set(ref["groupings"][a6.FIELD_GROUP]) and not df["mac"].isna().any()

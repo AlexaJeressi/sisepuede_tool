@@ -11,7 +11,11 @@ Reference data, read from the clone's ref/ folder:
   ("|"-separated output fields summed into the group);
 - ndc_targets_for_a6_demo.csv: year, emission_grouping, target_mt_co2e_ndc2;
 - carbon_prices_example.csv: year, price_mm_usd_carbon_per_mt (million USD per
-  MtCO2e = USD per tCO2e).
+  MtCO2e = USD per tCO2e);
+- temporary_a6_ranked_mac_bar_df.csv (static, sisepuede_a6's own LEP run):
+  credit value (total_value_carbon_credits_mm_usd) by year, emission group and
+  transformer, with the transformer's MAC in that group
+  (mac_aggregate_usd_per_tonne); shown as it is.
 """
 
 import functools
@@ -38,6 +42,10 @@ NDC_LAST_YEAR = 2035
 A6_DIR = pathlib.Path(os.environ.get("SISEPUEDE_A6_DIR", config.REPO_ROOT.parent / "sisepuede_a6"))
 A6_MODULE_PATH = A6_DIR / "sisepuede_a6" / "src" / "ssp_asix.py"
 A6_REF_DIR = A6_DIR / "ref"
+RANKED_PATH = A6_REF_DIR / "temporary_a6_ranked_mac_bar_df.csv"
+FIELD_KERNEL = "transformer_kernel_code"
+FIELD_MAC = "mac_aggregate_usd_per_tonne"
+FIELD_VALUE = "total_value_carbon_credits_mm_usd"
 
 
 @functools.lru_cache(maxsize=1)
@@ -63,6 +71,21 @@ def load_reference() -> Dict[str, pd.DataFrame]:
         "targets": pd.read_csv(A6_REF_DIR / "ndc_targets_for_a6_demo.csv"),
         "prices": pd.read_csv(A6_REF_DIR / "carbon_prices_example.csv"),
     }
+
+
+@functools.lru_cache(maxsize=1)
+def load_ranked(path=RANKED_PATH) -> pd.DataFrame:
+    """[year, emission_grouping, transformer_kernel_code, mac, value_musd]: the
+    sisepuede_a6 ranked MAC file as it is (static, from sisepuede_a6's own LEP
+    run, not the runs of the tool), cheapest transformer first within each
+    year and group; empty when the file is missing."""
+    path = pathlib.Path(path)
+    cols = ["year", FIELD_GROUP, FIELD_KERNEL, "mac", "value_musd"]
+    if not path.exists():
+        return pd.DataFrame(columns=cols)
+    df = pd.read_csv(path).rename(columns={FIELD_MAC: "mac", FIELD_VALUE: "value_musd"})
+    df["year"] = df["year"].astype(int)
+    return df.sort_values(["year", FIELD_GROUP, "mac"], kind="stable")[cols].reset_index(drop=True)
 
 
 def target_years(targets: pd.DataFrame) -> list:

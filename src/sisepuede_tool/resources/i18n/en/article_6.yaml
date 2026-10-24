@@ -27,3 +27,7 @@
   "all_years": "All years"
   "apply_all": "Apply to every year"
   "by_year": "Change year by year"
+  "by_transformer": "Credits by transformation, ranked by MAC"
+  "by_transformer_tip": "Credit value by year and emission group, as in the chart above, with each group split into the transformations that abate in it, cheapest (lowest MAC) at the base of its bar, in the group's colour. Hover a segment to see the transformation and its MAC. The values are sisepuede_a6's, as they are in its file. The grey area, after {year}, is past the NDC2.0 targets. The hover also lists the projects linked to the transformation (Pathways page)."
+  "ranked_panel": "LEP"
+  "ranked_missing": "The ranked MAC file of sisepuede_a6 (ref/temporary_a6_ranked_mac_bar_df.csv) was not found."

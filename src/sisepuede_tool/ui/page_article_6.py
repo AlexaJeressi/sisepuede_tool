@@ -21,7 +21,11 @@ in its ref/ files. Shows:
   credit chart;
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years; a click on a group in the legend
-  under it hides or shows that group.
+  under it hides or shows that group;
+- the sisepuede_a6 ranked MAC file as it is (static, its own LEP run): the
+  same credits by group, each group split into its transformers, cheapest
+  first, in the group's colour, with its own legend to hide or show groups;
+  the hover of a transformer lists the projects linked to it (Pathways page).
 
 The Excel download has every group, year and pathway, with the emissions, the
 target, the difference, the price and the value.
@@ -36,7 +40,9 @@ from shiny.module import resolve_id
 from shinywidgets import output_widget, render_plotly
 
 from sisepuede_tool.services import article6_service as a6
-from sisepuede_tool.services import download_service, i18n, library_service, pathway_service
+from sisepuede_tool import config
+from sisepuede_tool.services import download_service, i18n, library_service, pathway_service, projects_service
+from sisepuede_tool.services import transformer_metadata_service as tms
 from sisepuede_tool.ui.components import result_charts as rc
 from sisepuede_tool.ui.components.chart_export import export_button
 from sisepuede_tool.ui.components import results_bar
@@ -110,6 +116,18 @@ def page_article_6_ui():
             ui.output_ui("excluded_note"),
             class_="box",
         ),
+        ui.div(
+            ui.div(
+                ui.span(i18n.t("article_6.by_transformer"), class_="section-label"),
+                info_tip(i18n.t("article_6.by_transformer_tip", year=a6.NDC_LAST_YEAR)),
+                ui.span(i18n.t("results.million_usd"), class_="small muted"),
+                export_button("ranked_chart", i18n.t("article_6.by_transformer")),
+                class_="box-head",
+            ),
+            output_widget("ranked_chart"),
+            ui.output_ui("ranked_legend"),
+            class_="box",
+        ),
         class_="res-page",
     )
 
@@ -118,8 +136,9 @@ def page_article_6_ui():
 def page_article_6_server(input, output, session, state: AppState):
     ev_id = resolve_id("ui_event")
     results_bar.bar_server(input, state, ev_id)
-    # emission groups switched off in the credits chart (its legend toggles them)
+    # emission groups switched off in each credits chart (its legend toggles them)
     hidden_groups = reactive.value(frozenset())
+    hidden_ranked = reactive.value(frozenset())
     ref = a6.load_reference()
     years = a6.target_years(ref["targets"])
     headline = a6.headline_years(years)
@@ -216,9 +235,10 @@ def page_article_6_server(input, output, session, state: AppState):
         ev = input.ui_event() or {}
         if ev.get("type") == "chip":
             results_bar.toggle_pathway(state, int(ev["value"]))
-        elif ev.get("type") == "group":
+        elif ev.get("type") in ("group", "ranked"):
+            hidden = hidden_groups if ev["type"] == "group" else hidden_ranked
             # "" = show them all again
-            hidden_groups.set(frozenset() if ev["value"] == "" else hidden_groups.get() ^ {ev["value"]})
+            hidden.set(frozenset() if ev["value"] == "" else hidden.get() ^ {ev["value"]})
 
     @render.ui
     def kpis():
@@ -285,6 +305,38 @@ def page_article_6_server(input, output, session, state: AppState):
 
     @render_plotly
     @rc.bidi_for(state.lang)
+    def ranked_chart():
+        """The sisepuede_a6 ranked MAC file as it is (its own LEP run, static):
+        credit value by year and emission group, each group split into its
+        transformers, cheapest first, without the groups switched off in its
+        own legend (ranked_legend)."""
+        df = a6.load_ranked()
+        if df.empty:
+            return rc.empty_figure(_t("ranked_missing"), height=360)
+        df = df[~df[a6.FIELD_GROUP].isin(hidden_ranked.get())]
+        if (df["value_musd"].abs() <= 1e-9).all():
+            return rc.empty_figure(_t("empty_hidden"), height=360)
+        lang = state.lang()
+        meta = state.transformer_metadata.get() or {}
+        names = {c: i18n.td("transformers", c, "name", tms.get_card(c, meta)["name"], lang) for c in df[a6.FIELD_KERNEL].unique()}
+        # the projects linked now (Pathways page) to a transformation on each transformer
+        transformer_of = {i.code: i.transformer_code for i in state.library_items.get() or []}
+        records = projects_service.all_projects(
+            projects_service.load_project_records_cached(config.PROJECTS_XLSX_PATH), state.custom_projects.get()
+        )
+        by_transformer = projects_service.projects_by(state.project_links.get(), records, transformer_of.get)
+        part_projects = {c: [r["name"] for r in recs] for c, recs in by_transformer.items()}
+        order = list(ref["groupings"][a6.FIELD_GROUP])
+        frame = df.rename(columns={a6.FIELD_GROUP: "series", a6.FIELD_KERNEL: "part", "value_musd": "value"})
+        return rc.credit_bars(
+            {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
+            lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
+            outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), part_labels=names, part_projects=part_projects,
+            years=state.results_years.get(),
+        )
+
+    @render_plotly
+    @rc.bidi_for(state.lang)
     def pathways_chart():
         """Every visible pathway (BAU and NDC too), with the gap between the NDC
         pathway (the first visible one that earns no credits, BAU aside) and each
@@ -342,6 +394,11 @@ def page_article_6_server(input, output, session, state: AppState):
         _, rows = estimates()
         shown = {g for _, _, est in rows for g in est.loc[est["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]}
         return _legend(shown, hidden_groups.get(), "group")
+
+    @render.ui
+    def ranked_legend():
+        df = a6.load_ranked()
+        return _legend(set(df.loc[df["value_musd"].abs() > 1e-9, a6.FIELD_GROUP]), hidden_ranked.get(), "ranked")
 
     @render.ui
     def price_used():

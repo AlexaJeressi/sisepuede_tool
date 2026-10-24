@@ -27,3 +27,7 @@
   "all_years": "Todos los años"
   "apply_all": "Aplicar a todos los años"
   "by_year": "Cambiar año por año"
+  "by_transformer": "Créditos por transformación, ordenados por MAC"
+  "by_transformer_tip": "Valor de los créditos por año y grupo de emisiones, como en la gráfica de arriba, con cada grupo dividido en las transformaciones que reducen en él, la más barata (MAC más bajo) en la base de su barra, en el color del grupo. Pase el cursor sobre un segmento para ver la transformación y su MAC. Los valores son los de sisepuede_a6, tal como están en su archivo. La zona gris, después de {year}, va más allá de las metas de la NDC2.0. El cursor también muestra los proyectos vinculados a la transformación (página Pathways)."
+  "ranked_panel": "LEP"
+  "ranked_missing": "No se encontró el archivo de MAC ordenado de sisepuede_a6 (ref/temporary_a6_ranked_mac_bar_df.csv)."

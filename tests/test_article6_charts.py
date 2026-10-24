@@ -48,3 +48,18 @@ def test_credit_bars_grey_after_the_ndc_targets():
     # one band per panel, on the category positions of 2036 and 2037
     assert [(r.x0, r.x1) for r in fig.layout.shapes] == [(1.5, 3.5), (1.5, 3.5)]
     assert not rc.credit_bars({"NDC": frame}, {}, ["Energy"], "M USD", outside=(2037, "x")).layout.shapes
+
+
+def test_credit_bars_split_a_group_into_its_parts():
+    frame = pd.DataFrame({"year": [2030, 2030], "series": ["Energy", "Energy"], "part": ["TFR:A", "TFR:B"], "mac": [-5.0, 10.0], "value": [10.0, 30.0]})
+    fig = rc.credit_bars({"LEP": frame}, {"Energy": "#E0A040"}, ["Energy"], "M USD", part_labels={"TFR:A": "Alpha"})
+    assert [t.y.tolist() for t in fig.data] == [[10.0], [30.0]]  # in the frame's order
+    assert all(t.marker.color == "#E0A040" for t in fig.data)  # the group's colour
+    assert "Alpha" in fig.data[0].hovertemplate and "MAC -5.0" in fig.data[0].hovertemplate
+    assert fig.layout.annotations[-1].text == "40.0"  # the group total
+
+
+def test_ranked_hover_lists_the_projects():
+    frame = pd.DataFrame({"year": [2030], "series": ["Energy"], "part": ["TFR:A"], "mac": [5.0], "value": [10.0]})
+    fig = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_projects={"TFR:A": ["Solar park · Planned"]})
+    assert "Solar park · Planned" in fig.data[0].hovertemplate and "1 project" in fig.data[0].hovertemplate

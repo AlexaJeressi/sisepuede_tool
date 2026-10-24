@@ -857,6 +857,8 @@ def credit_bars(
     label_years: Optional[Iterable[int]] = None,
     legend: bool = True,
     outside: Optional[Tuple[int, str]] = None,
+    part_labels: Optional[Dict[str, str]] = None,
+    part_projects: Optional[Dict[str, List[str]]] = None,
     years: Years = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
@@ -866,7 +868,12 @@ def credit_bars(
     `label_years` (default: every year), under them when it is negative. The years are categories, so the bars
     keep their width whatever the gap between target years and Plotly drops
     tick labels when the chart is narrow. `outside` (year, label): the bars
-    after `year` shaded grey, with the label."""
+    after `year` shaded grey, with the label.
+
+    A frame with [part, mac] columns splits each group into its parts (the
+    transformers), stacked in the frame's order, in the group's colour with a
+    white edge between them; the hover names the part (`part_labels`), its
+    MAC (USD/tCO2e) and its projects (`part_projects`: part -> one line each)."""
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -875,16 +882,36 @@ def credit_bars(
     for j, title in enumerate(titles, start=1):
         wide = frames[title].pivot_table(index="year", columns="series", values="value", aggfunc="sum").fillna(0.0)
         x = [str(int(y)) for y in wide.index]
+        split = "part" in frames[title].columns
         for name in order:
             if name not in wide.columns or (wide[name].abs() < 1e-9).all():
                 continue
             label = series_label(name, lang, labels)
-            fig.add_trace(
-                go.Bar(x=x, y=wide[name].to_numpy(), name=label, legendgroup=name,
-                       showlegend=label not in {t.name for t in fig.data}, marker_color=colors.get(name, OTHER_COLOR),
-                       hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
-                row=1, col=j,
-            )
+            color = colors.get(name, OTHER_COLOR)
+            if not split:
+                fig.add_trace(
+                    go.Bar(x=x, y=wide[name].to_numpy(), name=label, legendgroup=name,
+                           showlegend=label not in {t.name for t in fig.data}, marker_color=color,
+                           hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
+                    row=1, col=j,
+                )
+                continue
+            g = frames[title][frames[title]["series"] == name]
+            for part in g["part"].unique():
+                rows = g[g["part"] == part].set_index("year").reindex(wide.index)
+                if (rows["value"].fillna(0).abs() < 1e-9).all():
+                    continue
+                macs = rows["mac"].dropna()
+                # a part with no name or MAC: the group not split
+                head = f"<b>{(part_labels or {}).get(part, part)}</b><br>{label}" if part else f"<b>{label}</b>"
+                mac = f" · MAC {float(macs.iloc[0]):,.1f} USD/tCO₂e" if len(macs) else ""
+                proj = "".join(f"<br>{x}" for x in _projects_hover((part_projects or {}).get(part), lang))
+                fig.add_trace(
+                    go.Bar(x=x, y=rows["value"].fillna(0).to_numpy(), name=label, legendgroup=name,
+                           showlegend=False, marker=dict(color=color, line=dict(color="white", width=0.6)),
+                           hovertemplate=f"{head}<br>%{{y:,.1f}} {unit}{mac}{proj}<extra></extra>"),
+                    row=1, col=j,
+                )
         shown = wide[[c for c in order if c in wide.columns]]
         for xi, v, top, bottom in zip(x, shown.sum(axis=1), shown.clip(lower=0).sum(axis=1), shown.clip(upper=0).sum(axis=1)):
             if int(xi) in label_years:
