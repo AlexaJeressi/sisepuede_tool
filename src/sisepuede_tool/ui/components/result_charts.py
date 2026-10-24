@@ -628,7 +628,6 @@ def _mac_bar_text(abated: float, sep: str = " ") -> str:
     return (f"{abated:,.0f}" if abs(abated) >= 1 else f"{abated:,.2f}").replace("-", "−") + sep + "Mt"
 
 
-PROJECTS_COLOR = "#0F6E6E"  # the project counts next to a transformation
 PROJECTS_IN_HOVER = 6
 
 
@@ -758,18 +757,14 @@ def mac_by_transformation(
     unit: str,
     limit: Optional[float] = None,
     lang: Optional[str] = None,
-    projects: Optional[Dict[str, List[str]]] = None,
 ) -> go.Figure:
     """Cost per tonne abated of each transformation (`rows` of
     mac_service.by_transformation), grouped by the subsector it abates in (a
     light header per subsector, in `order`), cheapest first within each. One
     bar per pathway (the NDC and LEP versions of a transformation share a row,
     by `key`); written after it, the emissions it abates in that subsector.
-    `names`: key -> name. `limit`: as in mac_by_subsector. `projects`: key ->
-    its projects (one line each), counted after its name and listed in the
-    hover."""
+    `names`: key -> name. `limit`: as in mac_by_subsector."""
     t = lambda k, **f: i18n.t(f"mac.{k}", lang, **f)  # noqa: E731
-    projects = projects or {}
     n = len(pathways)
     h = 0.8 / max(n, 1)
     tickvals, ticktext, dividers = [], [], []
@@ -790,11 +785,7 @@ def mac_by_transformation(
         for k in keys:
             slots.append((y, sub, k))
             tickvals.append(y)
-            label = names.get(k, k)
-            if projects.get(k):
-                count = i18n.tn("mac.n_projects", len(projects[k]), lang)
-                label += f"  <span style='color:{PROJECTS_COLOR};font-size:11px'>{count}</span>"
-            ticktext.append(label)
+            ticktext.append(names.get(k, k))
             y -= 1.0
     vals = rows.set_index(["subsector", "key", "pathway"])
 
@@ -817,7 +808,6 @@ def mac_by_transformation(
             est = [f"{t(m)} {r[f'mac_{m}']:+,.1f}" for m in ("tornado", "whirlpool") if pd.notna(r[f"mac_{m}"])]
             if est:
                 extra.append(t("hover_estimates", v=" · ".join(est)))
-            extra += _projects_hover(projects.get(k), lang)
             hover.append(_mac_cost_hover(lang, title=names.get(k, k), pathway=p, mac=v, abatement=r["abatement"], extra=extra))
             if limit and abs(v) > limit:
                 breaks.append((x, yy, v))

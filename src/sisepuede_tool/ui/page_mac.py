@@ -12,13 +12,11 @@ Charts:
   abated in each subsector, cheapest first, with the tonnes abated there;
 - by transformation (result_charts.mac_by_transformation): the transformations
   that abate in each subsector, under a light subsector header in the same
-  order. Its own filter narrows it to a sector or a subsector. Next to each
-  transformation, how many projects are linked to it (as on the Pathways
-  page), listed in the hover;
+  order. Its own filter narrows it to a sector or a subsector;
 - projects behind each transformation: the same transformations, in the same
   order and filter, with their cost per tonne, the tonnes they abate and the
-  projects linked to them (investment and start as the project list gives
-  them).
+  projects linked to them (as on the Pathways page; investment and start as
+  the project list gives them).
 A bar far beyond the others is cut with a break and its value written inside
 (mac_service.axis_limit).
 """
@@ -204,9 +202,8 @@ def page_mac_server(input, output, session, state: AppState):
         names = {}
         for code, key in zip(rows["code"], rows["key"]):
             names.setdefault(key, _name(code))
-        projects = {k: [r["name"] for r in recs] for k, recs in _projects().items()}
         return rc.mac_by_transformation(rows, order, _pathways(), colors, _sub_names(), names, _t("unit"),
-                                        limit=limit, lang=state.lang(), projects=projects)
+                                        limit=limit, lang=state.lang())
 
     def _notes(*texts) -> ui.Tag:
         out = [x for x in texts if x]
