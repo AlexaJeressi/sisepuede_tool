@@ -93,6 +93,22 @@ def load_ranked(path=RANKED_PATH) -> pd.DataFrame:
     return df.sort_values(["year", FIELD_GROUP, "mac"], kind="stable")[cols].reset_index(drop=True)
 
 
+FIELD_ALLOCATION = "proportional_a6_excess_allocation"
+
+
+def ranked_group_macs(path=RANKED_PATH) -> Dict[str, float]:
+    """{emission group: MAC (USD/tCO2e)} of the ranked file's groups, from the
+    file itself: its transformers' MACs weighted by their share of the group's
+    credits (proportional_a6_excess_allocation, the same every year)."""
+    if not path.exists():
+        return {}
+    df = pd.read_csv(path).drop_duplicates([FIELD_GROUP, FIELD_KERNEL])
+    w = df[FIELD_ALLOCATION]
+    num = (w * df[FIELD_MAC]).groupby(df[FIELD_GROUP]).sum()
+    den = w.groupby(df[FIELD_GROUP]).sum()
+    return {str(g): float(num[g] / den[g]) for g in den.index if den[g] > 0}
+
+
 def load_ranked_aggregate(path=AGGREGATE_PATH) -> pd.DataFrame:
     """[year, emission_grouping, transformer_kernel_code, mac, value_musd]: the
     sisepuede_a6 aggregate ranked file as it is (static, its own LEP run): each

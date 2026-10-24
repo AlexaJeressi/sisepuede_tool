@@ -154,3 +154,14 @@ def test_aggregate_file_in_one_group():
     # the same yearly totals as the file by emission group
     by_group = a6.load_ranked().groupby("year")["value_musd"].sum()
     assert df.groupby("year")["value_musd"].sum().loc[2035] == pytest.approx(by_group.loc[2035], rel=1e-3)
+
+
+def test_ranked_group_macs_from_the_file(tmp_path):
+    p = tmp_path / "ranked.csv"
+    pd.DataFrame({
+        "emission_grouping": ["T", "T", "T", "E"], "transformer_kernel_code": ["A", "B", "A", "A"],
+        "proportional_a6_excess_allocation": [0.75, 0.25, 0.75, 1.0], "mac_aggregate_usd_per_tonne": [40.0, 0.0, 40.0, 5.0],
+        "year": [2030, 2030, 2031, 2030], "total_value_carbon_credits_mm_usd": [1, 1, 1, 1],
+    }).to_csv(p, index=False)
+    # each (group, transformer) once: (0.75 x 40 + 0.25 x 0) / 1
+    assert a6.ranked_group_macs(p) == {"E": 5.0, "T": 30.0}
