@@ -1,0 +1,636 @@
+Pathway,Year1,Sector,Investments
+NDC,2050,LULUCF - Forest land,0.000291704
+NDC,2049,LULUCF - Forest land,0.000288345
+NDC,2048,LULUCF - Forest land,0.000286085
+NDC,2047,LULUCF - Forest land,0.000287291
+NDC,2046,LULUCF - Forest land,0.000291083
+NDC,2045,LULUCF - Forest land,0.000297413
+NDC,2044,LULUCF - Forest land,0.000234104
+NDC,2043,LULUCF - Forest land,-5.85E-05
+NDC,2042,LULUCF - Forest land,-5.93E-05
+NDC,2041,LULUCF - Forest land,0.000237841
+NDC,2040,LULUCF - Forest land,0.000251866
+NDC,2039,LULUCF - Forest land,0.00026261
+NDC,2038,LULUCF - Forest land,0.00027339
+NDC,2037,LULUCF - Forest land,2.11E-05
+NDC,2036,LULUCF - Forest land,1.66E-05
+NDC,2035,LULUCF - Forest land,1.46E-05
+NDC,2034,LULUCF - Forest land,1.36E-05
+NDC,2033,LULUCF - Forest land,1.27E-05
+NDC,2032,LULUCF - Forest land,1.20E-05
+NDC,2031,LULUCF - Forest land,1.15E-05
+NDC,2030,LULUCF - Forest land,1.10E-05
+NDC,2029,LULUCF - Forest land,1.04E-05
+NDC,2028,LULUCF - Forest land,9.86E-06
+NDC,2027,LULUCF - Forest land,9.17E-06
+NDC,2026,LULUCF - Forest land,2.70E-08
+NDC,2025,LULUCF - Forest land,0
+NDC,2024,LULUCF - Forest land,0
+NDC,2023,LULUCF - Forest land,0
+NDC,2050,AG - Livestock (manure),0.026776791
+NDC,2049,AG - Livestock (manure),0.0251019
+NDC,2048,AG - Livestock (manure),0.023492817
+NDC,2047,AG - Livestock (manure),0.021951715
+NDC,2046,AG - Livestock (manure),0.020469939
+NDC,2045,AG - Livestock (manure),0.019047134
+NDC,2044,AG - Livestock (manure),0.017690292
+NDC,2043,AG - Livestock (manure),0.016347142
+NDC,2042,AG - Livestock (manure),0.015108792
+NDC,2041,AG - Livestock (manure),0.013877084
+NDC,2040,AG - Livestock (manure),0.012741488
+NDC,2039,AG - Livestock (manure),0.011631587
+NDC,2038,AG - Livestock (manure),0.010553181
+NDC,2037,AG - Livestock (manure),0.009488118
+NDC,2036,AG - Livestock (manure),0.008450675
+NDC,2035,AG - Livestock (manure),0.007482628
+NDC,2034,AG - Livestock (manure),0.006545872
+NDC,2033,AG - Livestock (manure),0.005653187
+NDC,2032,AG - Livestock (manure),0.004802984
+NDC,2031,AG - Livestock (manure),0.003995528
+NDC,2030,AG - Livestock (manure),0.003230019
+NDC,2029,AG - Livestock (manure),0.002504872
+NDC,2028,AG - Livestock (manure),0.001809191
+NDC,2027,AG - Livestock (manure),0.001134156
+NDC,2026,AG - Livestock (manure),0.000534233
+NDC,2025,AG - Livestock (manure),0
+NDC,2024,AG - Livestock (manure),0
+NDC,2023,AG - Livestock (manure),0
+NDC,2050,AG - Crops,0.011821938
+NDC,2049,AG - Crops,0.011290508
+NDC,2048,AG - Crops,0.010758521
+NDC,2047,AG - Crops,0.010229258
+NDC,2046,AG - Crops,0.009703527
+NDC,2045,AG - Crops,0.009181779
+NDC,2044,AG - Crops,0.008664321
+NDC,2043,AG - Crops,0.008151419
+NDC,2042,AG - Crops,0.007644214
+NDC,2041,AG - Crops,0.007142895
+NDC,2040,AG - Crops,0.006649935
+NDC,2039,AG - Crops,0.006164793
+NDC,2038,AG - Crops,0.005688308
+NDC,2037,AG - Crops,0.005220431
+NDC,2036,AG - Crops,0.004761679
+NDC,2035,AG - Crops,0.004312289
+NDC,2034,AG - Crops,0.003872081
+NDC,2033,AG - Crops,0.003441289
+NDC,2032,AG - Crops,0.003020144
+NDC,2031,AG - Crops,0.002608713
+NDC,2030,AG - Crops,0.002207237
+NDC,2029,AG - Crops,0.001815887
+NDC,2028,AG - Crops,0.001434869
+NDC,2027,AG - Crops,0.001064874
+NDC,2026,AG - Crops,0.000706228
+NDC,2025,AG - Crops,0.000358592
+NDC,2024,AG - Crops,0
+NDC,2023,AG - Crops,0
+NDC,2050,Waste - Wastewater (liquid waste),4.857870543
+NDC,2049,Waste - Wastewater (liquid waste),4.63750375
+NDC,2048,Waste - Wastewater (liquid waste),4.417594685
+NDC,2047,Waste - Wastewater (liquid waste),4.198284036
+NDC,2046,Waste - Wastewater (liquid waste),3.979890109
+NDC,2045,Waste - Wastewater (liquid waste),3.76256745
+NDC,2044,Waste - Wastewater (liquid waste),3.546345186
+NDC,2043,Waste - Wastewater (liquid waste),3.331560777
+NDC,2042,Waste - Wastewater (liquid waste),3.118565352
+NDC,2041,Waste - Wastewater (liquid waste),2.907673279
+NDC,2040,Waste - Wastewater (liquid waste),2.699344463
+NDC,2039,Waste - Wastewater (liquid waste),2.493882543
+NDC,2038,Waste - Wastewater (liquid waste),2.291575593
+NDC,2037,Waste - Wastewater (liquid waste),2.092652678
+NDC,2036,Waste - Wastewater (liquid waste),1.897223408
+NDC,2035,Waste - Wastewater (liquid waste),1.705466857
+NDC,2034,Waste - Wastewater (liquid waste),1.517404271
+NDC,2033,Waste - Wastewater (liquid waste),1.333099764
+NDC,2032,Waste - Wastewater (liquid waste),1.152648557
+NDC,2031,Waste - Wastewater (liquid waste),0.976055574
+NDC,2030,Waste - Wastewater (liquid waste),0.80338225
+NDC,2029,Waste - Wastewater (liquid waste),0.634648831
+NDC,2028,Waste - Wastewater (liquid waste),0.469882632
+NDC,2027,Waste - Wastewater (liquid waste),0.309151425
+NDC,2026,Waste - Wastewater (liquid waste),0.152520871
+NDC,2025,Waste - Wastewater (liquid waste),0
+NDC,2024,Waste - Wastewater (liquid waste),0
+NDC,2023,Waste - Wastewater (liquid waste),0
+NDC,2050,Waste - Wastewater treatment (trww),0.743900533
+NDC,2049,Waste - Wastewater treatment (trww),0.690960656
+NDC,2048,Waste - Wastewater treatment (trww),0.640546087
+NDC,2047,Waste - Wastewater treatment (trww),0.592567315
+NDC,2046,Waste - Wastewater treatment (trww),0.546960708
+NDC,2045,Waste - Wastewater treatment (trww),0.503638645
+NDC,2044,Waste - Wastewater treatment (trww),0.462497555
+NDC,2043,Waste - Wastewater treatment (trww),0.423475307
+NDC,2042,Waste - Wastewater treatment (trww),0.386509795
+NDC,2041,Waste - Wastewater treatment (trww),0.351532756
+NDC,2040,Waste - Wastewater treatment (trww),0.318492387
+NDC,2039,Waste - Wastewater treatment (trww),0.28731665
+NDC,2038,Waste - Wastewater treatment (trww),0.257931761
+NDC,2037,Waste - Wastewater treatment (trww),0.230257832
+NDC,2036,Waste - Wastewater treatment (trww),0.204203313
+NDC,2035,Waste - Wastewater treatment (trww),0.179686464
+NDC,2034,Waste - Wastewater treatment (trww),0.156611152
+NDC,2033,Waste - Wastewater treatment (trww),0.134888858
+NDC,2032,Waste - Wastewater treatment (trww),0.114437074
+NDC,2031,Waste - Wastewater treatment (trww),0.095167104
+NDC,2030,Waste - Wastewater treatment (trww),0.076998985
+NDC,2029,Waste - Wastewater treatment (trww),0.059851687
+NDC,2028,Waste - Wastewater treatment (trww),0.043647938
+NDC,2027,Waste - Wastewater treatment (trww),0.028317138
+NDC,2026,Waste - Wastewater treatment (trww),0.013791261
+NDC,2025,Waste - Wastewater treatment (trww),0
+NDC,2024,Waste - Wastewater treatment (trww),0
+NDC,2023,Waste - Wastewater treatment (trww),0
+NDC,2050,Waste - Solid waste,0.114664075
+NDC,2049,Waste - Solid waste,0.11076263
+NDC,2048,Waste - Solid waste,0.106684248
+NDC,2047,Waste - Solid waste,0.102444288
+NDC,2046,Waste - Solid waste,0.098064511
+NDC,2045,Waste - Solid waste,0.093559524
+NDC,2044,Waste - Solid waste,0.088938474
+NDC,2043,Waste - Solid waste,0.084222042
+NDC,2042,Waste - Solid waste,0.079430802
+NDC,2041,Waste - Solid waste,0.0745833
+NDC,2040,Waste - Solid waste,0.069703125
+NDC,2039,Waste - Solid waste,0.064807305
+NDC,2038,Waste - Solid waste,0.059974795
+NDC,2037,Waste - Solid waste,0.055197521
+NDC,2036,Waste - Solid waste,0.050464858
+NDC,2035,Waste - Solid waste,0.045770879
+NDC,2034,Waste - Solid waste,0.041105831
+NDC,2033,Waste - Solid waste,0.036463705
+NDC,2032,Waste - Solid waste,0.031841706
+NDC,2031,Waste - Solid waste,0.027235672
+NDC,2030,Waste - Solid waste,0.022645409
+NDC,2029,Waste - Solid waste,0.018070933
+NDC,2028,Waste - Solid waste,0.0135141
+NDC,2027,Waste - Solid waste,0.008971766
+NDC,2026,Waste - Solid waste,0.004459616
+NDC,2025,Waste - Solid waste,0
+NDC,2024,Waste - Solid waste,0
+NDC,2023,Waste - Solid waste,0
+NDC,2050,IN - Industrial processes,4.317030102
+NDC,2049,IN - Industrial processes,4.085476379
+NDC,2048,IN - Industrial processes,3.86107387
+NDC,2047,IN - Industrial processes,3.643400661
+NDC,2046,IN - Industrial processes,3.43206362
+NDC,2045,IN - Industrial processes,3.226698746
+NDC,2044,IN - Industrial processes,3.026968981
+NDC,2043,IN - Industrial processes,2.832560099
+NDC,2042,IN - Industrial processes,2.643181064
+NDC,2041,IN - Industrial processes,2.458562869
+NDC,2040,IN - Industrial processes,2.278456325
+NDC,2039,IN - Industrial processes,2.102632324
+NDC,2038,IN - Industrial processes,1.929564796
+NDC,2037,IN - Industrial processes,1.759533056
+NDC,2036,IN - Industrial processes,1.592768043
+NDC,2035,IN - Industrial processes,1.429453267
+NDC,2034,IN - Industrial processes,1.269728322
+NDC,2033,IN - Industrial processes,1.11369162
+NDC,2032,IN - Industrial processes,0.961404606
+NDC,2031,IN - Industrial processes,0.812896672
+NDC,2030,IN - Industrial processes,0.668169559
+NDC,2029,IN - Industrial processes,0.527202566
+NDC,2028,IN - Industrial processes,0.389957313
+NDC,2027,IN - Industrial processes,0.256545397
+NDC,2026,IN - Industrial processes,0.126705247
+NDC,2025,IN - Industrial processes,0
+NDC,2024,IN - Industrial processes,0
+NDC,2023,IN - Industrial processes,0
+NDC,2050,EN - Transportation,0.554624568
+NDC,2049,EN - Transportation,0.564781779
+NDC,2048,EN - Transportation,0.575142248
+NDC,2047,EN - Transportation,0.585625955
+NDC,2046,EN - Transportation,0.596144665
+NDC,2045,EN - Transportation,0.6066012
+NDC,2044,EN - Transportation,0.616888663
+NDC,2043,EN - Transportation,0.626889625
+NDC,2042,EN - Transportation,0.636475251
+NDC,2041,EN - Transportation,0.64550439
+NDC,2040,EN - Transportation,0.653822611
+NDC,2039,EN - Transportation,0.661261182
+NDC,2038,EN - Transportation,0.666091012
+NDC,2037,EN - Transportation,0.668090428
+NDC,2036,EN - Transportation,0.667051631
+NDC,2035,EN - Transportation,0.662784414
+NDC,2034,EN - Transportation,0.655119852
+NDC,2033,EN - Transportation,0.643913885
+NDC,2032,EN - Transportation,0.629050712
+NDC,2031,EN - Transportation,0.610445944
+NDC,2030,EN - Transportation,0.588049433
+NDC,2029,EN - Transportation,0.550500674
+NDC,2028,EN - Transportation,0.510382919
+NDC,2027,EN - Transportation,0.469676476
+NDC,2026,EN - Transportation,0.429388413
+NDC,2025,EN - Transportation,0.388702762
+NDC,2024,EN - Transportation,0
+NDC,2023,EN - Transportation,0
+NDC,2050,EN - Building,0.012765756
+NDC,2049,EN - Building,0.013309928
+NDC,2048,EN - Building,0.013858788
+NDC,2047,EN - Building,0.014408536
+NDC,2046,EN - Building,0.014957064
+NDC,2045,EN - Building,0.01549747
+NDC,2044,EN - Building,0.016021536
+NDC,2043,EN - Building,0.016539377
+NDC,2042,EN - Building,0.016998153
+NDC,2041,EN - Building,0.017449128
+NDC,2040,EN - Building,0.017810452
+NDC,2039,EN - Building,0.01814581
+NDC,2038,EN - Building,0.018328132
+NDC,2037,EN - Building,0.018359523
+NDC,2036,EN - Building,0.018227022
+NDC,2035,EN - Building,0.017853056
+NDC,2034,EN - Building,0.017292739
+NDC,2033,EN - Building,0.016501589
+NDC,2032,EN - Building,0.015461926
+NDC,2031,EN - Building,0.014157426
+NDC,2030,EN - Building,0.012575312
+NDC,2029,EN - Building,0.010697531
+NDC,2028,EN - Building,0.008511379
+NDC,2027,EN - Building,0.006032528
+NDC,2026,EN - Building,0.003224437
+NDC,2025,EN - Building,3.73E-11
+NDC,2024,EN - Building,0
+NDC,2023,EN - Building,0
+NDC,2050,EN - Fugitive emissions,0.23561275
+NDC,2049,EN - Fugitive emissions,0.22685462
+NDC,2048,EN - Fugitive emissions,0.218349499
+NDC,2047,EN - Fugitive emissions,0.210096962
+NDC,2046,EN - Fugitive emissions,0.202125533
+NDC,2045,EN - Fugitive emissions,0.19439388
+NDC,2044,EN - Fugitive emissions,0.186878044
+NDC,2043,EN - Fugitive emissions,0.177504487
+NDC,2042,EN - Fugitive emissions,0.167792145
+NDC,2041,EN - Fugitive emissions,0.158440864
+NDC,2040,EN - Fugitive emissions,0.148841655
+NDC,2039,EN - Fugitive emissions,0.139464041
+NDC,2038,EN - Fugitive emissions,0.129763261
+NDC,2037,EN - Fugitive emissions,0.119921954
+NDC,2036,EN - Fugitive emissions,0.109831417
+NDC,2035,EN - Fugitive emissions,0.099600772
+NDC,2034,EN - Fugitive emissions,0.089562209
+NDC,2033,EN - Fugitive emissions,0.079011128
+NDC,2032,EN - Fugitive emissions,0.068415666
+NDC,2031,EN - Fugitive emissions,0.058078352
+NDC,2030,EN - Fugitive emissions,0.04804716
+NDC,2029,EN - Fugitive emissions,0.041521762
+NDC,2028,EN - Fugitive emissions,0.03278854
+NDC,2027,EN - Fugitive emissions,0.024927109
+NDC,2026,EN - Fugitive emissions,0.017777549
+NDC,2025,EN - Fugitive emissions,0.011085863
+NDC,2024,EN - Fugitive emissions,0
+NDC,2023,EN - Fugitive emissions,0
+NDC,2050,EN - Power Industry (entc),0.851521983
+NDC,2049,EN - Power Industry (entc),0.786641998
+NDC,2048,EN - Power Industry (entc),0.695159605
+NDC,2047,EN - Power Industry (entc),0.62518457
+NDC,2046,EN - Power Industry (entc),0.560132029
+NDC,2044,EN - Power Industry (entc),3.753371526
+NDC,2043,EN - Power Industry (entc),1.393553872
+NDC,2042,EN - Power Industry (entc),0.241393994
+NDC,2041,EN - Power Industry (entc),0.393464146
+NDC,2040,EN - Power Industry (entc),0.306051946
+NDC,2038,EN - Power Industry (entc),0.550789465
+NDC,2034,EN - Power Industry (entc),0.834563246
+NDC,2031,EN - Power Industry (entc),0.500343949
+NDC,2028,EN - Power Industry (entc),1.613720395
+NDC,2027,EN - Power Industry (entc),1.81646635
+NDC,2026,EN - Power Industry (entc),3.506127719
+NDC,2025,EN - Power Industry (entc),1.171933959
+NDC,2024,EN - Power Industry (entc),0
+NDC,2023,EN - Power Industry (entc),0
+LEP,2050,LULUCF - Forest land,0.000291704
+LEP,2049,LULUCF - Forest land,0.000288345
+LEP,2048,LULUCF - Forest land,0.000286085
+LEP,2047,LULUCF - Forest land,0.000287291
+LEP,2046,LULUCF - Forest land,0.000291083
+LEP,2045,LULUCF - Forest land,0.000297413
+LEP,2044,LULUCF - Forest land,0.000234104
+LEP,2043,LULUCF - Forest land,-5.85E-05
+LEP,2042,LULUCF - Forest land,-5.93E-05
+LEP,2041,LULUCF - Forest land,0.000237841
+LEP,2040,LULUCF - Forest land,0.000251866
+LEP,2039,LULUCF - Forest land,0.00026261
+LEP,2038,LULUCF - Forest land,0.00027339
+LEP,2037,LULUCF - Forest land,2.11E-05
+LEP,2036,LULUCF - Forest land,1.66E-05
+LEP,2035,LULUCF - Forest land,1.46E-05
+LEP,2034,LULUCF - Forest land,1.36E-05
+LEP,2033,LULUCF - Forest land,1.27E-05
+LEP,2032,LULUCF - Forest land,1.20E-05
+LEP,2031,LULUCF - Forest land,1.15E-05
+LEP,2030,LULUCF - Forest land,1.10E-05
+LEP,2029,LULUCF - Forest land,1.04E-05
+LEP,2028,LULUCF - Forest land,9.86E-06
+LEP,2027,LULUCF - Forest land,9.17E-06
+LEP,2026,LULUCF - Forest land,2.70E-08
+LEP,2025,LULUCF - Forest land,0
+LEP,2024,LULUCF - Forest land,0
+LEP,2023,LULUCF - Forest land,0
+LEP,2050,AG - Livestock (manure),0.026776791
+LEP,2049,AG - Livestock (manure),0.0251019
+LEP,2048,AG - Livestock (manure),0.023492817
+LEP,2047,AG - Livestock (manure),0.021951715
+LEP,2046,AG - Livestock (manure),0.020469939
+LEP,2045,AG - Livestock (manure),0.019047134
+LEP,2044,AG - Livestock (manure),0.017690292
+LEP,2043,AG - Livestock (manure),0.016347142
+LEP,2042,AG - Livestock (manure),0.015108792
+LEP,2041,AG - Livestock (manure),0.013877084
+LEP,2040,AG - Livestock (manure),0.012741488
+LEP,2039,AG - Livestock (manure),0.011631587
+LEP,2038,AG - Livestock (manure),0.010553181
+LEP,2037,AG - Livestock (manure),0.009488118
+LEP,2036,AG - Livestock (manure),0.008450675
+LEP,2035,AG - Livestock (manure),0.007482628
+LEP,2034,AG - Livestock (manure),0.006545872
+LEP,2033,AG - Livestock (manure),0.005653187
+LEP,2032,AG - Livestock (manure),0.004802984
+LEP,2031,AG - Livestock (manure),0.003995528
+LEP,2030,AG - Livestock (manure),0.003230019
+LEP,2029,AG - Livestock (manure),0.002504872
+LEP,2028,AG - Livestock (manure),0.001809191
+LEP,2027,AG - Livestock (manure),0.001134156
+LEP,2026,AG - Livestock (manure),0.000534233
+LEP,2025,AG - Livestock (manure),0
+LEP,2024,AG - Livestock (manure),0
+LEP,2023,AG - Livestock (manure),0
+LEP,2050,AG - Crops,0.011821938
+LEP,2049,AG - Crops,0.011290508
+LEP,2048,AG - Crops,0.010758521
+LEP,2047,AG - Crops,0.010229258
+LEP,2046,AG - Crops,0.009703527
+LEP,2045,AG - Crops,0.009181779
+LEP,2044,AG - Crops,0.008664321
+LEP,2043,AG - Crops,0.008151419
+LEP,2042,AG - Crops,0.007644214
+LEP,2041,AG - Crops,0.007142895
+LEP,2040,AG - Crops,0.006649935
+LEP,2039,AG - Crops,0.006164793
+LEP,2038,AG - Crops,0.005688308
+LEP,2037,AG - Crops,0.005220431
+LEP,2036,AG - Crops,0.004761679
+LEP,2035,AG - Crops,0.004312289
+LEP,2034,AG - Crops,0.003872081
+LEP,2033,AG - Crops,0.003441289
+LEP,2032,AG - Crops,0.003020144
+LEP,2031,AG - Crops,0.002608713
+LEP,2030,AG - Crops,0.002207237
+LEP,2029,AG - Crops,0.001815887
+LEP,2028,AG - Crops,0.001434869
+LEP,2027,AG - Crops,0.001064874
+LEP,2026,AG - Crops,0.000706228
+LEP,2025,AG - Crops,0.000358592
+LEP,2024,AG - Crops,0
+LEP,2023,AG - Crops,0
+LEP,2050,Waste - Wastewater (liquid waste),4.857870543
+LEP,2049,Waste - Wastewater (liquid waste),4.63750375
+LEP,2048,Waste - Wastewater (liquid waste),4.417594685
+LEP,2047,Waste - Wastewater (liquid waste),4.198284036
+LEP,2046,Waste - Wastewater (liquid waste),3.979890109
+LEP,2045,Waste - Wastewater (liquid waste),3.76256745
+LEP,2044,Waste - Wastewater (liquid waste),3.546345186
+LEP,2043,Waste - Wastewater (liquid waste),3.331560777
+LEP,2042,Waste - Wastewater (liquid waste),3.118565352
+LEP,2041,Waste - Wastewater (liquid waste),2.907673279
+LEP,2040,Waste - Wastewater (liquid waste),2.699344463
+LEP,2039,Waste - Wastewater (liquid waste),2.493882543
+LEP,2038,Waste - Wastewater (liquid waste),2.291575593
+LEP,2037,Waste - Wastewater (liquid waste),2.092652678
+LEP,2036,Waste - Wastewater (liquid waste),1.897223408
+LEP,2035,Waste - Wastewater (liquid waste),1.705466857
+LEP,2034,Waste - Wastewater (liquid waste),1.517404271
+LEP,2033,Waste - Wastewater (liquid waste),1.333099764
+LEP,2032,Waste - Wastewater (liquid waste),1.152648557
+LEP,2031,Waste - Wastewater (liquid waste),0.976055574
+LEP,2030,Waste - Wastewater (liquid waste),0.80338225
+LEP,2029,Waste - Wastewater (liquid waste),0.634648831
+LEP,2028,Waste - Wastewater (liquid waste),0.469882632
+LEP,2027,Waste - Wastewater (liquid waste),0.309151425
+LEP,2026,Waste - Wastewater (liquid waste),0.152520871
+LEP,2025,Waste - Wastewater (liquid waste),0
+LEP,2024,Waste - Wastewater (liquid waste),0
+LEP,2023,Waste - Wastewater (liquid waste),0
+LEP,2050,Waste - Wastewater treatment (trww),0.743900533
+LEP,2049,Waste - Wastewater treatment (trww),0.690960656
+LEP,2048,Waste - Wastewater treatment (trww),0.640546087
+LEP,2047,Waste - Wastewater treatment (trww),0.592567315
+LEP,2046,Waste - Wastewater treatment (trww),0.546960708
+LEP,2045,Waste - Wastewater treatment (trww),0.503638645
+LEP,2044,Waste - Wastewater treatment (trww),0.462497555
+LEP,2043,Waste - Wastewater treatment (trww),0.423475307
+LEP,2042,Waste - Wastewater treatment (trww),0.386509795
+LEP,2041,Waste - Wastewater treatment (trww),0.351532756
+LEP,2040,Waste - Wastewater treatment (trww),0.318492387
+LEP,2039,Waste - Wastewater treatment (trww),0.28731665
+LEP,2038,Waste - Wastewater treatment (trww),0.257931761
+LEP,2037,Waste - Wastewater treatment (trww),0.230257832
+LEP,2036,Waste - Wastewater treatment (trww),0.204203313
+LEP,2035,Waste - Wastewater treatment (trww),0.179686464
+LEP,2034,Waste - Wastewater treatment (trww),0.156611152
+LEP,2033,Waste - Wastewater treatment (trww),0.134888858
+LEP,2032,Waste - Wastewater treatment (trww),0.114437074
+LEP,2031,Waste - Wastewater treatment (trww),0.095167104
+LEP,2030,Waste - Wastewater treatment (trww),0.076998985
+LEP,2029,Waste - Wastewater treatment (trww),0.059851687
+LEP,2028,Waste - Wastewater treatment (trww),0.043647938
+LEP,2027,Waste - Wastewater treatment (trww),0.028317138
+LEP,2026,Waste - Wastewater treatment (trww),0.013791261
+LEP,2025,Waste - Wastewater treatment (trww),0
+LEP,2024,Waste - Wastewater treatment (trww),0
+LEP,2023,Waste - Wastewater treatment (trww),0
+LEP,2050,Waste - Solid waste,0.114664075
+LEP,2049,Waste - Solid waste,0.11076263
+LEP,2048,Waste - Solid waste,0.106684248
+LEP,2047,Waste - Solid waste,0.102444288
+LEP,2046,Waste - Solid waste,0.098064511
+LEP,2045,Waste - Solid waste,0.093559524
+LEP,2044,Waste - Solid waste,0.088938474
+LEP,2043,Waste - Solid waste,0.084222042
+LEP,2042,Waste - Solid waste,0.079430802
+LEP,2041,Waste - Solid waste,0.0745833
+LEP,2040,Waste - Solid waste,0.069703125
+LEP,2039,Waste - Solid waste,0.064807305
+LEP,2038,Waste - Solid waste,0.059974795
+LEP,2037,Waste - Solid waste,0.055197521
+LEP,2036,Waste - Solid waste,0.050464858
+LEP,2035,Waste - Solid waste,0.045770879
+LEP,2034,Waste - Solid waste,0.041105831
+LEP,2033,Waste - Solid waste,0.036463705
+LEP,2032,Waste - Solid waste,0.031841706
+LEP,2031,Waste - Solid waste,0.027235672
+LEP,2030,Waste - Solid waste,0.022645409
+LEP,2029,Waste - Solid waste,0.018070933
+LEP,2028,Waste - Solid waste,0.0135141
+LEP,2027,Waste - Solid waste,0.008971766
+LEP,2026,Waste - Solid waste,0.004459616
+LEP,2025,Waste - Solid waste,0
+LEP,2024,Waste - Solid waste,0
+LEP,2023,Waste - Solid waste,0
+LEP,2050,IN - Industrial processes,4.317030102
+LEP,2049,IN - Industrial processes,4.085476379
+LEP,2048,IN - Industrial processes,3.86107387
+LEP,2047,IN - Industrial processes,3.643400661
+LEP,2046,IN - Industrial processes,3.43206362
+LEP,2045,IN - Industrial processes,3.226698746
+LEP,2044,IN - Industrial processes,3.026968981
+LEP,2043,IN - Industrial processes,2.832560099
+LEP,2042,IN - Industrial processes,2.643181064
+LEP,2041,IN - Industrial processes,2.458562869
+LEP,2040,IN - Industrial processes,2.278456325
+LEP,2039,IN - Industrial processes,2.102632324
+LEP,2038,IN - Industrial processes,1.929564796
+LEP,2037,IN - Industrial processes,1.759533056
+LEP,2036,IN - Industrial processes,1.592768043
+LEP,2035,IN - Industrial processes,1.429453267
+LEP,2034,IN - Industrial processes,1.269728322
+LEP,2033,IN - Industrial processes,1.11369162
+LEP,2032,IN - Industrial processes,0.961404606
+LEP,2031,IN - Industrial processes,0.812896672
+LEP,2030,IN - Industrial processes,0.668169559
+LEP,2029,IN - Industrial processes,0.527202566
+LEP,2028,IN - Industrial processes,0.389957313
+LEP,2027,IN - Industrial processes,0.256545397
+LEP,2026,IN - Industrial processes,0.126705247
+LEP,2025,IN - Industrial processes,0
+LEP,2024,IN - Industrial processes,0
+LEP,2023,IN - Industrial processes,0
+LEP,2050,EN - Industrial combustion,0.989071218
+LEP,2049,EN - Industrial combustion,0.929349491
+LEP,2048,EN - Industrial combustion,0.871952738
+LEP,2047,EN - Industrial combustion,0.816767162
+LEP,2046,EN - Industrial combustion,0.763833516
+LEP,2045,EN - Industrial combustion,0.712955055
+LEP,2044,EN - Industrial combustion,0.663936307
+LEP,2043,EN - Industrial combustion,0.617349787
+LEP,2042,EN - Industrial combustion,0.571175067
+LEP,2041,EN - Industrial combustion,0.52781164
+LEP,2040,EN - Industrial combustion,0.484450522
+LEP,2039,EN - Industrial combustion,0.443797048
+LEP,2038,EN - Industrial combustion,0.403515386
+LEP,2037,EN - Industrial combustion,0.364221065
+LEP,2036,EN - Industrial combustion,0.325740469
+LEP,2035,EN - Industrial combustion,0.28743807
+LEP,2034,EN - Industrial combustion,0.250599502
+LEP,2033,EN - Industrial combustion,0.214543686
+LEP,2032,EN - Industrial combustion,0.179339879
+LEP,2031,EN - Industrial combustion,0.144887894
+LEP,2030,EN - Industrial combustion,0.111229288
+LEP,2029,EN - Industrial combustion,0.078105069
+LEP,2028,EN - Industrial combustion,0.044976346
+LEP,2027,EN - Industrial combustion,0.038213055
+LEP,2026,EN - Industrial combustion,0.025288799
+LEP,2025,EN - Industrial combustion,8.20E-11
+LEP,2024,EN - Industrial combustion,0
+LEP,2023,EN - Industrial combustion,0
+LEP,2050,EN - Transportation,2.509048358
+LEP,2049,EN - Transportation,2.452715252
+LEP,2048,EN - Transportation,2.401946456
+LEP,2047,EN - Transportation,2.356290171
+LEP,2046,EN - Transportation,2.315260189
+LEP,2045,EN - Transportation,2.278331851
+LEP,2044,EN - Transportation,2.244937811
+LEP,2043,EN - Transportation,2.214463623
+LEP,2042,EN - Transportation,2.186243142
+LEP,2041,EN - Transportation,2.159553776
+LEP,2040,EN - Transportation,2.133611594
+LEP,2039,EN - Transportation,2.107566338
+LEP,2038,EN - Transportation,2.075681787
+LEP,2037,EN - Transportation,2.037205598
+LEP,2036,EN - Transportation,1.99137588
+LEP,2035,EN - Transportation,1.937438475
+LEP,2034,EN - Transportation,1.874665536
+LEP,2033,EN - Transportation,1.802375057
+LEP,2032,EN - Transportation,1.719950967
+LEP,2031,EN - Transportation,1.626863342
+LEP,2030,EN - Transportation,1.522688306
+LEP,2029,EN - Transportation,1.378708877
+LEP,2028,EN - Transportation,1.228321414
+LEP,2027,EN - Transportation,1.121789658
+LEP,2026,EN - Transportation,1.018392021
+LEP,2025,EN - Transportation,0.915950653
+LEP,2024,EN - Transportation,0
+LEP,2023,EN - Transportation,0
+LEP,2050,EN - Building,1.18963841
+LEP,2049,EN - Building,1.117709471
+LEP,2048,EN - Building,1.048094183
+LEP,2047,EN - Building,0.980771178
+LEP,2046,EN - Building,0.915820915
+LEP,2045,EN - Building,0.853091513
+LEP,2044,EN - Building,0.792488236
+LEP,2043,EN - Building,0.734664873
+LEP,2042,EN - Building,0.677772787
+LEP,2041,EN - Building,0.623851274
+LEP,2040,EN - Building,0.570858121
+LEP,2039,EN - Building,0.520528017
+LEP,2038,EN - Building,0.470246058
+LEP,2037,EN - Building,0.420886276
+LEP,2036,EN - Building,0.372483759
+LEP,2035,EN - Building,0.32488322
+LEP,2034,EN - Building,0.279348726
+LEP,2033,EN - Building,0.235599479
+LEP,2032,EN - Building,0.193912865
+LEP,2031,EN - Building,0.154429269
+LEP,2030,EN - Building,0.117272494
+LEP,2029,EN - Building,0.082485909
+LEP,2028,EN - Building,0.050099223
+LEP,2027,EN - Building,0.031843014
+LEP,2026,EN - Building,0.015282214
+LEP,2025,EN - Building,1.59E-10
+LEP,2024,EN - Building,0
+LEP,2023,EN - Building,0
+LEP,2050,EN - Fugitive emissions,0.239624144
+LEP,2049,EN - Fugitive emissions,0.231268211
+LEP,2048,EN - Fugitive emissions,0.223065498
+LEP,2047,EN - Fugitive emissions,0.21502285
+LEP,2046,EN - Fugitive emissions,0.207175743
+LEP,2045,EN - Fugitive emissions,0.197768121
+LEP,2044,EN - Fugitive emissions,0.186915842
+LEP,2043,EN - Fugitive emissions,0.175986262
+LEP,2042,EN - Fugitive emissions,0.164503733
+LEP,2041,EN - Fugitive emissions,0.153218601
+LEP,2040,EN - Fugitive emissions,0.141577061
+LEP,2039,EN - Fugitive emissions,0.130108826
+LEP,2038,EN - Fugitive emissions,0.118325114
+LEP,2037,EN - Fugitive emissions,0.106464282
+LEP,2036,EN - Fugitive emissions,0.094505701
+LEP,2035,EN - Fugitive emissions,0.082555818
+LEP,2034,EN - Fugitive emissions,0.070975627
+LEP,2033,EN - Fugitive emissions,0.059136031
+LEP,2032,EN - Fugitive emissions,0.047513187
+LEP,2031,EN - Fugitive emissions,0.036430073
+LEP,2030,EN - Fugitive emissions,0.025940578
+LEP,2029,EN - Fugitive emissions,0.019479592
+LEP,2028,EN - Fugitive emissions,0.011052998
+LEP,2027,EN - Fugitive emissions,0.006559098
+LEP,2026,EN - Fugitive emissions,0.002461646
+LEP,2025,EN - Fugitive emissions,-0.001463084
+LEP,2024,EN - Fugitive emissions,0
+LEP,2023,EN - Fugitive emissions,0
+LEP,2050,EN - Power Industry (entc),5.954257254
+LEP,2049,EN - Power Industry (entc),5.691021147
+LEP,2048,EN - Power Industry (entc),4.841095979
+LEP,2047,EN - Power Industry (entc),4.679420069
+LEP,2046,EN - Power Industry (entc),8.142306042
+LEP,2045,EN - Power Industry (entc),2.918048962
+LEP,2044,EN - Power Industry (entc),6.186472733
+LEP,2043,EN - Power Industry (entc),5.85440408
+LEP,2042,EN - Power Industry (entc),4.456316523
+LEP,2041,EN - Power Industry (entc),3.87525046
+LEP,2040,EN - Power Industry (entc),3.937795214
+LEP,2039,EN - Power Industry (entc),1.224216441
+LEP,2038,EN - Power Industry (entc),3.896185287
+LEP,2037,EN - Power Industry (entc),2.656836084
+LEP,2036,EN - Power Industry (entc),2.332397606
+LEP,2035,EN - Power Industry (entc),2.068498828
+LEP,2034,EN - Power Industry (entc),2.592304094
+LEP,2033,EN - Power Industry (entc),2.201171228
+LEP,2032,EN - Power Industry (entc),2.081688196
+LEP,2031,EN - Power Industry (entc),1.945243386
+LEP,2030,EN - Power Industry (entc),1.748706724
+LEP,2029,EN - Power Industry (entc),2.470819853
+LEP,2028,EN - Power Industry (entc),1.025174343
+LEP,2027,EN - Power Industry (entc),0.304750225
+LEP,2026,EN - Power Industry (entc),0.068498585
+LEP,2025,EN - Power Industry (entc),0.0769054
+LEP,2024,EN - Power Industry (entc),0
+LEP,2023,EN - Power Industry (entc),0

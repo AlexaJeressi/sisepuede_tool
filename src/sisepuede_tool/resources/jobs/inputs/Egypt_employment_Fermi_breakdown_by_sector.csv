@@ -1,0 +1,27 @@
+Economic.Sector,Employment.Share....,Source,Reference.URL,Reference.Year,Evidence.Type
+Agriculture,18.4,Agriculture/fishing 2024 aggregate split; fishing estimated,https://sis.gov.eg/en/media-center/news/capmas-egypt-s-annual-unemployment-rate-drops-to-66-percent-in-2024/,2024,Estimated 26-sector allocation
+Construction,13.5,Direct CAPMAS 2024,https://sis.gov.eg/en/media-center/news/capmas-egypt-s-annual-unemployment-rate-drops-to-66-percent-in-2024/,2024,Official 2024 broad sector
+Retail Trade,12.0,Wholesale+retail 15.5% split estimated,https://sis.gov.eg/en/media-center/news/capmas-egypt-s-annual-unemployment-rate-drops-to-66-percent-in-2024/,2024,Estimated 26-sector allocation
+"Education, Health and Other Services",11.0,Approximate based on CAPMAS 2023 education/health,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Public Administration,4.2,Approximate CAPMAS 2023,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Transport,9.0,Approximate CAPMAS 2023,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Wholesale Trade,3.5,Wholesale+retail 15.5% split estimated,https://sis.gov.eg/en/media-center/news/capmas-egypt-s-annual-unemployment-rate-drops-to-66-percent-in-2024/,2024,Estimated 26-sector allocation
+Financial Intermediation and Business Activities,1.8,Approximate financial and business activities,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Maintenance and Repair,1.2,Estimated from other services,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Textiles and Wearing Apparel,2.2,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Hotels and Restaurants,3.3,Approximate CAPMAS 2023,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+"Petroleum, Chemical and Non-Metallic Mineral Products",2.5,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Food & Beverages,3.0,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Post and Telecommunications,0.8,Approximate CAPMAS 2023,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Fishing,0.3,Agriculture/fishing 2024 aggregate split estimated,https://sis.gov.eg/en/media-center/news/capmas-egypt-s-annual-unemployment-rate-drops-to-66-percent-in-2024/,2024,Estimated 26-sector allocation
+Private Households,0.7,Residual other services estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Metal Products,1.4,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Mining and Quarrying,0.2,Approximate CAPMAS 2023 / 2024 LFS unweighted context,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Electrical and Machinery,1.5,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Other Manufacturing,1.5,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+"Electricity, Gas and Water",1.9,Approximate CAPMAS 2023 electricity and water,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Wood and Paper,0.7,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Transport Equipment,0.4,Manufacturing 13.2% split estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Others,4.6,Residual estimated,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Re-export & Re-import,0.0,Accounting sector; no distinct employment assignment,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
+Recycling,0.4,Estimated from other activities,https://eces.org.eg/wp-content/uploads/2025/03/Egypts-Economic-Profile-And-Statistics-2025.pdf,2023,Estimated 26-sector allocation
