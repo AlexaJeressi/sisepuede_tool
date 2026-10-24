@@ -25,8 +25,9 @@ in its ref/ files. Shows:
 - the sisepuede_a6 ranked MAC file as it is (static, its own LEP run): the
   same credits by group, each group split into its transformers, cheapest
   first, in the group's colour, with its own legend to hide or show groups
-  and a filter by transformation; the strip above it shows the transformer
-  under the cursor and the names of the projects linked to it (Pathways page);
+  and a filter by transformation; with its projects switch on, the strip
+  above it shows the transformer under the cursor and the names of the
+  projects linked to it (Pathways page), instead of the hover;
 - the sisepuede_a6 aggregate ranked file, the same way: each year's credits
   split among the transformers by their whole-economy share, grouped by the
   transformer's sector.
@@ -65,18 +66,25 @@ def group_name(group: str, lang=None) -> str:
 
 def _ranked_box(kind: str, title_key: str, tip_key: str) -> ui.Tag:
     """A box for one of sisepuede_a6's ranked files (`kind`: ranked, aggregate):
-    its filter by transformation, the strip with the transformer under the
-    cursor, the chart and its legend."""
+    its projects switch and filter by transformation, the strip with the
+    transformer under the cursor and its projects (switched on), the chart and
+    its legend."""
     title = i18n.t(f"article_6.{title_key}")
     return ui.div(
         ui.div(
             ui.span(title, class_="section-label"),
             info_tip(i18n.t(f"article_6.{tip_key}", year=a6.NDC_LAST_YEAR)),
             ui.span(i18n.t("results.million_usd"), class_="small muted"),
-            ui.div(ui.output_ui(f"{kind}_filter_ui"), export_button(f"{kind}_chart", title), class_="btn-row"),
+            ui.div(
+                ui.input_switch(f"{kind}_projects", i18n.t("article_6.show_projects"), value=False),
+                ui.output_ui(f"{kind}_filter_ui"),
+                export_button(f"{kind}_chart", title),
+                class_="btn-row",
+            ),
             class_="box-head",
         ),
-        hover_panel(f"{kind}_chart", i18n.t("article_6.ranked_hover_hint")),
+        # the projects of the transformation under the cursor, when switched on
+        ui.panel_conditional(f"input.{kind}_projects", hover_panel(f"{kind}_chart", i18n.t("article_6.ranked_hover_hint"))),
         output_widget(f"{kind}_chart"),
         ui.output_ui(f"{kind}_legend"),
         class_="box",
@@ -365,11 +373,13 @@ def page_article_6_server(input, output, session, state: AppState):
         static): credit value by year and group, each group split into its
         transformers, cheapest first, without the groups switched off in its
         legend and only the transformations picked in its filter (all when
-        none); the strip above it shows the transformer under the cursor."""
+        none). With its projects switch on, the strip above it shows the
+        transformer under the cursor and its projects instead of the hover."""
         df = ranked_files[kind]
         if df.empty:
             return rc.empty_figure(_t("ranked_missing"), height=360)
         picked = list(input[f"{kind}_filter"]() or []) if f"{kind}_filter" in input else []
+        projects = bool(input[f"{kind}_projects"]())
         if picked:
             df = df[df[a6.FIELD_KERNEL].isin(picked)]
         df = df[~df[a6.FIELD_GROUP].isin(hidden_of[kind].get())]
@@ -383,7 +393,8 @@ def page_article_6_server(input, output, session, state: AppState):
             {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
-            part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()), part_projects=_kernel_projects(), hover_panel=True,
+            part_labels=_kernel_names(df[a6.FIELD_KERNEL].unique()),
+            part_projects=_kernel_projects() if projects else None, hover_panel=projects,
             years=state.results_years.get(),
         )
 

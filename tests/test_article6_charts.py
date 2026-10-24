@@ -90,3 +90,11 @@ def test_ranked_hover_only_in_the_panel():
                         hover_panel=True).data[0]
     assert tr.hoverinfo == "none" and tr.hovertemplate is None  # no label over the bars; the events still fire
     assert tr.customdata[0][3] == "Solar park"
+
+
+def test_ranked_hover_without_projects():
+    frame = pd.DataFrame({"year": [2030], "series": ["Energy"], "part": ["TFR:A"], "mac": [5.0], "value": [10.0]})
+    tr = rc.credit_bars({"LEP": frame}, {}, ["Energy"], "M USD", part_labels={"TFR:A": "Alpha"}).data[0]
+    # the hover by the bar, with no project count
+    assert "Alpha" in tr.hovertemplate and "MAC 5.0" in tr.hovertemplate and "project" not in tr.hovertemplate
+    assert tr.hoverinfo is None

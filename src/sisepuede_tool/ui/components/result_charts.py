@@ -876,8 +876,8 @@ def credit_bars(
     A frame with [part, mac] columns splits each group into its parts (the
     transformers), stacked in the frame's order, in the group's colour with a
     white edge between them; the hover (light, see-through) names the part
-    (`part_labels`), its MAC (USD/tCO2e) and how many projects it has
-    (`part_projects`: part -> one line each). Each segment's customdata,
+    (`part_labels`), its MAC (USD/tCO2e) and, with `part_projects` (part ->
+    one line each), how many projects it has. Each segment's customdata,
     [name, group · year · value · MAC, project count, projects one per line],
     is what hover_panel shows above the chart; with `hover_panel` only there
     (no hover label over the bars)."""
@@ -924,7 +924,7 @@ def credit_bars(
                            hoverlabel=dict(bgcolor="rgba(255,255,255,0.72)", bordercolor=color, font=dict(color=TEXT, size=11)),
                            # "none", not "skip": the hover events still reach the panel
                            hoverinfo="none" if hover_panel else None,
-                           hovertemplate=None if hover_panel else f"{head}<br>%{{y:,.1f}} {unit}{mac}<br><i>{count}</i><extra></extra>"),
+                           hovertemplate=None if hover_panel else f"{head}<br>%{{y:,.1f}} {unit}{mac}{f'<br><i>{count}</i>' if part_projects is not None else ''}<extra></extra>"),
                     row=1, col=j,
                 )
         shown = wide[[c for c in order if c in wide.columns]]
