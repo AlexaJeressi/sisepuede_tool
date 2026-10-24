@@ -1215,12 +1215,12 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 .pw-base-year { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* Hover panel (hover_panel.py): the details of the bar under the cursor, above the chart */
-.hover-panel { min-height: 3.2em; margin: 2px 0 6px; padding: 6px 10px; border-left: 3px solid var(--border-strong); border-radius: 4px; background: var(--track); color: var(--text-secondary); }
+.hover-panel { height: 6.4em; overflow-y: auto; box-sizing: border-box; margin: 2px 0 6px; padding: 6px 10px; border-left: 3px solid var(--border-strong); border-radius: 4px; background: var(--track); color: var(--text-secondary); }
 .hover-panel .hover-panel-body:empty { display: none; }
 .hover-panel.on .hover-panel-hint { display: none; }
 .hover-panel-head b { color: var(--text); }
 .hover-panel-count { font-style: italic; margin-top: 2px; }
-.hover-panel ul { margin: 3px 0 0; padding-inline-start: 18px; columns: 2 320px; column-gap: 28px; }
-.hover-panel li { break-inside: avoid; margin-bottom: 5px; }
-.hover-panel li b { color: var(--text); font-weight: 600; }
-.hover-panel-desc { font-size: 11.5px; line-height: 1.35; color: var(--text-secondary); }
+/* the names in a row, separated by a dot, wrapping */
+.hover-panel ul { margin: 2px 0 0; padding: 0; list-style: none; line-height: 1.4; }
+.hover-panel li { display: inline; color: var(--text); }
+.hover-panel li + li::before { content: " · "; color: var(--text-secondary); }

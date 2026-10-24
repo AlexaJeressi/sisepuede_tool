@@ -26,8 +26,7 @@ in its ref/ files. Shows:
   same credits by group, each group split into its transformers, cheapest
   first, in the group's colour, with its own legend to hide or show groups
   and a filter by transformation; the strip above it shows the transformer
-  under the cursor and the projects linked to it (Pathways page), with their
-  descriptions;
+  under the cursor and the names of the projects linked to it (Pathways page);
 - the sisepuede_a6 aggregate ranked file, the same way: each year's credits
   split among the transformers by their whole-economy share, grouped by the
   transformer's sector.
@@ -332,14 +331,15 @@ def page_article_6_server(input, output, session, state: AppState):
         return {c: i18n.td("transformers", c, "name", tms.get_card(c, meta)["name"], lang) for c in codes}
 
     def _kernel_projects() -> dict:
-        """{transformer: ["name<tab>description"]}: the projects linked now
-        (Pathways page) to a transformation on each transformer."""
+        """{transformer: [project name]}: the projects linked now (Pathways
+        page) to a transformation on each transformer (their details are on
+        the Projects page)."""
         transformer_of = {i.code: i.transformer_code for i in state.library_items.get() or []}
         records = projects_service.all_projects(
             projects_service.load_project_records_cached(config.PROJECTS_XLSX_PATH), state.custom_projects.get()
         )
         by_transformer = projects_service.projects_by(state.project_links.get(), records, transformer_of.get)
-        return {c: [f"{r['name']}\t{' '.join(str(r.get('description') or '').split())}" for r in recs] for c, recs in by_transformer.items()}
+        return {c: [r["name"] for r in recs] for c, recs in by_transformer.items()}
 
     def _filter_ui(kind: str):
         df = ranked_files[kind]
