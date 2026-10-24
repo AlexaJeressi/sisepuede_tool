@@ -21,7 +21,7 @@ in its ref/ files. Shows:
   credit chart;
 - credit value per target year, stacked by emission group (subsector colours),
   totals written above the milestone years; a click on a group in the legend
-  under it hides or shows that group (hidden for now, SHOW_GROUPS_CHART);
+  under it hides or shows that group (SHOW_GROUPS_CHART);
 - the sisepuede_a6 ranked MAC file as it is (static, its own LEP run): the
   same credits by group, each group split into its transformers, cheapest
   first, in the group's colour, with its own legend to hide or show groups
@@ -56,7 +56,7 @@ from sisepuede_tool.ui.components.info_tip import info_tip
 from sisepuede_tool.ui.state import AppState
 
 
-SHOW_GROUPS_CHART = False  # credits by emission group, hidden for now (2026-10-24)
+SHOW_GROUPS_CHART = True  # credits by emission group (False hides it, with its notes under the KPIs instead)
 
 
 def group_name(group: str, lang=None) -> str:
