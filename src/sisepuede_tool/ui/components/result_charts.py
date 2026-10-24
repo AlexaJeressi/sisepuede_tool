@@ -1039,3 +1039,111 @@ def gap_lines(
     if outside is not None and last is not None and outside[0] < last:
         _shade_outside(fig, outside[0], last, outside[1])
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Jobs (page_jobs.py)
+# ---------------------------------------------------------------------------
+
+JOBS_SCALE = ["#E6E1D6", "#9DB4C8", "#2F5D8A"]  # jobs per million USD, light to dark
+
+
+def jobs_bars(
+    grid: Dict[str, Dict[str, pd.DataFrame]],
+    colors: Dict[str, str],
+    order: List[str],
+    unit: str,
+    labels: Optional[Dict[str, str]] = None,
+    height: int = 420,
+    total_line: bool = False,
+    categories: bool = False,
+    lang: Optional[str] = None,
+) -> go.Figure:
+    """Stacked bars of jobs by year, one panel per cell of `grid` ({row title:
+    {column title: [year, series, value]}}; "" for a single row), stacked by
+    series in `order` (shown as `labels`), negative values below zero, one
+    legend for all. `total_line`: the years' totals as a line with their
+    values. `categories` (and `total_line`): the years as categories, for a
+    few years apart (e.g. 2025, 2030, ...)."""
+    categories = categories or total_line
+    row_titles = list(grid)
+    col_titles = list(dict.fromkeys(c for r in grid.values() for c in r))
+    n_rows, n_cols = len(row_titles), len(col_titles)
+    fig = make_subplots(
+        rows=n_rows, cols=n_cols, shared_xaxes=True, shared_yaxes=True, horizontal_spacing=0.04, vertical_spacing=0.08,
+        column_titles=col_titles if any(col_titles) else None, row_titles=row_titles if any(row_titles) else None,
+    )
+    shown = set()
+    rank = {name: k for k, name in enumerate(order)}
+    for i, r in enumerate(row_titles, start=1):
+        for j, c in enumerate(col_titles, start=1):
+            frame = grid[r].get(c)
+            if frame is None or frame.empty:
+                continue
+            wide = frame.pivot_table(index="year", columns="series", values="value", aggfunc="sum").fillna(0.0)
+            x = [str(int(y)) for y in wide.index] if categories else wide.index
+            for name in [s for s in order if s in wide.columns]:
+                y = wide[name]
+                if (y.abs() < 1e-9).all():
+                    continue
+                label = series_label(name, lang, labels)
+                fig.add_trace(
+                    go.Bar(x=x, y=y, name=label, legendgroup=name, showlegend=name not in shown, legendrank=rank[name],
+                           marker=dict(color=colors.get(name, OTHER_COLOR), line=dict(width=0)),
+                           hovertemplate=f"<b>{label}</b><br>%{{x}}: %{{y:,.0f}} {unit}<extra></extra>"),
+                    row=i, col=j,
+                )
+                shown.add(name)
+            if total_line:
+                tot = wide.sum(axis=1)
+                fig.add_trace(
+                    go.Scatter(x=x, y=tot.values, mode="lines+markers+text", line=dict(color=NET, width=2), marker=dict(size=6, color=NET),
+                               text=[f"{v / 1e6:,.2f}M" for v in tot.values], textposition="top center",
+                               textfont=dict(family=MONO, size=11, color=NET), showlegend=False, hoverinfo="skip"),
+                    row=i, col=j,
+                )
+    fig.update_layout(barmode="relative", bargap=0.35 if categories else 0.18)
+    fig.update_yaxes(tickformat="~s")
+    for i in range(1, n_rows + 1):
+        fig.update_yaxes(title_text=unit, title_font=dict(size=11.5, color=LABEL), row=i, col=1)
+    fig = _base_layout(fig, height)
+    if categories:
+        fig.update_xaxes(type="category")
+    if total_line:
+        top = max((float(f.groupby("year")["value"].sum().max()) for r in grid.values() for f in r.values() if not f.empty), default=0.0)
+        fig.update_yaxes(range=[0, top * 1.12])
+    if not categories:
+        fig.update_xaxes(dtick=5 if n_cols > 1 else 2)
+    fig.update_layout(hovermode="closest")
+    return fig
+
+
+def jobs_heatmap(
+    table: pd.DataFrame,
+    rows: List[str],
+    cols: List[str],
+    row_labels: Dict[str, str],
+    col_labels: Dict[str, str],
+    unit: str,
+    zmax: float = 10.0,
+) -> go.Figure:
+    """Jobs per million USD invested (`table`: [row, col, value]) by economic
+    sector (`rows`) and SSP sector (`cols`), the value in each cell; the colour
+    saturates at `zmax`."""
+    wide = table.pivot_table(index="row", columns="col", values="value", aggfunc="sum").reindex(index=rows, columns=cols)
+    z = wide.to_numpy(float)
+    ylab = [row_labels.get(r, r) for r in rows]
+    xlab = [_wrap(col_labels.get(c, c), 10) for c in cols]
+    fig = go.Figure(go.Heatmap(
+        z=z, x=xlab, y=ylab, zmin=0, zmax=zmax, colorscale=[[0, JOBS_SCALE[0]], [0.5, JOBS_SCALE[1]], [1, JOBS_SCALE[2]]],
+        text=np.vectorize(lambda v: "" if np.isnan(v) else f"{v:.1f}")(z), texttemplate="%{text}",
+        textfont=dict(family=MONO, size=10.5), xgap=1, ygap=1,
+        colorbar=dict(title=dict(text=unit, side="right", font=dict(size=11, color=LABEL)), thickness=10, len=0.5, y=1, yanchor="top",
+                      tickfont=dict(family=MONO, size=10, color=LABEL)),
+        hovertemplate="%{y} · %{x}<br>%{z:.2f} " + unit + "<extra></extra>",
+    ))
+    fig = _base_layout(fig, 26 * len(rows) + 120, legend=False)
+    fig.update_xaxes(side="top", tickangle=0, tickfont=dict(family=FONT, size=10, color=TEXT), ticks="", showline=False)
+    fig.update_yaxes(autorange="reversed", tickfont=dict(family=FONT, size=11.5, color=TEXT), gridcolor="rgba(0,0,0,0)", zeroline=False)
+    fig.update_layout(hovermode="closest", margin=dict(l=8, r=8, t=56, b=8))
+    return fig
