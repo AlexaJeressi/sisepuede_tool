@@ -494,38 +494,32 @@ def page_article_6_server(input, output, session, state: AppState):
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
-        # a plotly legend too, hidden here (the HTML one is under the chart) but drawn by the ⤓ export
+        # a plotly legend too, hidden here (the HTML one is under the chart) but
+        # drawn by the ⤓ export, in the order of the stack (top entry = top segment)
         for t in fig.data:
             g = t.legendgroup
             if t.type == "bar" and g in sector_mac:
                 t.name = f"{group_name(g, lang)}{_mac_text(sector_mac[g])}"
+        fig.update_layout(legend=dict(traceorder="reversed"))
         return fig
 
     def _export_legend(fig, lang):
         """The transformations chart's legend as a plotly legend, hidden in the
-        tool (the HTML one is under the chart) but drawn by the ⤓ export: each
-        sector's title with its MAC, then its transformations, in their shade
-        and with their MAC, sectors in the sectors chart's order."""
+        tool (the HTML one is under the chart) but drawn by the ⤓ export: one
+        entry per (sector, transformation), "name · MAC (sector)", in its shade,
+        in the order of the stack, so each entry lines up with its segment (the
+        top entry is the top segment, the lowest MAC; the bottom one the base,
+        the highest)."""
         names = _kernel_names(ranked_files["ranked"][a6.FIELD_KERNEL].unique())
-        rank = {g: i for i, g in enumerate(_sector_order())}
         macs = ranked_files["ranked"].drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL]).set_index([a6.FIELD_GROUP, a6.FIELD_KERNEL])["mac"]
-        titled = set()
-        for t in fig.data:
-            key = t.legendgroup or ""
-            if t.type != "bar" or "|" not in key:
-                continue
-            g, k = key.split("|", 1)
+        bars = [t for t in fig.data if t.type == "bar" and "|" in (t.legendgroup or "")]
+        for i, t in enumerate(bars):  # in stacking order: the base first
+            g, k = t.legendgroup.split("|", 1)
             mac = float(macs.get((g, k), float("nan")))
-            t.name = names.get(k, k) + ("" if mac != mac else _mac_text(mac))
+            t.name = names.get(k, k) + ("" if mac != mac else _mac_text(mac)) + f" ({group_name(g, lang)})"
             t.showlegend = True
-            t.legendgroup = g
-            # sectors in order, then their transformations by MAC, highest first
-            t.legendrank = 1000 * rank.get(g, 99) + (500 - mac if mac == mac else 999)
-            if g not in titled:
-                head = group_name(g, lang) + (_mac_text(sector_mac[g]) if g in sector_mac else "")
-                t.legendgrouptitle = dict(text=f"<b>{head}</b>")
-                titled.add(g)
-        fig.update_layout(legend=dict(traceorder="grouped", tracegroupgap=4, font=dict(size=10.5)))
+            t.legendrank = len(bars) - i
+        fig.update_layout(legend=dict(traceorder="normal", font=dict(size=10.5)))
 
     @render_plotly
     @rc.bidi_for(state.lang)

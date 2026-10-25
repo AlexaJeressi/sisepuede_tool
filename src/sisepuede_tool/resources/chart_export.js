@@ -132,9 +132,9 @@
       layout.legend = Object.assign({}, layout.legend, {font: {size: size, color: text}, grouptitlefont: gtitle, bgcolor: 'rgba(0,0,0,0)'});
       // Plotly measures each legend entry a little narrower than it draws it,
       // which cut the end of the longest names: a few spaces of slack
-      var pad = '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';
+      // (about a tenth of a name's length, so the longest ones get the most)
       data.forEach(function(tr) {
-        if (tr.showlegend !== false && tr.name) tr.name = tr.name + pad;
+        if (tr.showlegend !== false && tr.name) tr.name = tr.name + '\u00a0'.repeat(4 + Math.ceil(String(tr.name).length * 0.15));
         if (tr.legendgrouptitle) tr.legendgrouptitle = Object.assign({}, tr.legendgrouptitle, {font: {size: size, color: text}});
       });
       // room on the right for a legend outside the plot: Plotly sizes it before
@@ -147,9 +147,15 @@
           if (tr.showlegend === false) return;
           longest = Math.max(longest, plain(tr.name).length, plain(tr.legendgrouptitle && tr.legendgrouptitle.text).length);
         });
-        layout.margin.r = Math.max(layout.margin.r, Math.ceil((longest * size * 0.6 + 60) * 1.08));
+        layout.margin.r = Math.max(layout.margin.r, Math.ceil((longest * size * 0.62 + 70) * 1.1));
         layout.legend.x = 1.01;
         layout.legend.xanchor = 'left';
+        // a wide legend: the image made wider so the plot keeps its width
+        var plotW = 1100 * k;
+        if (o.width - layout.margin.l - layout.margin.r < plotW) {
+          o.width = Math.ceil(layout.margin.l + layout.margin.r + plotW);
+          layout.width = o.width;
+        }
       }
       var needed = Math.ceil(items * size * 1.75 + groups * size * 2.6 + layout.margin.t + layout.margin.b);
       if (needed > o.height) { o.height = needed; layout.height = needed; }
