@@ -13,6 +13,7 @@ dependencies = [
     "shiny>=0.10",
     "shinywidgets>=0.3",
     "plotly>=5.20",
+    "kaleido>=1.0",  # PNGs of scripts/build_a6_slide_charts.py
     "pandas",
     "openpyxl",
     "PyYAML",
