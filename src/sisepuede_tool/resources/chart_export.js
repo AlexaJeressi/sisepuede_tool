@@ -123,7 +123,36 @@
     });
     layout.showlegend = o.legend && data.some(function(tr) { return tr.showlegend !== false; });
     if (layout.showlegend) {
-      layout.legend = Object.assign({}, layout.legend, {font: {size: 13 * k, color: text}, bgcolor: 'rgba(0,0,0,0)'});
+      // a long legend (e.g. transformations under their sector): smaller text,
+      // and the image made tall enough for every entry
+      var items = data.filter(function(tr) { return tr.showlegend !== false && tr.name; }).length;
+      var groups = data.filter(function(tr) { return tr.showlegend !== false && tr.legendgrouptitle && tr.legendgrouptitle.text; }).length;
+      var size = (items > 20 ? 11 : 13) * k;
+      var gtitle = Object.assign({}, (layout.legend || {}).grouptitlefont, {size: size, color: text});
+      layout.legend = Object.assign({}, layout.legend, {font: {size: size, color: text}, grouptitlefont: gtitle, bgcolor: 'rgba(0,0,0,0)'});
+      // Plotly measures each legend entry a little narrower than it draws it,
+      // which cut the end of the longest names: a few spaces of slack
+      var pad = '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';
+      data.forEach(function(tr) {
+        if (tr.showlegend !== false && tr.name) tr.name = tr.name + pad;
+        if (tr.legendgrouptitle) tr.legendgrouptitle = Object.assign({}, tr.legendgrouptitle, {font: {size: size, color: text}});
+      });
+      // room on the right for a legend outside the plot: Plotly sizes it before
+      // the page font loads, so long names were cut; reserve it from the
+      // longest name (plain text, about 0.6 em a character, plus the swatch)
+      if ((layout.legend.x || 0) >= 1) {
+        var plain = function(t) { return String(t || '').replace(/<[^>]*>/g, ''); };
+        var longest = 0;
+        data.forEach(function(tr) {
+          if (tr.showlegend === false) return;
+          longest = Math.max(longest, plain(tr.name).length, plain(tr.legendgrouptitle && tr.legendgrouptitle.text).length);
+        });
+        layout.margin.r = Math.max(layout.margin.r, Math.ceil((longest * size * 0.6 + 60) * 1.08));
+        layout.legend.x = 1.01;
+        layout.legend.xanchor = 'left';
+      }
+      var needed = Math.ceil(items * size * 1.75 + groups * size * 2.6 + layout.margin.t + layout.margin.b);
+      if (needed > o.height) { o.height = needed; layout.height = needed; }
     }
     layout.annotations = (layout.annotations || []).map(function(a) {
       var f = a.font || {};

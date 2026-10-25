@@ -462,7 +462,7 @@ def page_article_6_server(input, output, session, state: AppState):
             labels = {k: labels.get(k.split("|", 1)[0], k.split("|", 1)[0]) for k in keys}
             colors = {k: sector_colors.get(k.split("|", 1)[0], rc.OTHER_COLOR) for k in keys}
             part_colors = {(k, k.split("|", 1)[1]): shade.get(tuple(k.split("|", 1)), colors[k]) for k in keys}
-        return rc.credit_bars(
+        fig = rc.credit_bars(
             {_t("ranked_panel"): frame}, colors, order, i18n.t("results.million_usd", lang),
             lang=lang, labels=labels, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)),
@@ -470,6 +470,9 @@ def page_article_6_server(input, output, session, state: AppState):
             part_projects=_kernel_projects() if projects else None, hover_panel=projects, part_colors=part_colors,
             years=state.results_years.get(),
         )
+        if kind == "ranked":
+            _export_legend(fig, lang)
+        return fig
 
     @render_plotly
     @rc.bidi_for(state.lang)
@@ -486,11 +489,43 @@ def page_article_6_server(input, output, session, state: AppState):
         order = _sector_order()
         frame = df.groupby(["year", a6.FIELD_GROUP], as_index=False)["value_musd"].sum().rename(
             columns={a6.FIELD_GROUP: "series", "value_musd": "value"})
-        return rc.credit_bars(
+        fig = rc.credit_bars(
             {_t("ranked_panel"): frame}, a6.group_colors(ref["groupings"], rc.SUBSECTOR_COLORS), order, i18n.t("results.million_usd", lang),
             lang=lang, labels={g: group_name(g, lang) for g in order}, label_years=headline, legend=False,
             outside=(a6.NDC_LAST_YEAR, _t("after_ndc_targets", year=a6.NDC_LAST_YEAR)), years=state.results_years.get(),
         )
+        # a plotly legend too, hidden here (the HTML one is under the chart) but drawn by the ⤓ export
+        for t in fig.data:
+            g = t.legendgroup
+            if t.type == "bar" and g in sector_mac:
+                t.name = f"{group_name(g, lang)}{_mac_text(sector_mac[g])}"
+        return fig
+
+    def _export_legend(fig, lang):
+        """The transformations chart's legend as a plotly legend, hidden in the
+        tool (the HTML one is under the chart) but drawn by the ⤓ export: each
+        sector's title with its MAC, then its transformations, in their shade
+        and with their MAC, sectors in the sectors chart's order."""
+        names = _kernel_names(ranked_files["ranked"][a6.FIELD_KERNEL].unique())
+        rank = {g: i for i, g in enumerate(_sector_order())}
+        macs = ranked_files["ranked"].drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL]).set_index([a6.FIELD_GROUP, a6.FIELD_KERNEL])["mac"]
+        titled = set()
+        for t in fig.data:
+            key = t.legendgroup or ""
+            if t.type != "bar" or "|" not in key:
+                continue
+            g, k = key.split("|", 1)
+            mac = float(macs.get((g, k), float("nan")))
+            t.name = names.get(k, k) + ("" if mac != mac else _mac_text(mac))
+            t.showlegend = True
+            t.legendgroup = g
+            # sectors in order, then their transformations by MAC, highest first
+            t.legendrank = 1000 * rank.get(g, 99) + (500 - mac if mac == mac else 999)
+            if g not in titled:
+                head = group_name(g, lang) + (_mac_text(sector_mac[g]) if g in sector_mac else "")
+                t.legendgrouptitle = dict(text=f"<b>{head}</b>")
+                titled.add(g)
+        fig.update_layout(legend=dict(traceorder="grouped", tracegroupgap=4, font=dict(size=10.5)))
 
     @render_plotly
     @rc.bidi_for(state.lang)
