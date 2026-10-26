@@ -11,7 +11,8 @@ which uses a local Chrome; without it only the HTML files are written.
 
 The data and colours are the Article 6 page's: ref/temporary_a6_ranked_mac_bar_df.csv
 of the sisepuede_a6 clone (article6_service.load_ranked), each sector's MAC from
-the file (ranked_group_macs), the sectors stacked by MAC (highest at the base),
+the file (ranked_group_macs), the sectors stacked by MAC (lowest at the base, the legends
+highest first, lined up with the top of the stack),
 every (sector, transformation) ranked by its own MAC, each in a lighter shade of
 its sector's colour (result_charts.shades). The legends are drawn by hand on the
 right: the sectors in one column; the transformations grouped by sector in two
@@ -108,6 +109,8 @@ def build(lang: str = "en"):
     live = df.groupby([a6.FIELD_GROUP, a6.FIELD_KERNEL])["value_musd"].transform(lambda v: v.abs().max()) > 1e-9
     d = df[live]
     sectors = sorted(dict.fromkeys(d[a6.FIELD_GROUP]), key=lambda g: (g not in gmac, -gmac.get(g, 0.0)))
+    # the stack, the base first: the lowest MAC (the sectors with none on top, as in the tool)
+    stack = sorted(sectors, key=lambda g: (g not in gmac, gmac.get(g, 0.0)))
 
     # every (sector, transformation): its shade of the sector colour (closer to it = higher MAC), all by MAC
     pairs = d.drop_duplicates([a6.FIELD_GROUP, a6.FIELD_KERNEL])
@@ -115,7 +118,7 @@ def build(lang: str = "en"):
     for g, p in pairs.sort_values("mac", ascending=False, kind="stable").groupby(a6.FIELD_GROUP, sort=False):
         for k, c in zip(p[a6.FIELD_KERNEL], rc.shades(colors.get(g, rc.OTHER_COLOR), len(p))):
             shade[(g, k)] = c
-    ranked = pairs.sort_values("mac", ascending=False, kind="stable")
+    ranked = pairs.sort_values("mac", kind="stable")  # the stacking order: the lowest MAC at the base
     keys = list(ranked[a6.FIELD_GROUP] + "|" + ranked[a6.FIELD_KERNEL])
     sector_of = dict(zip(keys, ranked[a6.FIELD_GROUP]))
     mac_of = dict(zip(keys, ranked["mac"]))
@@ -133,7 +136,7 @@ def build(lang: str = "en"):
     sector_title = {g: f"<b>{sector_name[g]}</b>" + (f" · {mac_text(gmac[g])}" if g in gmac else "") for g in sectors}
 
     # (1) sectors
-    f1 = rc.credit_bars({"LEP": sector_frame}, colors, sectors, "million USD", lang=lang, labels=sector_name,
+    f1 = rc.credit_bars({"LEP": sector_frame}, colors, stack, "million USD", lang=lang, labels=sector_name,
                         label_years=headline, legend=False, outside=outside)
     _frame(f1, "Credits (emission reductions) by sector, ranked by MAC", "2026–2050", y_range)
     for i, g in enumerate(sectors):
@@ -152,7 +155,7 @@ def build(lang: str = "en"):
         for g in column:
             _text(f2, x, y, sector_title[g], 12)
             y += LINE + 1
-            for k in sorted((k for k in keys if sector_of[k] == g), key=lambda k: -mac_of[k]):
+            for k in sorted((k for k in keys if sector_of[k] == g), key=lambda k: mac_of[k]):  # lowest MAC first, as they stack
                 lines = _wrap(name[k], mac_text(mac_of[k]))
                 _swatch(f2, x + 8, y + 8, 13, color_of[k])
                 _text(f2, x + 36, y, "<br>".join(lines), FONT_ITEM)
