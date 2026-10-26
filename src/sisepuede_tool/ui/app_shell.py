@@ -67,6 +67,8 @@ logging.getLogger("sisepuede_tool").setLevel(os.environ.get("SISEPUEDE_TOOL_LOG_
 
 _THEME_CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "resources" / "theme.css"
 _THEME_RTL_CSS_PATH = _THEME_CSS_PATH.with_name("theme-rtl.css")
+# plotly legend clicks sent to the server (Article 6), see the file
+_LEGEND_EVENTS_JS = _THEME_CSS_PATH.with_name("legend_events.js").read_text()
 
 _PAGE_UI_FNS = {
     "data_input": page_data_input_ui,
@@ -333,6 +335,7 @@ def _head(lang: str) -> ui.Tag:
         ui.tags.script(ui.HTML(_SHELL_JS)),
         ui.tags.script(ui.HTML(chart_export.JS)),
         ui.tags.script(ui.HTML(hover_panel.JS)),
+        ui.tags.script(ui.HTML(_LEGEND_EVENTS_JS)),
     )
 
 
