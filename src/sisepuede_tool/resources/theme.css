@@ -1227,7 +1227,8 @@ body.advanced-on .code-tip { display: inline-flex !important; }
 
 /* Article 6: the transformations legend, grouped by sector (page_article_6.ranked_legend) */
 .a6-legend-grouped { margin: 6px 0 10px; font-size: 12px; color: var(--text-secondary); }
-.a6-legend-groups { columns: 3 300px; column-gap: 24px; }
+/* row by row (left to right), not down columns */
+.a6-legend-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: 24px; align-items: start; }
 .a6-legend-group { break-inside: avoid; margin-bottom: 2px; }
 /* a sector: its arrow opens the list; its name switches it off */
 .a6-legend-group > summary { list-style: none; display: flex; align-items: center; gap: 2px; cursor: pointer; }
