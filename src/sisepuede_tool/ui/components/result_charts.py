@@ -864,6 +864,7 @@ def credit_bars(
     hover_panel: bool = False,
     part_colors: Optional[Dict[Tuple[str, str], str]] = None,
     years: Years = None,
+    hidden: Optional[Iterable[str]] = None,
 ) -> go.Figure:
     """Article 6 credits: one panel per pathway (`frames`: {title: [year, series, value]}),
     one stacked bar per target year, stacked by emission group in `order`
@@ -882,7 +883,11 @@ def credit_bars(
     one line each), how many projects it has. Each segment's customdata,
     [name, group · year · value · MAC, project count, projects one per line],
     is what hover_panel shows above the chart; with `hover_panel` only there
-    (no hover label over the bars)."""
+    (no hover label over the bars).
+
+    `hidden`: series switched off in a plotly legend, kept in it (greyed out,
+    visible="legendonly") but not drawn nor counted in the bar totals."""
+    hidden = set(hidden or ())
     frames = {k: f[in_years(f["year"], years)] for k, f in frames.items()}
     titles = list(frames.keys())
     fig = make_subplots(rows=1, cols=max(len(titles), 1), shared_yaxes=True, subplot_titles=titles, horizontal_spacing=0.05)
@@ -901,6 +906,7 @@ def credit_bars(
                 fig.add_trace(
                     go.Bar(x=x, y=wide[name].to_numpy(), name=label, legendgroup=name,
                            showlegend=label not in {t.name for t in fig.data}, marker_color=color,
+                           visible="legendonly" if name in hidden else True,
                            hovertemplate=f"{label}: %{{y:,.1f}} {unit}<extra></extra>"),
                     row=1, col=j,
                 )
@@ -922,14 +928,16 @@ def credit_bars(
                           for xi, v in zip(x, values)]
                 fig.add_trace(
                     go.Bar(x=x, y=values, name=label, legendgroup=name, customdata=custom,
-                           showlegend=False, marker=dict(color=(part_colors or {}).get((name, part), color), line=dict(color="white", width=0.6)),
+                           showlegend=False, visible="legendonly" if name in hidden else True, marker=dict(color=(part_colors or {}).get((name, part), color), line=dict(color="white", width=0.6)),
                            hoverlabel=dict(bgcolor="rgba(255,255,255,0.72)", bordercolor=color, font=dict(color=TEXT, size=11)),
                            # "none", not "skip": the hover events still reach the panel
                            hoverinfo="none" if hover_panel else None,
                            hovertemplate=None if hover_panel else f"{head}<br>%{{y:,.1f}} {unit}{mac}{f'<br><i>{count}</i>' if part_projects is not None else ''}<extra></extra>"),
                     row=1, col=j,
                 )
-        shown = wide[[c for c in order if c in wide.columns]]
+        shown = wide[[c for c in order if c in wide.columns and c not in hidden]]
+        if shown.empty:  # every series switched off: no totals
+            continue
         # where the bars end: by segment (a group split into parts can have both signs)
         cells = frames[title][frames[title]["series"].isin(shown.columns)]
         cells = cells.assign(_k=cells["part"] if split else cells["series"]).groupby(["year", "_k"])["value"].sum()
