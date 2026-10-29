@@ -40,6 +40,17 @@ _EMITTING = ["entc", "trns", "inen", "scoe", "fgtv", "ccsq", "ippu", "agrc", "lv
 
 _field_catalog_cache: Dict[int, pd.DataFrame] = {}
 
+# "add cards" search: every typed word anywhere in the name or its group, with
+# the label's subscripts read as digits (CH4 finds CH₄)
+_ADD_VAR_SCORE = ui.js_eval("""function(search) {
+  var fold = function(s) { return String(s || '').toLowerCase().replace(/[\u2080-\u2089]/g, function(c) { return String(c.charCodeAt(0) - 0x2080); }); };
+  var words = fold(search).split(/\\s+/).filter(Boolean);
+  return function(item) {
+    var text = fold(item.label + ' ' + (item.optgroup || ''));
+    return words.every(function(w) { return text.indexOf(w) !== -1; }) ? 1 : 0;
+  };
+}""")
+
 
 def field_catalog(model_attributes) -> pd.DataFrame:
     key = id(model_attributes)
@@ -126,7 +137,7 @@ def page_emissions_ui():
                 ui.div(
                     ui.input_selectize(
                         "add_var", None, choices=[], multiple=True,
-                        options={"placeholder": i18n.t("emissions.add_var_placeholder")}, width="560px",
+                        options={"placeholder": i18n.t("emissions.add_var_placeholder"), "score": _ADD_VAR_SCORE}, width="560px",
                     ),
                     ui.input_action_button("add_var_btn", i18n.t("emissions.add_cards"), class_="btn-inline"),
                     class_="btn-row",
@@ -228,7 +239,6 @@ def page_emissions_server(input, output, session, state: AppState):
         if cat is None:
             return
         rows = cat.drop_duplicates("variable")
-        rows = rows[~rows["variable"].str.contains("NemoMod :math:|emission_co2e", regex=True)]
         choices: Dict[str, Dict[str, str]] = {}
         for r in rows.sort_values(["sector", "subsector", "variable"]).itertuples():
             sector = r.sector or "Other"
@@ -239,7 +249,7 @@ def page_emissions_server(input, output, session, state: AppState):
         # rebuilt on a language change too: keep what the user picked
         with reactive.isolate():
             picked = list(input.add_var() or [])
-        ui.update_selectize("add_var", choices=choices, selected=picked, options={"placeholder": _t("add_var_placeholder")})
+        ui.update_selectize("add_var", choices=choices, selected=picked, options={"placeholder": _t("add_var_placeholder"), "score": _ADD_VAR_SCORE})
 
     @reactive.effect
     @reactive.event(input.add_var_btn)
