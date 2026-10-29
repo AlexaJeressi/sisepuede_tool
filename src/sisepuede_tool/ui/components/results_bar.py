@@ -13,6 +13,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 
 from shiny import reactive, render, ui
+from shiny.session import get_current_session
 
 from sisepuede_tool.services import cost_benefit_service, i18n, pathway_service
 from sisepuede_tool.services import tableau_export_service as tes
@@ -135,7 +136,15 @@ def bar_server(input, state, ev_id: str):
                     type="button",
                 )
             )
-        first, last = year_range(state)
+        # the years are read without a dependency: redrawing the slider while it is
+        # dragged sends stale values back on a slow connection and the bar loops.
+        # The bar is redrawn on a page change instead, so each page's slider
+        # shows the range set on another page.
+        root_input = get_current_session().root_scope().input
+        if "sidebar_nav" in root_input:
+            root_input.sidebar_nav()
+        with reactive.isolate():
+            first, last = year_range(state)
         # a run that completed without an electricity solution: its electricity is 0, not real
         warn = None
         if failed:
